@@ -51,6 +51,15 @@
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
+    <!-- Inline script to hide the message box immediately on load -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('custom-message-box-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+            }
+        });
+    </script>
 
     <!-- Custom Message Box Overlay -->
     <div id="custom-message-box-overlay" class="hidden">
@@ -336,7 +345,7 @@
 
         // --- DOM Element References ---
         const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
-        const messageTextSpan = document.getElementById('message-text');
+        const messageTextSpan = document.getElementById('document.getElementById('message-text');
         const closeMessageBtn = document.getElementById('close-message-btn');
 
         const authSection = document.getElementById('auth-section');
