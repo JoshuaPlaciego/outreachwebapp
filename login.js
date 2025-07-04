@@ -172,7 +172,11 @@ async function handleSignIn() {
         }
     } catch (error) {
         console.error("Sign In Error:", error);
-        authError = `Sign In Failed: ${error.message}`;
+        if (error.code === 'auth/invalid-credential') {
+            authError = 'Invalid email or password. Please check your credentials and try again.';
+        } else {
+            authError = `Sign In Failed: ${error.message}`;
+        }
         hideEmailVerificationMessage(); // Hide verification message on sign-in error
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
