@@ -22,6 +22,14 @@ const customMessageBoxOverlay = document.getElementById('custom-message-box-over
 const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
 
+// These elements are specific to either index.html or addleads.html
+// They are declared here but will only be accessed if they exist on the current page.
+const authSection = document.getElementById('auth-section');
+const appContent = document.getElementById('app-content');
+const currentUserIdSpan = document.getElementById('current-user-id');
+const userIdDisplay = document.getElementById('user-id-display');
+const logoutBtn = document.getElementById('logout-btn'); // Declared once here
+
 // --- Shared Functions ---
 
 /**
@@ -80,7 +88,19 @@ async function initApp() {
             }
 
             if (user) {
-                await user.reload(); // Important for checking latest emailVerified status
+                // Always reload user to get the absolute latest emailVerified status
+                try {
+                    await user.reload();
+                } catch (reloadError) {
+                    console.error("Error reloading user in onAuthStateChanged:", reloadError);
+                    // If reload fails, it might mean the session is no longer valid.
+                    // Force sign out to prevent stale sessions.
+                    await signOut(auth);
+                    if (!isLoginPage) { // Only redirect if not already on login page
+                        window.location.href = 'index.html';
+                    }
+                    return; // Exit as user state is uncertain
+                }
 
                 if (user.emailVerified) {
                     // User is authenticated and email is verified
@@ -101,8 +121,6 @@ async function initApp() {
                     // User is signed in but email not verified
                     // DO NOT sign out here. Keep them signed in on the login page
                     // so they can use the "Resend Verification Email" link.
-                    // The redirection logic below will handle sending them to the login page
-                    // if they are on addleads.html.
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
                         window.location.href = 'index.html';
@@ -132,6 +150,15 @@ async function initApp() {
                         })
                         .catch(error => console.error("Error loading login.js:", error));
                 }
+            }
+            // Always ensure the correct content is visible based on the page context
+            // This block is outside the 'hasInitializedPage' check to ensure consistent UI state
+            if (isLoginPage) {
+                if (authSection) authSection.classList.remove('hidden');
+                if (appContent) appContent.classList.add('hidden');
+            } else { // addleads.html
+                if (authSection) authSection.classList.add('hidden');
+                if (appContent) appContent.classList.remove('hidden');
             }
         });
 
