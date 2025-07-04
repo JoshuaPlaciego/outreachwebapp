@@ -156,13 +156,10 @@ async function handleSignIn() {
             showEmailVerificationMessage(user.email);
             // Sign out the user to prevent partial access before verification
             await window.auth.signOut();
-            // No explicit redirect needed here, onAuthStateChanged in main.js handles it
         } else {
             // Email is verified. Directly redirect to addleads.html.
             // This ensures immediate navigation to the dashboard upon successful, verified sign-in.
-            authError = ''; // Clear error if successfully signed in and verified
-            hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
-            window.location.href = 'addleads.html'; // Direct redirection
+            window.location.href = 'addleads.html';
         }
     } catch (error) {
         console.error("Sign In Error:", error);

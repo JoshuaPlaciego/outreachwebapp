@@ -72,7 +72,16 @@ async function initApp() {
         // Listen for auth state changes to handle routing
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await user.reload(); // Important for checking latest emailVerified status
+                // IMPORTANT: Always reload and refresh token here to get the absolute latest status
+                // This is the most reliable way to ensure emailVerified is up-to-date
+                try {
+                    await user.reload();
+                    await user.getIdToken(true); // Force token refresh
+                } catch (reloadError) {
+                    console.error("Error reloading user or refreshing token in onAuthStateChanged:", reloadError);
+                    // Handle cases where reload/getIdToken fails (e.g., network issues)
+                    // For now, we'll proceed with the user object as is, but this might indicate a stale session
+                }
 
                 if (user.emailVerified) {
                     // User is authenticated and email is verified
@@ -91,7 +100,8 @@ async function initApp() {
                     }
                 } else {
                     // User is signed in but email not verified
-                    await signOut(auth); // Force sign out unverified user
+                    // Force sign out unverified user to prevent partial access
+                    await signOut(auth);
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
                         window.location.href = 'index.html';
