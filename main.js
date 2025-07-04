@@ -8,7 +8,7 @@ let auth;
 
 // --- IMPORTANT: Your Firebase Configuration ---
 const firebaseConfig = {
-    apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
+    apiKey: "AIzaSyD6gijBHuULvJBIjTaoNP9miVr2ZYCKDSg",
     authDomain: "outreachwebapp-139d4.firebaseapp.com",
     projectId: "outreachwebapp-139d4",
     storageBucket: "outreachwebapp-139d4.firebasestorage.app",
@@ -72,18 +72,30 @@ async function initApp() {
         // Listen for auth state changes to handle routing
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // IMPORTANT: Always reload and refresh token here to get the absolute latest status
-                // This is the most reliable way to ensure emailVerified is up-to-date
-                try {
-                    await user.reload();
-                    await user.getIdToken(true); // Force token refresh
-                } catch (reloadError) {
-                    console.error("Error reloading user or refreshing token in onAuthStateChanged:", reloadError);
-                    // Handle cases where reload/getIdToken fails (e.g., network issues)
-                    // For now, we'll proceed with the user object as is, but this might indicate a stale session
+                let isVerified = user.emailVerified;
+                let attempts = 0;
+                const maxAttempts = 5; // Max retries
+                const delayMs = 500; // Delay between retries in milliseconds
+
+                // Retry mechanism to ensure emailVerified status is up-to-date
+                while (!isVerified && attempts < maxAttempts) {
+                    attempts++;
+                    console.log(`Attempt ${attempts}: Checking email verification status...`);
+                    await new Promise(resolve => setTimeout(resolve, delayMs)); // Wait
+                    try {
+                        await user.reload(); // Reload user data
+                        await user.getIdToken(true); // Force refresh of ID token to get latest claims
+                        isVerified = user.emailVerified; // Update status after reload
+                    } catch (reloadError) {
+                        console.error("Error reloading user or refreshing token in onAuthStateChanged:", reloadError);
+                        // If reload/getIdToken fails, it might mean the session is no longer valid.
+                        // Break loop or force sign-out if critical. For now, we'll break.
+                        break;
+                    }
                 }
 
-                if (user.emailVerified) {
+                // Now, check the emailVerified status after retries
+                if (isVerified) {
                     // User is authenticated and email is verified
                     if (isLoginPage) {
                         // If on login page, redirect to addleads.html
@@ -99,7 +111,7 @@ async function initApp() {
                             .catch(error => console.error("Error loading addleads.js:", error));
                     }
                 } else {
-                    // User is signed in but email not verified
+                    // User is signed in but email not verified (even after retries)
                     // Force sign out unverified user to prevent partial access
                     await signOut(auth);
                     if (!isLoginPage) {
