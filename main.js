@@ -44,45 +44,45 @@ const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
 
 // These elements might not exist on both pages, so check for their existence
-const authSection = document.getElementById('auth-section');
-const appContent = document.getElementById('app-content');
-const authEmailInput = document.getElementById('auth-email');
-const authPasswordInput = document.getElementById('auth-password');
-const signupBtn = document.getElementById('signup-btn');
-const signinBtn = document.getElementById('signin-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const authErrorDiv = document.getElementById('auth-error');
-const authErrorMessageSpan = document.getElementById('auth-error-message');
-const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-const verificationMessageTextSpan = document.getElementById('verification-message-text');
-const resendVerificationBtn = document.getElementById('resend-verification-btn');
-const refreshStatusBtn = document.getElementById('refresh-status-btn');
+const authSection = document.getElementById('auth-section'); // Only on index.html (login)
+const appContent = document.getElementById('app-content'); // Only on addleads.html
+const authEmailInput = document.getElementById('auth-email'); // Only on index.html (login)
+const authPasswordInput = document.getElementById('auth-password'); // Only on index.html (login)
+const signupBtn = document.getElementById('signup-btn'); // Only on index.html (login)
+const signinBtn = document.getElementById('signin-btn'); // Only on index.html (login)
+const logoutBtn = document.getElementById('logout-btn'); // Only on addleads.html
+const authErrorDiv = document.getElementById('auth-error'); // Only on index.html (login)
+const authErrorMessageSpan = document.getElementById('auth-error-message'); // Only on index.html (login)
+const emailVerificationMessageDiv = document.getElementById('email-verification-message'); // Only on index.html (login)
+const verificationMessageTextSpan = document.getElementById('verification-message-text'); // Only on index.html (login)
+const resendVerificationBtn = document.getElementById('resend-verification-btn'); // Only on index.html (login)
+const refreshStatusBtn = document.getElementById('refresh-status-btn'); // Only on index.html (login)
 
-const userIdDisplay = document.getElementById('user-id-display');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const formTitle = document.getElementById('form-title');
-const validationErrorDiv = document.getElementById('validation-error');
-const errorMessageSpan = document.getElementById('error-message');
+const userIdDisplay = document.getElementById('user-id-display'); // Only on addleads.html
+const currentUserIdSpan = document.getElementById('current-user-id'); // Only on addleads.html
+const formTitle = document.getElementById('form-title'); // Only on addleads.html
+const validationErrorDiv = document.getElementById('validation-error'); // Only on addleads.html
+const errorMessageSpan = document.getElementById('error-message'); // Only on addleads.html
 
-const leadNameInput = document.getElementById('lead-name');
-const leadEmailInput = document.getElementById('lead-email');
-const callBookingLinkInput = document.getElementById('call-booking-link');
-const instagramLinkInput = document.getElementById('instagram-link');
-const youtubeLinkInput = document.getElementById('youtube-link');
-const tiktokLinkInput = document.getElementById('tiktok-link');
-const follower10KUpRadio = document.getElementById('follower-10k-up');
-const followerLess10KRadio = document.getElementById('follower-less-10k');
-const avgViewsInput = document.getElementById('avg-views');
-const nichesContainer = document.getElementById('niches-container');
-const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
-const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
-const leadNotesTextarea = document.getElementById('lead-notes');
+const leadNameInput = document.getElementById('lead-name'); // Only on addleads.html
+const leadEmailInput = document.getElementById('lead-email'); // Only on addleads.html
+const callBookingLinkInput = document.getElementById('call-booking-link'); // Only on addleads.html
+const instagramLinkInput = document.getElementById('instagram-link'); // Only on addleads.html
+const youtubeLinkInput = document.getElementById('youtube-link'); // Only on addleads.html
+const tiktokLinkInput = document.getElementById('tiktok-link'); // Only on addleads.html
+const follower10KUpRadio = document.getElementById('follower-10k-up'); // Only on addleads.html
+const followerLess10KRadio = document.getElementById('follower-less-10k'); // Only on addleads.html
+const avgViewsInput = document.getElementById('avg-views'); // Only on addleads.html
+const nichesContainer = document.getElementById('niches-container'); // Only on addleads.html
+const otherNicheNotesContainer = document.getElementById('other-niche-notes-container'); // Only on addleads.html
+const otherNicheNotesTextarea = document.getElementById('other-niche-notes'); // Only on addleads.html
+const leadNotesTextarea = document.getElementById('lead-notes'); // Only on addleads.html
 
-const addLeadBtn = document.getElementById('add-lead-btn');
-const updateLeadBtn = document.getElementById('update-lead-btn');
-const cancelEditBtn = document.getElementById('cancel-edit-btn');
-const leadsListDiv = document.getElementById('leads-list');
-const noLeadsMessage = document.getElementById('no-leads-message');
+const addLeadBtn = document.getElementById('add-lead-btn'); // Only on addleads.html
+const updateLeadBtn = document.getElementById('update-lead-btn'); // Only on addleads.html
+const cancelEditBtn = document.getElementById('cancel-edit-btn'); // Only on addleads.html
+const leadsListDiv = document.getElementById('leads-list'); // Only on addleads.html
+const noLeadsMessage = document.getElementById('no-leads-message'); // Only on addleads.html
 
 // --- Niche Definitions ---
 const poppyAINiches = [
@@ -160,6 +160,7 @@ function hideMessage() {
 
 /**
  * Displays the email verification message box.
+ * This function will only execute if emailVerificationMessageDiv and verificationMessageTextSpan exist (i.e., on index.html).
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
@@ -171,6 +172,7 @@ function showEmailVerificationMessage(email) {
 
 /**
  * Hides the email verification message box.
+ * This function will only execute if emailVerificationMessageDiv and verificationMessageTextSpan exist (i.e., on index.html).
  */
 function hideEmailVerificationMessage() {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
@@ -181,9 +183,10 @@ function hideEmailVerificationMessage() {
 
 /**
  * Renders the current state of the form inputs.
+ * This function is called on both index.html and addleads.html, but only updates elements present on the current page.
  */
 function renderForm() {
-    // Only render form elements if they exist on the current page (index.html)
+    // Elements specific to addleads.html (Lead Input Form)
     if (leadNameInput) leadNameInput.value = newLead.name;
     if (leadEmailInput) leadEmailInput.value = newLead.email;
     if (callBookingLinkInput) callBookingLinkInput.value = newLead.callBookingLink;
@@ -194,11 +197,11 @@ function renderForm() {
     if (leadNotesTextarea) leadNotesTextarea.value = newLead.notes;
     if (otherNicheNotesTextarea) otherNicheNotesTextarea.value = newLead.otherNicheNotes;
 
-    // Update radio buttons
+    // Update radio buttons (on addleads.html)
     if (follower10KUpRadio) follower10KUpRadio.checked = newLead.followerCount === '10K up';
     if (followerLess10KRadio) followerLess10KRadio.checked = newLead.followerCount === 'Less 10k';
 
-    // Render niches checkboxes and sub-niches
+    // Render niches checkboxes and sub-niches (on addleads.html)
     if (nichesContainer) {
         nichesContainer.innerHTML = ''; // Clear previous niches
         poppyAINiches.forEach(majorNiche => {
@@ -239,8 +242,7 @@ function renderForm() {
         });
     }
 
-
-    // Show/hide "Others" notes field
+    // Show/hide "Others" notes field (on addleads.html)
     if (otherNicheNotesContainer) {
         if (newLead.niches.includes('Others')) {
             otherNicheNotesContainer.classList.remove('hidden');
@@ -249,8 +251,7 @@ function renderForm() {
         }
     }
 
-
-    // Update form title and buttons based on editing state
+    // Update form title and buttons based on editing state (on addleads.html)
     if (formTitle && addLeadBtn && updateLeadBtn && cancelEditBtn) {
         if (editingLeadId) {
             formTitle.textContent = 'Edit Lead';
@@ -265,8 +266,7 @@ function renderForm() {
         }
     }
 
-
-    // Display validation error if any
+    // Display validation error if any (on addleads.html)
     if (validationErrorDiv && errorMessageSpan) {
         if (validationError) {
             validationErrorDiv.classList.remove('hidden');
@@ -277,8 +277,7 @@ function renderForm() {
         }
     }
 
-
-    // Display authentication error
+    // Display authentication error (on index.html/login page)
     if (authErrorDiv && authErrorMessageSpan) {
         if (authError) {
             authErrorDiv.classList.remove('hidden');
@@ -346,30 +345,33 @@ function handleNicheChange(e) {
  * @returns {boolean} True if form is valid, false otherwise.
  */
 function validateForm() {
-    if (!newLead.name.trim()) {
-        validationError = 'Lead Name is required.';
-        return false;
-    }
+    // Only validate lead form elements if they exist on the current page (addleads.html)
+    if (leadNameInput) { // Check for existence of a lead form element
+        if (!newLead.name.trim()) {
+            validationError = 'Lead Name is required.';
+            return false;
+        }
 
-    const hasSocialMediaLink = newLead.instagramLink.trim() || newLead.youtubeLink.trim() || newLead.tiktokLink.trim();
-    if (!hasSocialMediaLink) {
-        validationError = 'At least one social media link (Instagram, YouTube, or TikTok) is required.';
-        return false;
-    }
+        const hasSocialMediaLink = newLead.instagramLink.trim() || newLead.youtubeLink.trim() || newLead.tiktokLink.trim();
+        if (!hasSocialMediaLink) {
+            validationError = 'At least one social media link (Instagram, YouTube, or TikTok) is required.';
+            return false;
+        }
 
-    if (!newLead.followerCount) {
-        validationError = 'Follower Count (10K up or Less 10k) is required.';
-        return false;
-    }
+        if (!newLead.followerCount) {
+            validationError = 'Follower Count (10K up or Less 10k) is required.';
+            return false;
+        }
 
-    if (newLead.niches.length === 0) {
-        validationError = 'At least one Niche must be selected.';
-        return false;
-    }
+        if (newLead.niches.length === 0) {
+            validationError = 'At least one Niche must be selected.';
+            return false;
+        }
 
-    if (newLead.niches.includes('Others') && !newLead.otherNicheNotes.trim()) {
-        validationError = 'Please specify details for "Others" niche.';
-        return false;
+        if (newLead.niches.includes('Others') && !newLead.otherNicheNotes.trim()) {
+            validationError = 'Please specify details for "Others" niche.';
+            return false;
+        }
     }
 
     validationError = ''; // Clear any previous errors if all validations pass
@@ -621,13 +623,13 @@ async function handleSignIn() {
             showEmailVerificationMessage(user.email); // Explicitly show the yellow message
             // Sign out the user to prevent partial access before verification
             await signOut(auth);
-            // Redirect to login page
-            window.location.href = 'login.html';
+            // Redirect to login page (which is now index.html)
+            window.location.href = 'index.html';
         } else {
-            // Email is verified, redirect to main app content
+            // Email is verified, redirect to main app content (addleads.html)
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
-            window.location.href = 'index.html';
+            window.location.href = 'addleads.html';
         }
         renderForm(); // Re-render to show authError or clear it
     } catch (error) {
@@ -644,8 +646,8 @@ async function handleSignIn() {
 async function handleSignOut() {
     try {
         await signOut(auth);
-        // Redirect to login page after sign out
-        window.location.href = 'login.html';
+        // Redirect to login page (index.html) after sign out
+        window.location.href = 'index.html';
         resetForm(); // Clear form data on logout
     } catch (error) {
         console.error("Sign Out Error:", error);
@@ -712,8 +714,8 @@ async function initApp() {
         db = getFirestore(app);
         auth = getAuth(app);
 
-        // Determine if we are on the login page or the main app page
-        const isLoginPage = window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('/');
+        // Determine if we are on the login page (now index.html) or the main app page (addleads.html)
+        const isLoginPage = window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/');
 
         // Listen for auth state changes to get the user ID
         onAuthStateChanged(auth, async (user) => {
@@ -727,11 +729,11 @@ async function initApp() {
 
                     hideEmailVerificationMessage(); // Hide verification message
 
-                    // If on login page and verified, redirect to index.html
+                    // If on login page (index.html) and verified, redirect to addleads.html
                     if (isLoginPage) {
-                        window.location.href = 'index.html';
+                        window.location.href = 'addleads.html';
                     } else {
-                        // If on index.html and verified, ensure app content is visible
+                        // If on addleads.html and verified, ensure app content is visible
                         if (appContent) appContent.classList.remove('hidden');
                         authError = ''; // Clear any lingering auth errors
                         // Start Firestore listener AFTER user is authenticated and verified
@@ -753,10 +755,10 @@ async function initApp() {
                 } else {
                     // User is signed in but email not verified
                     currentUserId = null; // Treat as not fully authenticated for app access
-                    if (!isLoginPage) { // If on index.html, redirect to login
-                        window.location.href = 'login.html';
+                    if (!isLoginPage) { // If on addleads.html, redirect to index.html (login page)
+                        window.location.href = 'index.html';
                     } else {
-                        // If on login.html, ensure auth section is visible and show verification message
+                        // If on index.html (login page), ensure auth section is visible and show verification message
                         if (authSection) authSection.classList.remove('hidden');
                         if (appContent) appContent.classList.add('hidden'); // Ensure app content is hidden
                         showEmailVerificationMessage(user.email);
@@ -771,10 +773,10 @@ async function initApp() {
                 hideEmailVerificationMessage(); // Hide verification message if no user
                 leads = []; // Clear leads if no user
 
-                if (!isLoginPage) { // If on index.html and not logged in, redirect to login
-                    window.location.href = 'login.html';
+                if (!isLoginPage) { // If on addleads.html and not logged in, redirect to index.html (login page)
+                    window.location.href = 'index.html';
                 } else {
-                    // If on login.html and not logged in, ensure auth section is visible
+                    // If on index.html (login page) and not logged in, ensure auth section is visible
                     if (authSection) authSection.classList.remove('hidden');
                     if (appContent) appContent.classList.add('hidden'); // Ensure app content is hidden
                 }
