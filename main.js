@@ -198,6 +198,9 @@ if (closeMessageBtn) {
 }
 
 // Logout button listener (only exists on addleads.html, but main.js can handle it)
+// This listener needs to be attached conditionally if logoutBtn exists on the current page.
+// It's better handled within addleads.js for clarity, but kept here for global handling.
+const logoutBtn = document.getElementById('logout-btn'); // Re-fetch here to ensure it's not null on addleads.html
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
         try {
