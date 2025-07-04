@@ -1,12 +1,13 @@
 // login.js
-
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { resendVerification } from "./resendVerification.js";
 
-let auth;
-
+/**
+ * Initializes the login page, setting up event listeners and handling auth actions.
+ * @param {object|null} user - The current Firebase user object or null.
+ */
 export function initLoginPage(user) {
-    auth = window.auth;
+    const auth = window.auth;
 
     const emailInput = document.getElementById('auth-email');
     const passwordInput = document.getElementById('auth-password');
@@ -109,7 +110,7 @@ export function initLoginPage(user) {
         }
     });
 
-    // If user was passed in from onAuthStateChanged and is unverified
+    // If already signed in but not verified, show the verification message
     if (user && !user.emailVerified) {
         showVerificationMessage(user.email);
     }
