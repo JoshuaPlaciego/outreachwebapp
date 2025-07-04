@@ -13,8 +13,8 @@ const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
 const verificationMessageTextSpan = document.getElementById('verification-message-text');
+const verificationEmailDisplay = document.getElementById('verification-email-display'); // New span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
-// Removed direct reference to refreshStatusBtn as the button is no longer needed
 
 
 // --- Functions (specific to login page) ---
@@ -25,20 +25,13 @@ const inlineResendLink = document.getElementById('inline-resend-link'); // Now a
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        // Set the text content without rebuilding the entire HTML
-        verificationMessageTextSpan.innerHTML = `
-            <strong class="font-bold">Verification Needed: </strong>
-            Please verify your email address (${email}) to access the dashboard.
-            Check your inbox for a verification link.
-            <br>
-            <a href="#" id="inline-resend-link" class="text-indigo-600 hover:underline font-semibold mt-2 block">Resend Verification Email</a>
-        `;
+    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay) {
+        // Update only the dynamic email part, the rest of the message is static in HTML
+        verificationEmailDisplay.textContent = email;
         emailVerificationMessageDiv.classList.remove('hidden');
 
-        // Show the inline resend link (refresh button is removed from HTML)
+        // Show the inline resend link
         if (inlineResendLink) inlineResendLink.classList.remove('hidden');
-
 
         // Explicitly hide the authentication error message when showing verification message
         if (authErrorDiv) {
@@ -52,10 +45,10 @@ function showEmailVerificationMessage(email) {
  * Hides the email verification message box.
  */
 function hideEmailVerificationMessage() {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
+    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay) {
         emailVerificationMessageDiv.classList.add('hidden');
-        verificationMessageTextSpan.innerHTML = ''; // Clear content
-        // Hide the inline resend link (refresh button is removed from HTML)
+        verificationEmailDisplay.textContent = ''; // Clear email content
+        // Hide the inline resend link
         if (inlineResendLink) inlineResendLink.classList.add('hidden');
     }
 }
@@ -210,30 +203,9 @@ async function handleResendVerificationEmail() {
     }
 }
 
-/**
- * Handles refreshing the user's authentication status to check email verification.
- * This function is no longer attached to a button in login.html, but kept for completeness if needed elsewhere.
- */
-async function handleRefreshStatus() {
-    authError = ''; // Clear previous auth errors
-    const user = window.auth.currentUser;
-    if (user) {
-        try {
-            await user.reload(); // Reloads the user's profile
-            // The onAuthStateChanged listener in main.js will then re-evaluate user.emailVerified
-            // and handle the routing/message display.
-            authError = 'Status refreshed. Please try signing in again if your email is now verified.';
-            renderAuthForm();
-        } catch (error) {
-            console.error("Refresh Status Error:", error);
-            authError = `Failed to refresh status: ${error.message}`;
-            renderAuthForm();
-        }
-    } else {
-        authError = 'No user is currently signed in to refresh status.';
-        renderAuthForm();
-    }
-}
+// The handleRefreshStatus function is no longer needed as the button has been removed from HTML.
+// If you decide to re-add a "Refresh Status" button in the future, you would uncomment this function
+// and its event listener in initLoginPage.
 
 /**
  * Initializes the login page specific elements and listeners.
@@ -254,15 +226,15 @@ export function initLoginPage(user) {
     // These are now attached here, where the functions are defined.
     if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
-    // The resend link is now dynamically created and attached within showEmailVerificationMessage
-    // The refreshStatusBtn listener is removed as the button is no longer in HTML
-    // if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus); // This line is commented out as the button is removed
-    if (inlineResendLink) { // Ensure inlineResendLink exists before attaching listener
+    // The resend link is now a static element, attach its listener here
+    if (inlineResendLink) {
         inlineResendLink.addEventListener('click', (e) => {
             e.preventDefault();
             handleResendVerificationEmail();
         });
     }
+    // The refreshStatusBtn listener is removed as the button is no longer in HTML
+    // if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus); // This line is commented out as the button is removed
     
     // Initial render of the form
     renderAuthForm();
