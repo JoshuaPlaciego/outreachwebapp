@@ -28,6 +28,7 @@ function showEmailVerificationMessage(email) {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
         // Construct the HTML for the message, including the inline resend link
         verificationMessageTextSpan.innerHTML = `
+            <strong class="font-bold">Verification Needed: </strong>
             Please verify your email address (${email}) to access the dashboard.
             Check your inbox for a verification link.
             <br>
@@ -214,6 +215,7 @@ async function handleResendVerificationEmail() {
 
 /**
  * Handles refreshing the user's authentication status to check email verification.
+ * This function is no longer attached to a button in login.html, but kept for completeness if needed elsewhere.
  */
 async function handleRefreshStatus() {
     authError = ''; // Clear previous auth errors
@@ -256,7 +258,8 @@ export function initLoginPage(user) {
     if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
     // The resend link is now dynamically created and attached within showEmailVerificationMessage
-    if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+    // The refreshStatusBtn listener is removed as the button is no longer in HTML
+    // if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
     
     // Initial render of the form
     renderAuthForm();
