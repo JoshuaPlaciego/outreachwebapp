@@ -344,7 +344,7 @@
         const authEmailInput = document.getElementById('auth-email');
         const authPasswordInput = document.getElementById('auth-password');
         const signupBtn = document.getElementById('signup-btn');
-        const signinBtn = document.getElementById('signin-btn');
+        const signinBtn = document.getElementById('signin-in');
         const logoutBtn = document.getElementById('logout-btn');
         const authErrorDiv = document.getElementById('auth-error');
         const authErrorMessageSpan = document.getElementById('auth-error-message');
@@ -860,7 +860,8 @@
                     await signOut(auth); // Sign out the user to keep them on the auth screen
                 }
             } catch (error) {
-                if (error.code === 'auth/user-not-found') {
+                // Check for specific errors that indicate the user doesn't exist or credentials are bad for sign-in
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     // Scenario 3: User does not exist, proceed with sign up
                     try {
                         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -885,7 +886,7 @@
                         authError = `Sign Up Failed: ${signUpError.message}`;
                     }
                 } else {
-                    // Other sign-in errors (e.g., wrong password for existing user)
+                    // Other unexpected sign-in errors
                     console.error("Sign In Error (during Sign Up attempt):", error);
                     authError = `Sign In Failed: ${error.message}`;
                 }
