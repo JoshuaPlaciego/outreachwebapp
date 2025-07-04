@@ -8,11 +8,10 @@ const authSection = document.getElementById('auth-section');
 const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
 const signupBtn = document.getElementById('signup-btn');
-const signinBtn = document.getElementById('signin-btn');
+const signinBtn = document.getElementById('signin-btn'); // Corrected ID to match HTML
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-// Removed verificationMessageTextSpan as it's no longer directly manipulated for full text
 const verificationEmailDisplay = document.getElementById('verification-email-display'); // Span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
 
@@ -111,8 +110,8 @@ async function handleSignUp() {
         // Show a clear message to the user that they need to verify their email
         window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
         
-        // Sign out the user immediately after sending email, so they have to sign in again to trigger verification check
-        await window.auth.signOut();
+        // DO NOT sign out here. Let main.js handle the state change based on email verification.
+        // await window.auth.signOut(); // Removed this line
 
     } catch (error) {
         // Handle specific Firebase authentication errors
@@ -165,8 +164,7 @@ async function handleSignIn() {
             // showEmailVerificationMessage will also hide the red auth error box
             showEmailVerificationMessage(user.email);
             // DO NOT sign out here. Keep the user signed in on the login page.
-            // await window.auth.signOut(); // Removed this line in main.js, so no need to sign out here.
-            // No explicit redirect needed here, onAuthStateChanged in main.js handles it
+            // main.js's onAuthStateChanged will detect the unverified user and keep them on this page.
         } else {
             // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
             authError = ''; // Clear error if successfully signed in and verified

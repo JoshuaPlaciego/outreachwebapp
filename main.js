@@ -133,7 +133,7 @@ async function initApp() {
                     }
                 } else {
                     // User is signed in but email not verified
-                    // DO NOT sign out here. Keep them signed in on the login page
+                    // DO NOT sign out here if on login page. Keep them signed in on the login page
                     // so they can use the "Resend Verification Email" link.
                     currentUserId = null; // Still consider them not fully authenticated for app content access
 
