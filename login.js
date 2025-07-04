@@ -156,11 +156,10 @@ async function handleSignIn() {
             await window.auth.signOut();
             // No explicit redirect needed here, onAuthStateChanged in main.js handles it
         } else {
-            // Email is verified, redirect to the new email_verified.html page
+            // Email is verified. Do NOT redirect from here.
+            // Let the onAuthStateChanged listener in main.js handle the redirection to addleads.html.
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
-            // Redirect to the new confirmation page
-            window.location.href = 'emailverified.html';
         }
     } catch (error) {
         console.error("Sign In Error:", error);
