@@ -1,4 +1,4 @@
-// main.js (Updated with Logout button functionality)
+// main.js (Updated with Logout button functionality + auto-hide messages)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -28,11 +28,16 @@ const userIdDisplay = document.getElementById('user-id-display');
 const logoutBtn = document.getElementById('logout-btn');
 
 let isRedirecting = false;
+let messageTimeout;
 
 function showMessage(message) {
     if (customMessageBoxOverlay && messageTextSpan) {
+        clearTimeout(messageTimeout);
         customMessageBoxOverlay.style.display = 'flex';
         messageTextSpan.textContent = message;
+        messageTimeout = setTimeout(() => {
+            hideMessage();
+        }, 3000);
     }
 }
 
@@ -63,7 +68,6 @@ async function initApp() {
 
         onAuthStateChanged(auth, async (user) => {
             if (isRedirecting) return;
-
             if (!user && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) return;
 
             if (user) {
