@@ -846,7 +846,7 @@
                 await sendEmailVerification(user);
                 showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
                 hideEmailVerificationMessage(); // Ensure hidden for new sign-ups
-                await signOut(auth);
+                // Removed signOut(auth) here to allow the message box to stay open
                 authEmailInput.value = '';
                 authPasswordInput.value = '';
                 authError = ''; // Clear any auth error if sign up was successful
@@ -942,7 +942,7 @@
                 resetForm(); // Clear form data on logout
             } catch (error) {
                 console.error("Sign Out Error:", error);
-                authError = `Sign Out Failed: ${error.message}`;
+                authError = `Sign Out Failed: ${e.message}`;
                 renderForm();
             }
         }
