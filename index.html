@@ -71,14 +71,7 @@
             <span id="auth-error-message" class="block sm:inline"></span>
         </div>
 
-        <div id="email-verification-message" class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
-            <strong class="font-bold">Verification Needed: </strong>
-            <span id="verification-message-text" class="block sm:inline">Please verify your email address to access the dashboard. Check your inbox for a verification link.</span>
-            <div class="flex justify-center mt-3 space-x-2">
-                <button id="resend-verification-btn" class="px-4 py-2 bg-yellow-600 text-white rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out text-sm">Resend Email</button>
-                <button id="refresh-status-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm">Refresh Status</button>
-            </div>
-        </div>
+        <!-- Removed: Email Verification Message Div -->
 
         <div class="mb-4">
             <label for="auth-email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
@@ -335,7 +328,7 @@
 
         // --- DOM Element References ---
         const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
-        const messageTextSpan = document.getElementById('message-text'); // Corrected ID reference
+        const messageTextSpan = document.getElementById('message-text');
         const closeMessageBtn = document.getElementById('close-message-btn');
 
         const authSection = document.getElementById('auth-section');
@@ -347,10 +340,7 @@
         const logoutBtn = document.getElementById('logout-btn');
         const authErrorDiv = document.getElementById('auth-error');
         const authErrorMessageSpan = document.getElementById('auth-error-message');
-        const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-        const verificationMessageTextSpan = document.getElementById('verification-message-text');
-        const resendVerificationBtn = document.getElementById('resend-verification-btn');
-        const refreshStatusBtn = document.getElementById('refresh-status-btn');
+        // Removed: emailVerificationMessageDiv, verificationMessageTextSpan, resendVerificationBtn, refreshStatusBtn
 
 
         const userIdDisplay = document.getElementById('user-id-display');
@@ -878,54 +868,12 @@
                 resetForm(); // Clear form data on logout
             } catch (error) {
                 console.error("Sign Out Error:", error);
-                authError = `Sign Out Failed: ${e.message}`;
+                authError = `Sign Out Failed: ${error.message}`; // Corrected error reference
                 renderForm();
             }
         }
 
-        /**
-         * Handles resending the email verification.
-         */
-        async function handleResendVerificationEmail() {
-            authError = ''; // Clear previous auth errors
-            const user = auth.currentUser;
-            if (user) {
-                try {
-                    await sendEmailVerification(user);
-                    authError = 'Verification email re-sent! Please check your inbox.';
-                    renderForm();
-                } catch (error) {
-                    console.error("Resend Verification Error:", error);
-                    authError = `Failed to resend verification email: ${error.message}`;
-                    renderForm();
-                }
-            } else {
-                authError = 'No user is currently signed in to resend verification.';
-                renderForm();
-            }
-        }
-
-        /**
-         * Handles refreshing the user's authentication status to check email verification.
-         */
-        async function handleRefreshStatus() {
-            authError = ''; // Clear previous auth errors
-            const user = auth.currentUser;
-            if (user) {
-                try {
-                    await user.reload(); // Reloads the user's profile
-                    // The onAuthStateChanged listener will then re-evaluate user.emailVerified
-                } catch (error) {
-                    console.error("Refresh Status Error:", error);
-                    authError = `Failed to refresh status: ${error.message}`;
-                    renderForm();
-                }
-            } else {
-                authError = 'No user is currently signed in to refresh status.';
-                renderForm();
-            }
-        }
-
+        // Removed: handleResendVerificationEmail and handleRefreshStatus functions
 
         /**
          * Initializes the application, setting up Firebase and listeners.
@@ -950,7 +898,7 @@
                             currentUserId = user.uid;
                             currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
                             authSection.classList.add('hidden'); // Hide auth section
-                            emailVerificationMessageDiv.classList.add('hidden'); // Hide verification message
+                            // Removed: emailVerificationMessageDiv.classList.add('hidden');
                             appContent.classList.remove('hidden'); // Show app content
                             authError = ''; // Clear any lingering auth errors
 
@@ -973,19 +921,19 @@
                             // User is signed in but email not verified
                             currentUserId = null; // Treat as not fully authenticated for app access
                             authSection.classList.remove('hidden'); // Show auth section
-                            emailVerificationMessageDiv.classList.remove('hidden'); // Show verification message
-                            verificationMessageTextSpan.textContent = `Please verify your email address (${user.email}) to access the dashboard. Check your inbox for a verification link.`;
+                            // Removed: emailVerificationMessageDiv.classList.remove('hidden');
+                            // Removed: verificationMessageTextSpan.textContent = ...;
                             appContent.classList.add('hidden'); // Hide app content
-                            // Optionally sign out unverified user to prevent partial access, or just keep them on auth screen
-                            // await signOut(auth); // Consider if you want to force sign out here
                             console.warn("User signed in but email not verified:", user.email);
+                            // Display a message to the user that they need to verify their email
+                            authError = `Please verify your email address (${user.email}) to access the dashboard.`;
                         }
                     } else {
                         currentUserId = null;
                         currentUserIdSpan.textContent = '';
                         userIdDisplay.classList.add('hidden'); // Hide user ID display
                         authSection.classList.remove('hidden'); // Show auth section
-                        emailVerificationMessageDiv.classList.add('hidden'); // Hide verification message if no user
+                        // Removed: emailVerificationMessageDiv.classList.add('hidden');
                         appContent.classList.add('hidden'); // Hide app content
                         leads = []; // Clear leads if no user
                         renderLeadsList();
@@ -1011,8 +959,9 @@
         signupBtn.addEventListener('click', handleSignUp);
         signinBtn.addEventListener('click', handleSignIn);
         logoutBtn.addEventListener('click', handleSignOut);
-        resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
-        refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+        closeMessageBtn.addEventListener('click', hideMessage); // Event listener for the "Got It!" button
+        // Removed: resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+        // Removed: refreshStatusBtn.addEventListener('click', handleRefreshStatus);
 
 
         // Form input listeners
