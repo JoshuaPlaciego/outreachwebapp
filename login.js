@@ -12,8 +12,8 @@ const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-const verificationMessageTextSpan = document.getElementById('verification-message-text');
-const verificationEmailDisplay = document.getElementById('verification-email-display'); // New span for dynamic email display
+// Removed verificationMessageTextSpan as it's no longer directly manipulated for full text
+const verificationEmailDisplay = document.getElementById('verification-email-display'); // Span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
 
 
@@ -25,7 +25,7 @@ const inlineResendLink = document.getElementById('inline-resend-link'); // Now a
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay) {
+    if (emailVerificationMessageDiv && verificationEmailDisplay) {
         // Update only the dynamic email part, the rest of the message is static in HTML
         verificationEmailDisplay.textContent = email;
         emailVerificationMessageDiv.classList.remove('hidden');
@@ -45,7 +45,7 @@ function showEmailVerificationMessage(email) {
  * Hides the email verification message box.
  */
 function hideEmailVerificationMessage() {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay) {
+    if (emailVerificationMessageDiv && verificationEmailDisplay) {
         emailVerificationMessageDiv.classList.add('hidden');
         verificationEmailDisplay.textContent = ''; // Clear email content
         // Hide the inline resend link
