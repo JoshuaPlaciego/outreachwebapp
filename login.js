@@ -158,10 +158,11 @@ async function handleSignIn() {
             await window.auth.signOut();
             // No explicit redirect needed here, onAuthStateChanged in main.js handles it
         } else {
-            // Email is verified. Do NOT redirect from here.
-            // Let the onAuthStateChanged listener in main.js handle the redirection to addleads.html.
+            // Email is verified. Directly redirect to addleads.html.
+            // This ensures immediate navigation to the dashboard upon successful, verified sign-in.
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
+            window.location.href = 'addleads.html'; // Direct redirection
         }
     } catch (error) {
         console.error("Sign In Error:", error);
