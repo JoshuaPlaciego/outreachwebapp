@@ -43,46 +43,45 @@ const customMessageBoxOverlay = document.getElementById('custom-message-box-over
 const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
 
-// These elements might not exist on both pages, so check for their existence
-const authSection = document.getElementById('auth-section'); // Only on index.html (login)
-const appContent = document.getElementById('app-content'); // Only on addleads.html
-const authEmailInput = document.getElementById('auth-email'); // Only on index.html (login)
-const authPasswordInput = document.getElementById('auth-password'); // Only on index.html (login)
-const signupBtn = document.getElementById('signup-btn'); // Only on index.html (login)
-const signinBtn = document.getElementById('signin-btn'); // Only on index.html (login)
-const logoutBtn = document.getElementById('logout-btn'); // Only on addleads.html
-const authErrorDiv = document.getElementById('auth-error'); // Only on index.html (login)
-const authErrorMessageSpan = document.getElementById('auth-error-message'); // Only on index.html (login)
-const emailVerificationMessageDiv = document.getElementById('email-verification-message'); // Only on index.html (login)
-const verificationMessageTextSpan = document.getElementById('verification-message-text'); // Only on index.html (login)
-const resendVerificationBtn = document.getElementById('resend-verification-btn'); // Only on index.html (login)
-const refreshStatusBtn = document.getElementById('refresh-status-btn'); // Only on index.html (login)
+const authSection = document.getElementById('auth-section');
+const appContent = document.getElementById('app-content');
+const authEmailInput = document.getElementById('auth-email');
+const authPasswordInput = document.getElementById('auth-password');
+const signupBtn = document.getElementById('signup-btn');
+const signinBtn = document.getElementById('signin-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const authErrorDiv = document.getElementById('auth-error');
+const authErrorMessageSpan = document.getElementById('auth-error-message');
+const emailVerificationMessageDiv = document.getElementById('email-verification-message');
+const verificationMessageTextSpan = document.getElementById('verification-message-text');
+const resendVerificationBtn = document.getElementById('resend-verification-btn');
+const refreshStatusBtn = document.getElementById('refresh-status-btn');
 
-const userIdDisplay = document.getElementById('user-id-display'); // Only on addleads.html
-const currentUserIdSpan = document.getElementById('current-user-id'); // Only on addleads.html
-const formTitle = document.getElementById('form-title'); // Only on addleads.html
-const validationErrorDiv = document.getElementById('validation-error'); // Only on addleads.html
-const errorMessageSpan = document.getElementById('error-message'); // Only on addleads.html
+const userIdDisplay = document.getElementById('user-id-display');
+const currentUserIdSpan = document.getElementById('current-user-id');
+const formTitle = document.getElementById('form-title');
+const validationErrorDiv = document.getElementById('validation-error');
+const errorMessageSpan = document.getElementById('error-message');
 
-const leadNameInput = document.getElementById('lead-name'); // Only on addleads.html
-const leadEmailInput = document.getElementById('lead-email'); // Only on addleads.html
-const callBookingLinkInput = document.getElementById('call-booking-link'); // Only on addleads.html
-const instagramLinkInput = document.getElementById('instagram-link'); // Only on addleads.html
-const youtubeLinkInput = document.getElementById('youtube-link'); // Only on addleads.html
-const tiktokLinkInput = document.getElementById('tiktok-link'); // Only on addleads.html
-const follower10KUpRadio = document.getElementById('follower-10k-up'); // Only on addleads.html
-const followerLess10KRadio = document.getElementById('follower-less-10k'); // Only on addleads.html
-const avgViewsInput = document.getElementById('avg-views'); // Only on addleads.html
-const nichesContainer = document.getElementById('niches-container'); // Only on addleads.html
-const otherNicheNotesContainer = document.getElementById('other-niche-notes-container'); // Only on addleads.html
-const otherNicheNotesTextarea = document.getElementById('other-niche-notes'); // Only on addleads.html
-const leadNotesTextarea = document.getElementById('lead-notes'); // Only on addleads.html
+const leadNameInput = document.getElementById('lead-name');
+const leadEmailInput = document.getElementById('lead-email');
+const callBookingLinkInput = document.getElementById('call-booking-link');
+const instagramLinkInput = document.getElementById('instagram-link');
+const youtubeLinkInput = document.getElementById('youtube-link');
+const tiktokLinkInput = document.getElementById('tiktok-link');
+const follower10KUpRadio = document.getElementById('follower-10k-up');
+const followerLess10KRadio = document.getElementById('follower-less-10k');
+const avgViewsInput = document.getElementById('avg-views');
+const nichesContainer = document.getElementById('niches-container');
+const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
+const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
+const leadNotesTextarea = document.getElementById('lead-notes');
 
-const addLeadBtn = document.getElementById('add-lead-btn'); // Only on addleads.html
-const updateLeadBtn = document.getElementById('update-lead-btn'); // Only on addleads.html
-const cancelEditBtn = document.getElementById('cancel-edit-btn'); // Only on addleads.html
-const leadsListDiv = document.getElementById('leads-list'); // Only on addleads.html
-const noLeadsMessage = document.getElementById('no-leads-message'); // Only on addleads.html
+const addLeadBtn = document.getElementById('add-lead-btn');
+const updateLeadBtn = document.getElementById('update-lead-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const leadsListDiv = document.getElementById('leads-list');
+const noLeadsMessage = document.getElementById('no-leads-message');
 
 // --- Niche Definitions ---
 const poppyAINiches = [
@@ -160,30 +159,23 @@ function hideMessage() {
 
 /**
  * Displays the email verification message box.
- * This function will only execute if emailVerificationMessageDiv and verificationMessageTextSpan exist (i.e., on index.html).
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
-        emailVerificationMessageDiv.classList.remove('hidden');
-    }
+    verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+    emailVerificationMessageDiv.classList.remove('hidden');
 }
 
 /**
  * Hides the email verification message box.
- * This function will only execute if emailVerificationMessageDiv and verificationMessageTextSpan exist (i.e., on index.html).
  */
 function hideEmailVerificationMessage() {
-    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        emailVerificationMessageDiv.classList.add('hidden');
-        verificationMessageTextSpan.textContent = '';
-    }
+    emailVerificationMessageDiv.classList.add('hidden');
+    verificationMessageTextSpan.textContent = '';
 }
 
 /**
  * Renders the current state of the form inputs.
- * This function is called on both index.html and addleads.html, but only updates elements present on the current page.
  */
 function renderForm() {
     // Elements specific to addleads.html (Lead Input Form)
@@ -197,11 +189,11 @@ function renderForm() {
     if (leadNotesTextarea) leadNotesTextarea.value = newLead.notes;
     if (otherNicheNotesTextarea) otherNicheNotesTextarea.value = newLead.otherNicheNotes;
 
-    // Update radio buttons (on addleads.html)
+    // Update radio buttons
     if (follower10KUpRadio) follower10KUpRadio.checked = newLead.followerCount === '10K up';
     if (followerLess10KRadio) followerLess10KRadio.checked = newLead.followerCount === 'Less 10k';
 
-    // Render niches checkboxes and sub-niches (on addleads.html)
+    // Render niches checkboxes and sub-niches
     if (nichesContainer) {
         nichesContainer.innerHTML = ''; // Clear previous niches
         poppyAINiches.forEach(majorNiche => {
@@ -242,7 +234,7 @@ function renderForm() {
         });
     }
 
-    // Show/hide "Others" notes field (on addleads.html)
+    // Show/hide "Others" notes field
     if (otherNicheNotesContainer) {
         if (newLead.niches.includes('Others')) {
             otherNicheNotesContainer.classList.remove('hidden');
@@ -251,7 +243,7 @@ function renderForm() {
         }
     }
 
-    // Update form title and buttons based on editing state (on addleads.html)
+    // Update form title and buttons based on editing state
     if (formTitle && addLeadBtn && updateLeadBtn && cancelEditBtn) {
         if (editingLeadId) {
             formTitle.textContent = 'Edit Lead';
@@ -266,7 +258,7 @@ function renderForm() {
         }
     }
 
-    // Display validation error if any (on addleads.html)
+    // Display validation error if any
     if (validationErrorDiv && errorMessageSpan) {
         if (validationError) {
             validationErrorDiv.classList.remove('hidden');
@@ -277,7 +269,7 @@ function renderForm() {
         }
     }
 
-    // Display authentication error (on index.html/login page)
+    // Display authentication error
     if (authErrorDiv && authErrorMessageSpan) {
         if (authError) {
             authErrorDiv.classList.remove('hidden');
@@ -345,33 +337,30 @@ function handleNicheChange(e) {
  * @returns {boolean} True if form is valid, false otherwise.
  */
 function validateForm() {
-    // Only validate lead form elements if they exist on the current page (addleads.html)
-    if (leadNameInput) { // Check for existence of a lead form element
-        if (!newLead.name.trim()) {
-            validationError = 'Lead Name is required.';
-            return false;
-        }
+    if (!newLead.name.trim()) {
+        validationError = 'Lead Name is required.';
+        return false;
+    }
 
-        const hasSocialMediaLink = newLead.instagramLink.trim() || newLead.youtubeLink.trim() || newLead.tiktokLink.trim();
-        if (!hasSocialMediaLink) {
-            validationError = 'At least one social media link (Instagram, YouTube, or TikTok) is required.';
-            return false;
-        }
+    const hasSocialMediaLink = newLead.instagramLink.trim() || newLead.youtubeLink.trim() || newLead.tiktokLink.trim();
+    if (!hasSocialMediaLink) {
+        validationError = 'At least one social media link (Instagram, YouTube, or TikTok) is required.';
+        return false;
+    }
 
-        if (!newLead.followerCount) {
-            validationError = 'Follower Count (10K up or Less 10k) is required.';
-            return false;
-        }
+    if (!newLead.followerCount) {
+        validationError = 'Follower Count (10K up or Less 10k) is required.';
+        return false;
+    }
 
-        if (newLead.niches.length === 0) {
-            validationError = 'At least one Niche must be selected.';
-            return false;
-        }
+    if (newLead.niches.length === 0) {
+        validationError = 'At least one Niche must be selected.';
+        return false;
+    }
 
-        if (newLead.niches.includes('Others') && !newLead.otherNicheNotes.trim()) {
-            validationError = 'Please specify details for "Others" niche.';
-            return false;
-        }
+    if (newLead.niches.includes('Others') && !newLead.otherNicheNotes.trim()) {
+        validationError = 'Please specify details for "Others" niche.';
+        return false;
     }
 
     validationError = ''; // Clear any previous errors if all validations pass
@@ -382,9 +371,11 @@ function validateForm() {
  * Adds a new lead to Firestore.
  */
 async function handleAddLead() {
-    if (!window.db || !currentUserId) {
+    if (!db || !currentUserId) {
         console.error("Firestore not initialized or user not authenticated.");
-        window.showMessage("Application not fully loaded or authenticated. Please refresh and try again.");
+        // Display a user-friendly error if Firebase isn't ready
+        validationError = "Application not fully loaded or authenticated. Please refresh and try again.";
+        renderForm();
         return;
     }
     if (!validateForm()) {
@@ -394,7 +385,7 @@ async function handleAddLead() {
 
     try {
         // Use the hardcoded appId from the firebaseConfig
-        await addDoc(collection(window.db, `artifacts/${window.appId}/public/data/leads`), {
+        await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), {
             ...newLead,
             createdAt: serverTimestamp(), // Use serverTimestamp for consistent time
             createdBy: currentUserId
@@ -402,7 +393,8 @@ async function handleAddLead() {
         resetForm();
     } catch (e) {
         console.error("Error adding document: ", e);
-        window.showMessage(`Error adding lead: ${e.message}. Check console for details.`);
+        validationError = `Error adding lead: ${e.message}. Check console for details.`;
+        renderForm();
     }
 }
 
@@ -426,9 +418,10 @@ function handleEditLead(id) {
  * Updates an existing lead in Firestore.
  */
 async function handleUpdateLead() {
-    if (!window.db || !currentUserId || !editingLeadId) {
+    if (!db || !currentUserId || !editingLeadId) {
         console.error("Firestore not initialized, user not authenticated, or no lead selected for editing.");
-        window.showMessage("Application not fully loaded or authenticated. Cannot update.");
+        validationError = "Application not fully loaded or authenticated. Cannot update.";
+        renderForm();
         return;
     }
     if (!validateForm()) {
@@ -438,7 +431,7 @@ async function handleUpdateLead() {
 
     try {
         // Use the hardcoded appId from the firebaseConfig
-        const leadRef = doc(window.db, `artifacts/${window.appId}/public/data/leads`, editingLeadId);
+        const leadRef = doc(db, `artifacts/${appId}/public/data/leads`, editingLeadId);
         await updateDoc(leadRef, {
             ...newLead,
             updatedAt: serverTimestamp(), // Use serverTimestamp for consistent time
@@ -447,7 +440,8 @@ async function handleUpdateLead() {
         resetForm();
     } catch (e) {
         console.error("Error updating document: ", e);
-        window.showMessage(`Error updating lead: ${e.message}. Check console for details.`);
+        validationError = `Error updating lead: ${e.message}. Check console for details.`;
+        renderForm();
     }
 }
 
@@ -456,16 +450,18 @@ async function handleUpdateLead() {
  * @param {string} id - The ID of the lead to delete.
  */
 async function handleDeleteLead(id) {
-    if (!window.db || !currentUserId) {
+    if (!db || !currentUserId) {
         console.error("Firestore not initialized or user not authenticated.");
-        window.showMessage("Application not fully loaded or authenticated. Cannot delete.");
-        return;
+        validationError = "Application not fully loaded or authenticated. Cannot delete.";
+        renderForm();
     }
     try {
-        await deleteDoc(doc(window.db, `artifacts/${window.appId}/public/data/leads`, id));
+        // Use the hardcoded appId from the firebaseConfig
+        await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, id));
     } catch (e) {
         console.error("Error removing document: ", e);
-        window.showMessage(`Error deleting lead: ${e.message}. Check console for details.`);
+        validationError = `Error deleting lead: ${e.message}. Check console for details.`;
+        renderForm();
     }
 }
 
@@ -542,58 +538,161 @@ function renderLeadsList() {
  */
 async function handleSignOut() {
     try {
-        await window.auth.signOut();
-        // Redirection handled by onAuthStateChanged in main.js
+        await signOut(auth);
+        // Auth state listener will handle UI update on successful sign-out
+        resetForm(); // Clear form data on logout
     } catch (error) {
         console.error("Sign Out Error:", error);
-        window.showMessage(`Sign Out Failed: ${error.message}`);
+        authError = `Sign Out Failed: ${error.message}`; // Corrected error variable
+        renderForm();
     }
 }
 
 /**
- * Initializes the add leads page specific elements and listeners.
- * Called by main.js after Firebase is initialized and user is verified.
- * @param {object} user The current Firebase user object.
+ * Handles resending the email verification.
  */
-export function initAddLeadsPage(user) {
-    currentUserId = user.uid;
-    if (appContent) appContent.classList.remove('hidden'); // Ensure app content is visible
-    if (currentUserIdSpan) currentUserIdSpan.textContent = user.email || user.uid;
-    if (userIdDisplay) userIdDisplay.classList.remove('hidden');
-
-    // Attach event listeners
-    if (logoutBtn) logoutBtn.addEventListener('click', handleSignOut);
-    if (leadNameInput) leadNameInput.addEventListener('input', updateFormInput);
-    if (leadEmailInput) leadEmailInput.addEventListener('input', updateFormInput);
-    if (callBookingLinkInput) callBookingLinkInput.addEventListener('input', updateFormInput);
-    if (instagramLinkInput) instagramLinkInput.addEventListener('input', updateFormInput);
-    if (youtubeLinkInput) youtubeLinkInput.addEventListener('input', updateFormInput);
-    if (tiktokLinkInput) tiktokLinkInput.addEventListener('input', updateFormInput);
-    if (follower10KUpRadio) follower10KUpRadio.addEventListener('change', updateFormInput);
-    if (followerLess10KRadio) followerLess10KRadio.addEventListener('change', updateFormInput);
-    if (avgViewsInput) avgViewsInput.addEventListener('input', updateFormInput);
-    if (otherNicheNotesTextarea) otherNicheNotesTextarea.addEventListener('input', updateFormInput);
-    if (leadNotesTextarea) leadNotesTextarea.addEventListener('input', updateFormInput);
-    if (addLeadBtn) addLeadBtn.addEventListener('click', handleAddLead);
-    if (updateLeadBtn) updateLeadBtn.addEventListener('click', handleUpdateLead);
-    if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
-
-    // Start Firestore listener for leads
-    const leadsCollectionRef = collection(window.db, `artifacts/${window.appId}/public/data/leads`);
-    onSnapshot(leadsCollectionRef, (snapshot) => {
-        leads = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        // Sort leads by creation time in memory
-        leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-        renderLeadsList();
-    }, (error) => {
-        console.error("Error fetching leads:", error);
-        window.showMessage(`Error fetching leads: ${error.message}.`);
-    });
-
-    // Initial render of the form and leads list
-    renderForm();
-    renderLeadsList();
+async function handleResendVerificationEmail() {
+    authError = ''; // Clear previous auth errors
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            authError = 'Verification email re-sent! Please check your inbox.';
+            renderForm();
+        } catch (error) {
+            console.error("Resend Verification Error:", error);
+            authError = `Failed to resend verification email: ${error.message}`;
+            renderForm();
+        }
+    } else {
+        authError = 'No user is currently signed in to resend verification.';
+        renderForm();
+    }
 }
+
+/**
+ * Handles refreshing the user's authentication status to check email verification.
+ */
+async function handleRefreshStatus() {
+    authError = ''; // Clear previous auth errors
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await user.reload(); // Reloads the user's profile
+            // The onAuthStateChanged listener will then re-evaluate user.emailVerified
+        } catch (error) {
+            console.error("Refresh Status Error:", error);
+            authError = `Failed to refresh status: ${error.message}`;
+            renderForm();
+        }
+    } else {
+        authError = 'No user is currently signed in to refresh status.';
+        renderForm();
+    }
+}
+
+
+/**
+ * Initializes the application, setting up Firebase and listeners.
+ */
+async function initApp() {
+    // Ensure the custom message box is hidden on initial load
+    hideMessage();
+    hideEmailVerificationMessage(); // Ensure this is also hidden on load
+
+    try {
+        // Initialize Firebase app with the directly provided config
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Listen for auth state changes to get the user ID
+        onAuthStateChanged(auth, async (user) => { // Made async to allow user.reload()
+            if (user) {
+                // Reload user to get the latest emailVerified status
+                await user.reload(); // Important for checking verification status after user clicks link
+
+                if (user.emailVerified) {
+                    currentUserId = user.uid;
+                    currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
+                    authSection.classList.add('hidden'); // Hide auth section
+                    hideEmailVerificationMessage(); // Hide verification message
+                    appContent.classList.remove('hidden'); // Show app content
+                    authError = ''; // Clear any lingering auth errors
+
+                    // Start Firestore listener AFTER user is authenticated and verified
+                    const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
+                    onSnapshot(leadsCollectionRef, (snapshot) => {
+                        leads = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        // Sort leads by creation time in memory
+                        leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+                        renderLeadsList();
+                    }, (error) => {
+                        console.error("Error fetching leads:", error);
+                        validationError = `Error fetching leads: ${error.message}.`;
+                        renderForm();
+                    });
+                } else {
+                    // User is signed in but email not verified
+                    currentUserId = null; // Treat as not fully authenticated for app access
+                    authSection.classList.remove('hidden'); // Show auth section
+                    appContent.classList.add('hidden'); // Hide app content
+                    console.warn("User signed in but email not verified:", user.email);
+                }
+            } else {
+                currentUserId = null;
+                currentUserIdSpan.textContent = '';
+                userIdDisplay.classList.add('hidden'); // Hide user ID display
+                authSection.classList.remove('hidden'); // Show auth section
+                hideEmailVerificationMessage(); // Hide verification message if no user
+                appContent.classList.add('hidden'); // Hide app content
+                leads = []; // Clear leads if no user
+                renderLeadsList();
+            }
+            renderForm(); // Update UI after auth state change
+        });
+
+        // Initial render of the form
+        renderForm();
+
+    } catch (error) {
+        console.error("Failed to initialize Firebase:", error);
+        // Display a user-friendly error message if Firebase fails to initialize
+        validationError = "Failed to load application. Please ensure Firebase configuration is correct and try refreshing.";
+        renderForm();
+    }
+}
+
+// --- Event Listeners ---
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Authentication button listeners
+signupBtn.addEventListener('click', handleSignUp);
+signinBtn.addEventListener('click', handleSignIn);
+logoutBtn.addEventListener('click', handleSignOut);
+closeMessageBtn.addEventListener('click', hideMessage); // Event listener for the "Got It!" button
+// Re-added event listeners for email verification message buttons
+resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+
+
+// Form input listeners
+leadNameInput.addEventListener('input', updateFormInput);
+leadEmailInput.addEventListener('input', updateFormInput);
+callBookingLinkInput.addEventListener('input', updateFormInput);
+instagramLinkInput.addEventListener('input', updateFormInput);
+youtubeLinkInput.addEventListener('input', updateFormInput);
+tiktokLinkInput.addEventListener('input', updateFormInput);
+follower10KUpRadio.addEventListener('change', updateFormInput);
+followerLess10KRadio.addEventListener('change', updateFormInput);
+avgViewsInput.addEventListener('input', updateFormInput);
+otherNicheNotesTextarea.addEventListener('input', updateFormInput);
+leadNotesTextarea.addEventListener('input', updateFormInput);
+
+// Button listeners for lead management
+addLeadBtn.addEventListener('click', handleAddLead);
+updateLeadBtn.addEventListener('click', handleUpdateLead);
+cancelEditBtn.addEventListener('click', resetForm); // Cancel button simply resets the form

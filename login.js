@@ -71,7 +71,7 @@ async function handleSignUp() {
     // Clear previous messages and errors visually at the very start of the attempt
     authError = ''; // Clear internal auth error state
     hideEmailVerificationMessage(); // Hide yellow verification message
-    renderAuthForm(); // Hide red auth error message visually
+    renderAuthForm(); // Immediately hide any existing auth error message visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
@@ -114,7 +114,7 @@ async function handleSignUp() {
         } else {
             authError = `Sign Up Failed: ${error.message}`; // Generic error for unexpected issues
         }
-        // No need to call hideEmailVerificationMessage here, renderAuthForm handles it if authError is set
+        hideEmailVerificationMessage(); // Ensure verification message is hidden on sign-up errors
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
@@ -125,14 +125,12 @@ async function handleSignUp() {
 
 /**
  * Handles user sign-in with email and password.
- * IMPORTANT: This function now only signs in. Routing based on email verification
- * status is handled by onAuthStateChanged in main.js.
  */
 async function handleSignIn() {
     // Clear previous messages and errors visually at the very start of the attempt
-    authError = ''; // Clear internal auth error state
-    hideEmailVerificationMessage(); // Hide yellow verification message
-    renderAuthForm(); // Hide red auth error message visually
+    authError = ''; // Clear previous auth errors
+    hideEmailVerificationMessage(); // Clear any previous verification messages
+    renderAuthForm(); // Immediately hide any existing auth error message visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
@@ -144,21 +142,33 @@ async function handleSignIn() {
     }
 
     try {
-        // Set flag to indicate sign-in is in progress, deferring main.js routing
-        window.isSigningIn = true;
-        // Attempt to sign in the user
-        await signInWithEmailAndPassword(window.auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
 
+        // Reload user to get the latest emailVerified status
+        await user.reload();
+
+        if (!user.emailVerified) {
+            // User is signed in but email not verified, show ONLY the yellow verification message
+            // showEmailVerificationMessage will also hide the red auth error box
+            showEmailVerificationMessage(user.email);
+            // Sign out the user to prevent partial access before verification
+            await window.auth.signOut();
+            // No explicit redirect needed here, onAuthStateChanged in main.js handles it
+        } else {
+            // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
+            authError = ''; // Clear error if successfully signed in and verified
+            hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
+        }
     } catch (error) {
         console.error("Sign In Error:", error);
-        authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures
+        authError = `Sign In Failed: ${error.message}`;
+        hideEmailVerificationMessage(); // Hide verification message on sign-in error
     } finally {
-        // Unset flag after sign-in attempt, allowing main.js to proceed with routing
-        window.isSigningIn = false;
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
-        renderAuthForm(); // Final render to display outcome (error or cleared state)
+        renderAuthForm();
     }
 }
 
@@ -183,6 +193,7 @@ export function initLoginPage(user) {
     // Attach event listeners
     if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
+    // Removed event listener attachments for resendVerificationBtn and refreshStatusBtn
     
     // Initial render of the form
     renderAuthForm();
