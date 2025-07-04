@@ -56,12 +56,14 @@ function renderAuthForm() {
 
 /**
  * Handles user sign-up with email and password.
+ * This function is designed to be simple, clear, and robust.
  */
 async function handleSignUp() {
-    authError = ''; // Clear previous auth errors
+    authError = ''; // Clear previous auth errors for a fresh attempt
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
+    // Client-side validation for immediate feedback
     if (!email || !password) {
         authError = 'Email and password are required for sign up.';
         renderAuthForm();
@@ -74,21 +76,23 @@ async function handleSignUp() {
     }
 
     try {
+        // 1. Create user account with Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
         const user = userCredential.user;
 
+        // 2. Send email verification to the new user
         await sendEmailVerification(user);
         window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
 
-        // Clear input fields after successful signup
+        // 3. Clear input fields and sign out the user
+        // Signing out immediately forces them to verify email before logging in again.
         authEmailInput.value = '';
         authPasswordInput.value = '';
-        authError = ''; // Clear any auth error if sign up was successful
-
-        // Sign out the user immediately after sending verification email.
+        authError = ''; // Clear any auth error if signup was successful
         await window.auth.signOut();
 
     } catch (error) {
+        // Handle specific Firebase authentication errors
         console.error("Sign Up Error:", error);
         if (error.code === 'auth/email-already-in-use') {
             authError = 'This email is already registered. Please sign in or use a different email.';
@@ -97,11 +101,12 @@ async function handleSignUp() {
         } else if (error.code === 'auth/weak-password') {
             authError = 'Password is too weak. Please choose a stronger password.';
         } else {
-            authError = `Sign Up Failed: ${error.message}`;
+            authError = `Sign Up Failed: ${error.message}`; // Generic error for unexpected issues
         }
-        hideEmailVerificationMessage(); // Ensure hidden on sign-up errors
+        hideEmailVerificationMessage(); // Ensure verification message is hidden on sign-up errors
     } finally {
-        renderAuthForm(); // Always re-render to update UI based on final state
+        // Always re-render the form to reflect the latest state (errors or cleared fields)
+        renderAuthForm();
     }
 }
 
@@ -163,9 +168,6 @@ async function handleResendVerificationEmail() {
             authError = `Failed to resend verification email: ${error.message}`;
             renderAuthForm();
         }
-    } else {
-        authError = 'No user is currently signed in to resend verification.';
-        renderAuthForm();
     }
 }
 
@@ -184,9 +186,6 @@ async function handleRefreshStatus() {
             authError = `Failed to refresh status: ${error.message}`;
             renderAuthForm();
         }
-    } else {
-        authError = 'No user is currently signed in to refresh status.';
-        renderAuthForm();
     }
 }
 
