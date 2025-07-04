@@ -227,7 +227,8 @@
         let validationError = '';
 
         // --- IMPORTANT: Your Firebase Configuration ---
-        // Replace these with your actual Firebase project details from Firebase Console -> Project settings -> Your apps -> Web app
+        // This configuration is now directly embedded.
+        // Ensure these details match your Firebase project exactly.
         const firebaseConfig = {
             apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
             authDomain: "outreachwebapp-139d4.firebaseapp.com",
@@ -666,6 +667,10 @@
          */
         async function initApp() {
             try {
+                // Log the firebaseConfig being used
+                console.log("Firebase Config being used:", firebaseConfig);
+                console.log("App ID for Firestore path:", appId);
+
                 // Initialize Firebase app with the directly provided config
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
