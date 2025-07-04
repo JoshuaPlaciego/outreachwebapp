@@ -848,11 +848,15 @@
                 if (user.emailVerified) {
                     // Scenario 1: User exists and is verified
                     authError = 'User already exists and is verified. Please sign in directly.';
+                    authEmailInput.value = ''; // Clear credentials
+                    authPasswordInput.value = '';
                     await signOut(auth); // Sign out the user to keep them on the auth screen
                 } else {
                     // Scenario 2: User exists but is NOT verified
                     authError = ''; // Clear auth error to show verification message
                     showEmailVerificationMessage(user.email); // Show the yellow verification message
+                    authEmailInput.value = ''; // Clear credentials
+                    authPasswordInput.value = '';
                     await signOut(auth); // Sign out the user to keep them on the auth screen
                 }
             } catch (error) {
