@@ -19,12 +19,18 @@ const verificationMessageTextSpan = document.getElementById('verification-messag
 
 /**
  * Displays the email verification message box.
+ * When this message is shown, any existing authentication error message will be hidden.
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
         verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
         emailVerificationMessageDiv.classList.remove('hidden');
+        // Explicitly hide the authentication error message when showing verification message
+        if (authErrorDiv) {
+            authErrorDiv.classList.add('hidden');
+            authErrorMessageSpan.textContent = ''; // Clear content too
+        }
     }
 }
 
@@ -40,12 +46,16 @@ function hideEmailVerificationMessage() {
 
 /**
  * Renders the current state of the authentication form.
+ * This function is now responsible for showing/hiding the auth error message,
+ * and will also hide the email verification message if an auth error is present.
  */
 function renderAuthForm() {
     if (authErrorDiv && authErrorMessageSpan) {
         if (authError) {
             authErrorDiv.classList.remove('hidden');
             authErrorMessageSpan.textContent = authError;
+            // When an auth error is displayed, hide the email verification message
+            hideEmailVerificationMessage();
         } else {
             authErrorDiv.classList.add('hidden');
             authErrorMessageSpan.textContent = '';
@@ -58,9 +68,10 @@ function renderAuthForm() {
  * This function is designed to be simple, clear, and robust.
  */
 async function handleSignUp() {
-    authError = ''; // Clear previous auth errors for a fresh attempt
-    hideEmailVerificationMessage(); // Clear any previous verification messages
-    renderAuthForm(); // Immediately hide any existing auth error message visually
+    // Clear previous messages and errors visually at the very start of the attempt
+    authError = ''; // Clear internal auth error state
+    hideEmailVerificationMessage(); // Hide yellow verification message
+    renderAuthForm(); // Hide red auth error message visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
@@ -68,12 +79,12 @@ async function handleSignUp() {
     // Client-side validation for immediate feedback
     if (!email || !password) {
         authError = 'Email and password are required for sign up.';
-        renderAuthForm();
+        renderAuthForm(); // Display new error
         return; // Exit early, fields will be cleared in finally block
     }
     if (password.length < 6) {
         authError = 'Password must be at least 6 characters long.';
-        renderAuthForm();
+        renderAuthForm(); // Display new error
         return; // Exit early, fields will be cleared in finally block
     }
 
@@ -86,7 +97,7 @@ async function handleSignUp() {
         await sendEmailVerification(user);
         // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
 
-        // 3. Clear any auth error if signup was successful
+        // 3. Clear any auth error if signup was successful (internal state)
         authError = '';
         // 4. Sign out the user
         await window.auth.signOut();
@@ -103,12 +114,12 @@ async function handleSignUp() {
         } else {
             authError = `Sign Up Failed: ${error.message}`; // Generic error for unexpected issues
         }
-        hideEmailVerificationMessage(); // Ensure verification message is hidden on sign-up errors
+        // No need to call hideEmailVerificationMessage here, renderAuthForm handles it if authError is set
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
-        renderAuthForm();
+        renderAuthForm(); // Final render to display outcome (error or cleared state)
     }
 }
 
@@ -116,16 +127,17 @@ async function handleSignUp() {
  * Handles user sign-in with email and password.
  */
 async function handleSignIn() {
-    authError = ''; // Clear previous auth errors
-    hideEmailVerificationMessage(); // Clear any previous verification messages
-    renderAuthForm(); // Immediately hide any existing auth error message visually
+    // Clear previous messages and errors visually at the very start of the attempt
+    authError = ''; // Clear internal auth error state
+    hideEmailVerificationMessage(); // Hide yellow verification message
+    renderAuthForm(); // Hide red auth error message visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
     if (!email || !password) {
         authError = 'Email and password are required for sign in.';
-        renderAuthForm();
+        renderAuthForm(); // Display new error
         return; // Exit early, fields will be cleared in finally block
     }
 
@@ -138,25 +150,27 @@ async function handleSignIn() {
 
         if (!user.emailVerified) {
             // User is signed in but email not verified, show ONLY the yellow verification message
-            // Do NOT set authError here to prevent the red box from appearing simultaneously
-            showEmailVerificationMessage(user.email); // Explicitly show the yellow message
+            // showEmailVerificationMessage will also hide the red auth error box
+            showEmailVerificationMessage(user.email);
             // Sign out the user to prevent partial access before verification
             await window.auth.signOut();
             // No explicit redirect needed here, onAuthStateChanged in main.js handles it
         } else {
-            // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
+            // Email is verified, redirect to the new email_verified.html page
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
+            // Redirect to the new confirmation page
+            window.location.href = 'emailverified.html';
         }
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures
-        hideEmailVerificationMessage(); // Hide verification message on sign-in error
+        // No need to call hideEmailVerificationMessage here, renderAuthForm handles it if authError is set
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
-        renderAuthForm();
+        renderAuthForm(); // Final render to display outcome (error or cleared state)
     }
 }
 
