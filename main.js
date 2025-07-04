@@ -95,13 +95,12 @@ async function initApp() {
         // Listen for auth state changes to handle routing
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Always reload and refresh token to get the absolute latest status
+                // Always reload user to get the absolute latest emailVerified status
                 try {
                     await user.reload();
-                    await user.getIdToken(true); // Force token refresh
                 } catch (reloadError) {
-                    console.error("Error reloading user or refreshing token in onAuthStateChanged:", reloadError);
-                    // If reload/getIdToken fails, it might mean the session is no longer valid.
+                    console.error("Error reloading user in onAuthStateChanged:", reloadError);
+                    // If reload fails, it might mean the session is no longer valid.
                     // Force sign out to prevent stale sessions.
                     await signOut(auth);
                     if (!isLoginPage) { // Only redirect if not already on login page
@@ -131,12 +130,12 @@ async function initApp() {
                         if (userIdDisplay) userIdDisplay.classList.remove('hidden');
                         if (authSection) authSection.classList.add('hidden'); // Hide auth section if it somehow appears
                         if (appContent) appContent.classList.remove('hidden'); // Show app content
-                        // No need to set authError here, as it's a success state
                     }
                 } else {
                     // User is signed in but email not verified
-                    currentUserId = null; // Treat as not fully authenticated for app access
-                    await signOut(auth); // Force sign out unverified user
+                    // DO NOT sign out here. Keep them signed in on the login page
+                    // so they can use the "Resend Verification Email" link.
+                    currentUserId = null; // Still consider them not fully authenticated for app content access
 
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
@@ -146,7 +145,7 @@ async function initApp() {
                         import('./login.js')
                             .then(module => {
                                 if (module.initLoginPage) {
-                                    module.initLoginPage(user); // Pass user object to login.js for message
+                                    module.initLoginPage(user); // Pass the *active but unverified* user object
                                 }
                             })
                             .catch(error => console.error("Error loading login.js:", error));
@@ -180,7 +179,6 @@ async function initApp() {
                 leads = [];
                 // renderLeadsList() is now in addleads.js, no need to call here
             }
-            // renderForm() is also specific to addleads.js, no need to call here
         });
 
     } catch (error) {
@@ -198,8 +196,6 @@ if (closeMessageBtn) {
 }
 
 // Logout button listener (only exists on addleads.html, but main.js can handle it)
-// This listener needs to be attached conditionally if logoutBtn exists on the current page.
-// It's better handled within addleads.js for clarity, but kept here for global handling.
 if (logoutBtn) { // Use the already declared logoutBtn
     logoutBtn.addEventListener('click', async () => {
         try {

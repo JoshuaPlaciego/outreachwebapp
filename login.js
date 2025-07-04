@@ -12,7 +12,7 @@ const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-const verificationMessageTextSpan = document.getElementById('verification-message-text'); // Re-added: Span for the main message text
+// Removed verificationMessageTextSpan as it's no longer directly manipulated for full text
 const verificationEmailDisplay = document.getElementById('verification-email-display'); // Span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
 
@@ -26,8 +26,8 @@ const inlineResendLink = document.getElementById('inline-resend-link'); // Now a
  */
 function showEmailVerificationMessage(email) {
     // Ensure all necessary elements exist before attempting to manipulate them
-    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay && inlineResendLink) {
-        // Update only the dynamic email part
+    if (emailVerificationMessageDiv && verificationEmailDisplay && inlineResendLink) {
+        // Update only the dynamic email part, the rest of the message is static in HTML
         verificationEmailDisplay.textContent = email;
         emailVerificationMessageDiv.classList.remove('hidden');
 
@@ -107,11 +107,11 @@ async function handleSignUp() {
 
         // 2. Send email verification to the new user
         await sendEmailVerification(user);
-        // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
-
-        // 3. Clear any auth error if signup was successful (internal state)
-        authError = '';
-        // 4. Sign out the user
+        
+        // Show a clear message to the user that they need to verify their email
+        window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
+        
+        // Sign out the user immediately after sending email, so they have to sign in again to trigger verification check
         await window.auth.signOut();
 
     } catch (error) {
@@ -164,8 +164,8 @@ async function handleSignIn() {
             // User is signed in but email not verified, show ONLY the yellow verification message
             // showEmailVerificationMessage will also hide the red auth error box
             showEmailVerificationMessage(user.email);
-            // Sign out the user to prevent partial access before verification
-            await window.auth.signOut();
+            // DO NOT sign out here. Keep the user signed in on the login page.
+            // await window.auth.signOut(); // Removed this line in main.js, so no need to sign out here.
             // No explicit redirect needed here, onAuthStateChanged in main.js handles it
         } else {
             // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
@@ -201,6 +201,7 @@ async function handleResendVerificationEmail() {
             renderAuthForm(); // Re-render to show error message
         }
     } else {
+        // This case should ideally not be hit if the user is seeing the message and the flow is correct.
         authError = 'No user is currently signed in to resend verification.';
         renderAuthForm();
     }
@@ -219,6 +220,7 @@ export function initLoginPage(user) {
     if (authSection) authSection.classList.remove('hidden'); // Ensure auth section is visible
 
     // Hide verification message initially, or show if user is unverified
+    // Pass the user object to showEmailVerificationMessage only if it's an unverified user
     if (user && !user.emailVerified) {
         showEmailVerificationMessage(user.email);
     } else {
