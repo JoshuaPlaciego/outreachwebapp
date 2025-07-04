@@ -66,11 +66,17 @@ async function handleSignUp() {
     if (!email || !password) {
         authError = 'Email and password are required for sign up.';
         renderAuthForm();
+        // Always clear fields even if validation fails
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
         return;
     }
     if (password.length < 6) {
         authError = 'Password must be at least 6 characters long.';
         renderAuthForm();
+        // Always clear fields even if validation fails
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
         return;
     }
 
@@ -83,11 +89,9 @@ async function handleSignUp() {
         await sendEmailVerification(user);
         // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
 
-        // 3. Clear input fields and sign out the user
-        // Signing out immediately forces them to verify email before logging in again.
-        authEmailInput.value = '';
-        authPasswordInput.value = '';
-        authError = ''; // Clear any auth error if signup was successful
+        // 3. Clear any auth error if signup was successful
+        authError = '';
+        // 4. Sign out the user
         await window.auth.signOut();
 
     } catch (error) {
@@ -104,7 +108,9 @@ async function handleSignUp() {
         }
         hideEmailVerificationMessage(); // Ensure verification message is hidden on sign-up errors
     } finally {
-        // Always re-render the form to reflect the latest state (errors or cleared fields)
+        // Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
         renderAuthForm();
     }
 }
@@ -120,6 +126,9 @@ async function handleSignIn() {
     if (!email || !password) {
         authError = 'Email and password are required for sign in.';
         renderAuthForm();
+        // Always clear fields even if validation fails
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
         return;
     }
 
@@ -142,11 +151,16 @@ async function handleSignIn() {
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
         }
-        renderAuthForm(); // Re-render to show authError or clear it
+        // renderAuthForm() will be called in finally block
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`;
         hideEmailVerificationMessage(); // Hide verification message on sign-in error
+        // renderAuthForm() will be called in finally block
+    } finally {
+        // Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
         renderAuthForm();
     }
 }
