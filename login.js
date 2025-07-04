@@ -7,6 +7,7 @@ import { resendVerification } from "./resendVerification.js";
  * @param {object|null} user - The current Firebase user object or null.
  */
 export function initLoginPage(user) {
+    console.log("Initializing Login Page. User:", user);
     const auth = window.auth;
 
     const emailInput = document.getElementById('auth-email');
@@ -44,6 +45,7 @@ export function initLoginPage(user) {
     }
 
     async function handleSignUp() {
+        console.log("Sign Up clicked");
         hideAuthError();
         hideVerificationMessage();
 
@@ -62,6 +64,7 @@ export function initLoginPage(user) {
     }
 
     async function handleSignIn() {
+        console.log("Sign In clicked");
         hideAuthError();
         hideVerificationMessage();
 
@@ -89,6 +92,7 @@ export function initLoginPage(user) {
 
     inlineResendLink.addEventListener('click', async (e) => {
         e.preventDefault();
+        console.log("Resend Verification clicked");
 
         try {
             const email = emailInput.value.trim();
