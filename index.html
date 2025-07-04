@@ -932,11 +932,10 @@
          * Initializes the application, setting up Firebase and listeners.
          */
         async function initApp() {
-            try {
-                // Log the firebaseConfig being used
-                console.log("Firebase Config being used:", firebaseConfig);
-                console.log("App ID for Firestore path:", appId);
+            // Ensure the custom message box is hidden on initial load
+            hideMessage(); 
 
+            try {
                 // Initialize Firebase app with the directly provided config
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
