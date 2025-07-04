@@ -1038,9 +1038,6 @@
                             // User is signed in but email not verified
                             currentUserId = null; // Treat as not fully authenticated for app access
                             authSection.classList.remove('hidden'); // Show auth section
-                            // IMPORTANT: DO NOT call showEmailVerificationMessage(user.email) here directly.
-                            // This will be handled by handleSignIn/handleSignUp for specific scenarios.
-                            // If the user is just unverified and the page loads, we want the auth form.
                             // The error message will be set by the sign-in/sign-up attempt.
                             hideEmailVerificationMessage(); // Ensure it's hidden unless explicitly shown by an action
                             appContent.classList.add('hidden'); // Hide app content
