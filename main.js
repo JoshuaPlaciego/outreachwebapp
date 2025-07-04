@@ -31,7 +31,7 @@ const authSection = document.getElementById('auth-section');
 const appContent = document.getElementById('app-content');
 const currentUserIdSpan = document.getElementById('current-user-id');
 const userIdDisplay = document.getElementById('user-id-display');
-const logoutBtn = document.getElementById('logout-btn');
+const logoutBtn = document.getElementById('logout-btn'); // Declared once here
 
 
 // --- Global State Variables (Shared, but mostly for addleads.js) ---
@@ -200,8 +200,7 @@ if (closeMessageBtn) {
 // Logout button listener (only exists on addleads.html, but main.js can handle it)
 // This listener needs to be attached conditionally if logoutBtn exists on the current page.
 // It's better handled within addleads.js for clarity, but kept here for global handling.
-const logoutBtn = document.getElementById('logout-btn'); // Re-fetch here to ensure it's not null on addleads.html
-if (logoutBtn) {
+if (logoutBtn) { // Use the already declared logoutBtn
     logoutBtn.addEventListener('click', async () => {
         try {
             await signOut(auth);
