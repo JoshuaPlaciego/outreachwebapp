@@ -137,8 +137,8 @@ async function handleSignIn() {
         await user.reload();
 
         if (!user.emailVerified) {
-            // User is signed in but email not verified, show error
-            authError = `Please verify your email address (${user.email}) to access the dashboard.`;
+            // User is signed in but email not verified, show ONLY the yellow verification message
+            // Do NOT set authError here to prevent the red box from appearing simultaneously
             showEmailVerificationMessage(user.email); // Explicitly show the yellow message
             // Sign out the user to prevent partial access before verification
             await window.auth.signOut();
@@ -150,7 +150,7 @@ async function handleSignIn() {
         }
     } catch (error) {
         console.error("Sign In Error:", error);
-        authError = `Sign In Failed: ${error.message}`;
+        authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures
         hideEmailVerificationMessage(); // Hide verification message on sign-in error
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
