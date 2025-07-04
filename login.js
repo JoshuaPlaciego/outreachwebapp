@@ -2,15 +2,18 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVe
 
 // --- Global State Variables (specific to login page) ---
 let authError = ''; // State for authentication errors
+let infoMessage = ''; // New state for informational/success messages
 
 // --- DOM Element References (specific to login.html) ---
 const authSection = document.getElementById('auth-section');
 const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
 const signupBtn = document.getElementById('signup-btn');
-const signinBtn = document.getElementById('signin-btn'); // Corrected ID to match HTML
+const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
+const infoMessageDiv = document.getElementById('info-message'); // New DOM reference for info message div
+const infoMessageTextSpan = document.getElementById('info-message-text'); // New DOM reference for info message text
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
 const verificationEmailDisplay = document.getElementById('verification-email-display'); // Span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
@@ -33,10 +36,14 @@ function showEmailVerificationMessage(email) {
         // Show the inline resend link
         inlineResendLink.classList.remove('hidden');
 
-        // Explicitly hide the authentication error message when showing verification message
+        // Explicitly hide the authentication error message and info message when showing verification message
         if (authErrorDiv) {
             authErrorDiv.classList.add('hidden');
             authErrorMessageSpan.textContent = ''; // Clear content too
+        }
+        if (infoMessageDiv) {
+            infoMessageDiv.classList.add('hidden');
+            infoMessageTextSpan.textContent = ''; // Clear content too
         }
     } else {
         console.error("One or more DOM elements for email verification message are missing.");
@@ -56,20 +63,34 @@ function hideEmailVerificationMessage() {
 }
 
 /**
- * Renders the current state of the authentication form.
- * This function is now responsible for showing/hiding the auth error message,
- * and will also hide the email verification message if an auth error is present.
+ * Renders the current state of the authentication form, including error and info messages.
  */
 function renderAuthForm() {
+    // Handle auth error message
     if (authErrorDiv && authErrorMessageSpan) {
         if (authError) {
             authErrorDiv.classList.remove('hidden');
             authErrorMessageSpan.textContent = authError;
-            // When an auth error is displayed, hide the email verification message
+            // When an auth error is displayed, hide info and verification messages
             hideEmailVerificationMessage();
+            if (infoMessageDiv) infoMessageDiv.classList.add('hidden');
         } else {
             authErrorDiv.classList.add('hidden');
             authErrorMessageSpan.textContent = '';
+        }
+    }
+
+    // Handle info/success message
+    if (infoMessageDiv && infoMessageTextSpan) {
+        if (infoMessage) {
+            infoMessageDiv.classList.remove('hidden');
+            infoMessageTextSpan.textContent = infoMessage;
+            // When an info message is displayed, hide auth error and verification messages
+            hideEmailVerificationMessage();
+            if (authErrorDiv) authErrorDiv.classList.add('hidden');
+        } else {
+            infoMessageDiv.classList.add('hidden');
+            infoMessageTextSpan.textContent = '';
         }
     }
 }
@@ -81,8 +102,9 @@ function renderAuthForm() {
 async function handleSignUp() {
     // Clear previous messages and errors visually at the very start of the attempt
     authError = ''; // Clear internal auth error state
+    infoMessage = ''; // Clear internal info message state
     hideEmailVerificationMessage(); // Hide yellow verification message
-    renderAuthForm(); // Immediately hide any existing auth error message visually
+    renderAuthForm(); // Immediately hide any existing messages visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
@@ -107,11 +129,12 @@ async function handleSignUp() {
         // 2. Send email verification to the new user
         await sendEmailVerification(user);
         
-        // Show a clear message to the user that they need to verify their email
-        window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
-        
+        // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
+        // The main.js onAuthStateChanged will handle displaying the verification message
+        // if the user tries to sign in before verifying.
+
         // DO NOT sign out here. Let main.js handle the state change based on email verification.
-        // await window.auth.signOut(); // Removed this line
+        // The user will remain signed in (unverified) on the login page.
 
     } catch (error) {
         // Handle specific Firebase authentication errors
@@ -140,8 +163,9 @@ async function handleSignUp() {
 async function handleSignIn() {
     // Clear previous messages and errors visually at the very start of the attempt
     authError = ''; // Clear previous auth errors
+    infoMessage = ''; // Clear previous info messages
     hideEmailVerificationMessage(); // Clear any previous verification messages
-    renderAuthForm(); // Immediately hide any existing auth error message visually
+    renderAuthForm(); // Immediately hide any existing messages visually
 
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
@@ -168,12 +192,15 @@ async function handleSignIn() {
         } else {
             // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
             authError = ''; // Clear error if successfully signed in and verified
+            infoMessage = 'Successfully signed in and email verified!'; // Optional: show success message
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
         }
     } catch (error) {
         console.error("Sign In Error:", error);
-        if (error.code === 'auth/invalid-credential') {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             authError = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.code === 'auth/user-disabled') {
+            authError = 'Your account has been disabled. Please contact support.';
         } else {
             authError = `Sign In Failed: ${error.message}`;
         }
@@ -191,15 +218,18 @@ async function handleSignIn() {
  */
 async function handleResendVerificationEmail() {
     authError = ''; // Clear previous auth errors
+    infoMessage = ''; // Clear previous info messages
+    renderAuthForm(); // Immediately hide any existing messages visually
+
     const user = window.auth.currentUser;
     if (user) {
         try {
             await sendEmailVerification(user);
-            authError = 'Verification email re-sent! Please check your inbox.';
+            infoMessage = 'Verification email re-sent! Please check your inbox.'; // Display as info message
             renderAuthForm(); // Re-render to show success message
         } catch (error) {
             console.error("Resend Verification Error:", error);
-            authError = `Failed to resend verification email: ${error.message}`;
+            authError = `Failed to resend verification email: ${error.message}`; // Display as error message
             renderAuthForm(); // Re-render to show error message
         }
     } else {
