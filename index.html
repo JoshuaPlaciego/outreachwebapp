@@ -31,11 +31,64 @@
 </head>
 <body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
 
-    <div id="app-container" class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6">
-        <h1 class="text-3xl font-bold text-indigo-800 mb-6 text-center">Lead Generation Dashboard</h1>
+    <!-- Login/Signup Section (Initially Visible) -->
+    <div id="auth-section" class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 mt-10">
+        <h2 class="text-3xl font-bold text-indigo-800 mb-6 text-center">Welcome to Poppy.AI Leads</h2>
+        <p class="text-center text-gray-600 mb-6">Sign in or create an account to manage your leads.</p>
 
-        <div id="user-id-display" class="mb-4 text-sm text-gray-600 text-center hidden">
-            Your User ID: <span class="font-mono bg-gray-200 px-2 py-1 rounded-md" id="current-user-id"></span>
+        <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
+            <strong class="font-bold">Auth Error: </strong>
+            <span id="auth-error-message" class="block sm:inline"></span>
+        </div>
+
+        <div class="mb-4">
+            <label for="auth-email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+            <input
+                type="email"
+                id="auth-email"
+                placeholder="Your Email"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+        </div>
+        <div class="mb-6">
+            <label for="auth-password" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+            <input
+                type="password"
+                id="auth-password"
+                placeholder="Your Password"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+        </div>
+        <div class="flex justify-between space-x-4">
+            <button
+                id="signup-btn"
+                class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+                Sign Up
+            </button>
+            <button
+                id="signin-btn"
+                class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+                Sign In
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Content (Initially Hidden) -->
+    <div id="app-content" class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-indigo-800">Lead Generation Dashboard</h1>
+            <button
+                id="logout-btn"
+                class="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400"
+            >
+                Log Out
+            </button>
+        </div>
+
+        <div id="user-id-display" class="mb-4 text-sm text-gray-600 text-center">
+            Logged in as: <span class="font-mono bg-gray-200 px-2 py-1 rounded-md" id="current-user-id"></span>
         </div>
 
         <!-- Lead Input Form -->
@@ -202,7 +255,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Global State Variables ---
@@ -225,6 +278,7 @@
         };
         let editingLeadId = null;
         let validationError = '';
+        let authError = ''; // New state for authentication errors
 
         // --- IMPORTANT: Your Firebase Configuration ---
         // This configuration is now directly embedded.
@@ -241,6 +295,16 @@
         const appId = firebaseConfig.projectId;
 
         // --- DOM Element References ---
+        const authSection = document.getElementById('auth-section');
+        const appContent = document.getElementById('app-content');
+        const authEmailInput = document.getElementById('auth-email');
+        const authPasswordInput = document.getElementById('auth-password');
+        const signupBtn = document.getElementById('signup-btn');
+        const signinBtn = document.getElementById('signin-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authErrorDiv = document.getElementById('auth-error');
+        const authErrorMessageSpan = document.getElementById('auth-error-message');
+
         const userIdDisplay = document.getElementById('user-id-display');
         const currentUserIdSpan = document.getElementById('current-user-id');
         const formTitle = document.getElementById('form-title');
@@ -408,6 +472,15 @@
             } else {
                 validationErrorDiv.classList.add('hidden');
                 errorMessageSpan.textContent = '';
+            }
+
+            // Display authentication error
+            if (authError) {
+                authErrorDiv.classList.remove('hidden');
+                authErrorMessageSpan.textContent = authError;
+            } else {
+                authErrorDiv.classList.add('hidden');
+                authErrorMessageSpan.textContent = '';
             }
         }
 
@@ -663,6 +736,74 @@
         }
 
         /**
+         * Handles user sign-up with email and password.
+         */
+        async function handleSignUp() {
+            authError = ''; // Clear previous auth errors
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+
+            if (!email || !password) {
+                authError = 'Email and password are required for sign up.';
+                renderForm();
+                return;
+            }
+            if (password.length < 6) {
+                authError = 'Password must be at least 6 characters long.';
+                renderForm();
+                return;
+            }
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // Auth state listener will handle UI update on successful sign-up
+            } catch (error) {
+                console.error("Sign Up Error:", error);
+                authError = `Sign Up Failed: ${error.message}`;
+                renderForm();
+            }
+        }
+
+        /**
+         * Handles user sign-in with email and password.
+         */
+        async function handleSignIn() {
+            authError = ''; // Clear previous auth errors
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+
+            if (!email || !password) {
+                authError = 'Email and password are required for sign in.';
+                renderForm();
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Auth state listener will handle UI update on successful sign-in
+            } catch (error) {
+                console.error("Sign In Error:", error);
+                authError = `Sign In Failed: ${error.message}`;
+                renderForm();
+            }
+        }
+
+        /**
+         * Handles user sign-out.
+         */
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+                // Auth state listener will handle UI update on successful sign-out
+                resetForm(); // Clear form data on logout
+            } catch (error) {
+                console.error("Sign Out Error:", error);
+                authError = `Sign Out Failed: ${error.message}`;
+                renderForm();
+            }
+        }
+
+        /**
          * Initializes the application, setting up Firebase and listeners.
          */
         async function initApp() {
@@ -676,27 +817,14 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Sign in with custom token if available, otherwise anonymously
-                // Note: __initial_auth_token is typically provided by Canvas.
-                // For GitHub Pages, it will be undefined, so it will sign in anonymously.
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken)
-                        .catch((error) => {
-                            console.error("Error signing in with custom token:", error);
-                            signInAnonymously(auth).catch(console.error);
-                        });
-                } else {
-                    await signInAnonymously(auth).catch(console.error);
-                }
-
                 // Listen for auth state changes to get the user ID
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        currentUserIdSpan.textContent = currentUserId;
-                        userIdDisplay.classList.remove('hidden');
+                        currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
+                        authSection.classList.add('hidden'); // Hide auth section
+                        appContent.classList.remove('hidden'); // Show app content
+
                         // Start Firestore listener AFTER user is authenticated
                         const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
                         onSnapshot(leadsCollectionRef, (snapshot) => {
@@ -709,14 +837,19 @@
                             renderLeadsList();
                         }, (error) => {
                             console.error("Error fetching leads:", error);
+                            validationError = `Error fetching leads: ${error.message}.`;
+                            renderForm();
                         });
                     } else {
                         currentUserId = null;
                         currentUserIdSpan.textContent = '';
-                        userIdDisplay.classList.add('hidden');
+                        userIdDisplay.classList.add('hidden'); // Hide user ID display
+                        authSection.classList.remove('hidden'); // Show auth section
+                        appContent.classList.add('hidden'); // Hide app content
                         leads = []; // Clear leads if no user
                         renderLeadsList();
                     }
+                    renderForm(); // Update UI after auth state change
                 });
 
                 // Initial render of the form
@@ -733,6 +866,11 @@
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', initApp);
 
+        // Authentication button listeners
+        signupBtn.addEventListener('click', handleSignUp);
+        signinBtn.addEventListener('click', handleSignIn);
+        logoutBtn.addEventListener('click', handleSignOut);
+
         // Form input listeners
         leadNameInput.addEventListener('input', updateFormInput);
         leadEmailInput.addEventListener('input', updateFormInput);
@@ -746,7 +884,7 @@
         otherNicheNotesTextarea.addEventListener('input', updateFormInput);
         leadNotesTextarea.addEventListener('input', updateFormInput);
 
-        // Button listeners
+        // Button listeners for lead management
         addLeadBtn.addEventListener('click', handleAddLead);
         updateLeadBtn.addEventListener('click', handleUpdateLead);
         cancelEditBtn.addEventListener('click', resetForm); // Cancel button simply resets the form
