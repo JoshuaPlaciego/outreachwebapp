@@ -1,0 +1,216 @@
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+// --- Global State Variables (specific to login page) ---
+let authError = ''; // State for authentication errors
+
+// --- DOM Element References (specific to login.html) ---
+const authSection = document.getElementById('auth-section');
+const authEmailInput = document.getElementById('auth-email');
+const authPasswordInput = document.getElementById('auth-password');
+const signupBtn = document.getElementById('signup-btn');
+const signinBtn = document.getElementById('signin-btn');
+const authErrorDiv = document.getElementById('auth-error');
+const authErrorMessageSpan = document.getElementById('auth-error-message');
+const emailVerificationMessageDiv = document.getElementById('email-verification-message');
+const verificationMessageTextSpan = document.getElementById('verification-message-text');
+const resendVerificationBtn = document.getElementById('resend-verification-btn');
+const refreshStatusBtn = document.getElementById('refresh-status-btn');
+
+// --- Functions (specific to login page) ---
+
+/**
+ * Displays the email verification message box.
+ * @param {string} email The email address to display in the message.
+ */
+function showEmailVerificationMessage(email) {
+    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
+        verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+        emailVerificationMessageDiv.classList.remove('hidden');
+    }
+}
+
+/**
+ * Hides the email verification message box.
+ */
+function hideEmailVerificationMessage() {
+    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
+        emailVerificationMessageDiv.classList.add('hidden');
+        verificationMessageTextSpan.textContent = '';
+    }
+}
+
+/**
+ * Renders the current state of the authentication form.
+ */
+function renderAuthForm() {
+    if (authErrorDiv && authErrorMessageSpan) {
+        if (authError) {
+            authErrorDiv.classList.remove('hidden');
+            authErrorMessageSpan.textContent = authError;
+        } else {
+            authErrorDiv.classList.add('hidden');
+            authErrorMessageSpan.textContent = '';
+        }
+    }
+}
+
+/**
+ * Handles user sign-up with email and password.
+ */
+async function handleSignUp() {
+    authError = ''; // Clear previous auth errors
+    const email = authEmailInput.value;
+    const password = authPasswordInput.value;
+
+    if (!email || !password) {
+        authError = 'Email and password are required for sign up.';
+        renderAuthForm();
+        return;
+    }
+    if (password.length < 6) {
+        authError = 'Password must be at least 6 characters long.';
+        renderAuthForm();
+        return;
+    }
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+
+        await sendEmailVerification(user);
+        window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
+
+        // Clear input fields after successful signup
+        authEmailInput.value = '';
+        authPasswordInput.value = '';
+        authError = ''; // Clear any auth error if sign up was successful
+
+        // Sign out the user immediately after sending verification email.
+        await window.auth.signOut();
+
+    } catch (error) {
+        console.error("Sign Up Error:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            authError = 'This email is already registered. Please sign in or use a different email.';
+        } else if (error.code === 'auth/invalid-email') {
+            authError = 'Invalid email address format.';
+        } else if (error.code === 'auth/weak-password') {
+            authError = 'Password is too weak. Please choose a stronger password.';
+        } else {
+            authError = `Sign Up Failed: ${error.message}`;
+        }
+        hideEmailVerificationMessage(); // Ensure hidden on sign-up errors
+    } finally {
+        renderAuthForm(); // Always re-render to update UI based on final state
+    }
+}
+
+/**
+ * Handles user sign-in with email and password.
+ */
+async function handleSignIn() {
+    authError = ''; // Clear previous auth errors
+    const email = authEmailInput.value;
+    const password = authPasswordInput.value;
+
+    if (!email || !password) {
+        authError = 'Email and password are required for sign in.';
+        renderAuthForm();
+        return;
+    }
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+
+        // Reload user to get the latest emailVerified status
+        await user.reload();
+
+        if (!user.emailVerified) {
+            // User is signed in but email not verified, show error
+            authError = `Please verify your email address (${user.email}) to access the dashboard.`;
+            showEmailVerificationMessage(user.email); // Explicitly show the yellow message
+            // Sign out the user to prevent partial access before verification
+            await window.auth.signOut();
+            // No explicit redirect needed here, onAuthStateChanged in main.js handles it
+        } else {
+            // Email is verified, onAuthStateChanged in main.js will handle redirect to addleads.html
+            authError = ''; // Clear error if successfully signed in and verified
+            hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
+        }
+        renderAuthForm(); // Re-render to show authError or clear it
+    } catch (error) {
+        console.error("Sign In Error:", error);
+        authError = `Sign In Failed: ${error.message}`;
+        hideEmailVerificationMessage(); // Hide verification message on sign-in error
+        renderAuthForm();
+    }
+}
+
+/**
+ * Handles resending the email verification.
+ */
+async function handleResendVerificationEmail() {
+    authError = ''; // Clear previous auth errors
+    const user = window.auth.currentUser;
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            authError = 'Verification email re-sent! Please check your inbox.';
+            renderAuthForm();
+        } catch (error) {
+            console.error("Resend Verification Error:", error);
+            authError = `Failed to resend verification email: ${error.message}`;
+            renderAuthForm();
+        }
+    } else {
+        authError = 'No user is currently signed in to resend verification.';
+        renderAuthForm();
+    }
+}
+
+/**
+ * Handles refreshing the user's authentication status to check email verification.
+ */
+async function handleRefreshStatus() {
+    authError = ''; // Clear previous auth errors
+    const user = window.auth.currentUser;
+    if (user) {
+        try {
+            await user.reload(); // Reloads the user's profile
+            // The onAuthStateChanged listener in main.js will then re-evaluate user.emailVerified
+        } catch (error) {
+            console.error("Refresh Status Error:", error);
+            authError = `Failed to refresh status: ${error.message}`;
+            renderAuthForm();
+        }
+    } else {
+        authError = 'No user is currently signed in to refresh status.';
+        renderAuthForm();
+    }
+}
+
+/**
+ * Initializes the login page specific elements and listeners.
+ * Called by main.js after Firebase is initialized.
+ * @param {object|null} user The current Firebase user object, or null if not logged in.
+ */
+export function initLoginPage(user) {
+    if (authSection) authSection.classList.remove('hidden'); // Ensure auth section is visible
+
+    // Hide verification message initially, or show if user is unverified
+    if (user && !user.emailVerified) {
+        showEmailVerificationMessage(user.email);
+    } else {
+        hideEmailVerificationMessage();
+    }
+
+    // Attach event listeners
+    if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
+    if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
+    if (resendVerificationBtn) resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+    if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+    
+    // Initial render of the form
+    renderAuthForm();
+}
