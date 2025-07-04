@@ -443,8 +443,8 @@
          * @param {string} message The message to display.
          */
         function showMessage(message) {
-            messageTextSpan.textContent = message;
             customMessageBoxOverlay.style.display = 'flex'; // Explicitly set to flex
+            messageTextSpan.textContent = message;
         }
 
         /**
@@ -741,7 +741,6 @@
                 console.error("Firestore not initialized or user not authenticated.");
                 validationError = "Application not fully loaded or authenticated. Cannot delete.";
                 renderForm();
-                return;
             }
             try {
                 // Use the hardcoded appId from the firebaseConfig
@@ -839,60 +838,50 @@
             }
 
             try {
-                // First, try to sign in to check if the user already exists
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                // Attempt to create a new user first
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                await user.reload(); // Get the latest verification status
+                // Scenario 3: New user created successfully
+                await sendEmailVerification(user);
+                showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
+                hideEmailVerificationMessage(); // Ensure hidden for new sign-ups
+                await signOut(auth);
+                authEmailInput.value = '';
+                authPasswordInput.value = '';
+                authError = ''; // Clear any auth error if sign up was successful
 
-                if (user.emailVerified) {
-                    // Scenario 1: User exists and is verified
-                    authError = 'User already exists and is verified. Please sign in directly.';
-                    authEmailInput.value = ''; // Clear credentials
-                    authPasswordInput.value = '';
-                    hideEmailVerificationMessage(); // Ensure hidden
-                    await signOut(auth); // Sign out the user to keep them on the auth screen
-                } else {
-                    // Scenario 2: User exists but is NOT verified
-                    authError = ''; // Clear auth error to show verification message
-                    showEmailVerificationMessage(user.email); // Show the yellow verification message
-                    authEmailInput.value = ''; // Clear credentials
-                    authPasswordInput.value = '';
-                    await signOut(auth); // Sign out the user to keep them on the auth screen
-                }
             } catch (error) {
-                // Check for specific errors that indicate the user doesn't exist or credentials are bad for sign-in
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    // Scenario 3: User does not exist, proceed with sign up
+                if (error.code === 'auth/email-already-in-use') {
+                    // User already exists, now try to sign them in to check verification status
                     try {
-                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
                         const user = userCredential.user;
+                        await user.reload(); // Get latest status
 
-                        // Send email verification
-                        await sendEmailVerification(user);
-                        
-                        // Show custom message box (Got It!)
-                        showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
-                        
-                        // Ensure the yellow verification message is hidden for new sign-ups
-                        hideEmailVerificationMessage(); 
-
-                        // Sign out the user immediately after sending verification
-                        // to force them to sign in again after verification.
-                        await signOut(auth);
-
-                        // Clear login form fields after successful sign up
-                        authEmailInput.value = '';
+                        if (user.emailVerified) {
+                            // Scenario 1: Existing & Verified
+                            authError = 'User already exists and is verified. Please sign in directly.';
+                            hideEmailVerificationMessage(); // Ensure hidden
+                        } else {
+                            // Scenario 2: Existing & Not Verified
+                            authError = ''; // Clear red error to show yellow message
+                            showEmailVerificationMessage(user.email);
+                        }
+                        authEmailInput.value = ''; // Clear credentials for existing users too
                         authPasswordInput.value = '';
-                        authError = ''; // Clear any auth error if sign up was successful
-                    } catch (signUpError) {
-                        console.error("Sign Up Error (New User):", signUpError);
-                        authError = `Sign Up Failed: ${signUpError.message}`;
+                        await signOut(auth); // Keep them on auth screen
+                    } catch (signInError) {
+                        // If sign-in fails even after 'email-already-in-use' (e.g., wrong password for existing user)
+                        console.error("Sign In Error (existing user during Sign Up attempt):", signInError);
+                        authError = `Sign Up Failed: ${signInError.message}`;
+                        hideEmailVerificationMessage(); // Hide yellow message if sign-in failed
                     }
                 } else {
-                    // Other unexpected sign-in errors
-                    console.error("Sign In Error (during Sign Up attempt):", error);
-                    authError = `Sign In Failed: ${error.message}`;
+                    // Other sign-up errors (e.g., weak password, invalid email format for new user creation)
+                    console.error("Sign Up Error:", error);
+                    authError = `Sign Up Failed: ${error.message}`;
+                    hideEmailVerificationMessage(); // Hide yellow message on other sign-up errors
                 }
             } finally {
                 renderForm(); // Always re-render to update UI based on final state
