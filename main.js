@@ -1,4 +1,4 @@
-// main.js (Updated to fix auto-logout and improve session persistence)
+// main.js (Updated with Logout button functionality)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -90,7 +90,7 @@ async function initApp() {
                         window.location.href = 'index.html';
                     } else {
                         if (authSection) authSection.classList.remove('hidden');
-                        if (appContent) appContent.classList.add('hidden');
+                        if (appContent) authSection.classList.add('hidden');
                         import('./login.js')
                             .then(module => module.initLoginPage && module.initLoginPage(user))
                             .catch(error => console.error("Error loading login.js:", error));
@@ -119,4 +119,15 @@ async function initApp() {
 document.addEventListener('DOMContentLoaded', initApp);
 if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
 
-// 🔴 Removed: Auto sign-out on tab close to prevent unintended logout
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await signOut(auth);
+            console.log("User manually logged out.");
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error("Error during manual logout:", error);
+            showMessage("Logout failed. Please try again.");
+        }
+    });
+}
