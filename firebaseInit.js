@@ -1,20 +1,24 @@
 // firebaseInit.js
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+// Your Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
   authDomain: "outreachwebapp-139d4.firebaseapp.com",
   projectId: "outreachwebapp-139d4",
-  storageBucket: "outreachwebapp-139d4.appspot.com",  // ✅ corrected here
+  storageBucket: "outreachwebapp-139d4.appspot.com",
   messagingSenderId: "189767218255",
   appId: "1:189767218255:web:dd2f5925fdcb15ed9ba63a"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Auth and Firestore
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Export them
 export { auth, db };
