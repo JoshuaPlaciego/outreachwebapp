@@ -43,6 +43,7 @@ const customMessageBoxOverlay = document.getElementById('custom-message-box-over
 const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
 
+// These elements might not exist on both pages, so check for their existence
 const authSection = document.getElementById('auth-section');
 const appContent = document.getElementById('app-content');
 const authEmailInput = document.getElementById('auth-email');
@@ -162,111 +163,130 @@ function hideMessage() {
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
-    verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
-    emailVerificationMessageDiv.classList.remove('hidden');
+    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
+        verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+        emailVerificationMessageDiv.classList.remove('hidden');
+    }
 }
 
 /**
  * Hides the email verification message box.
  */
 function hideEmailVerificationMessage() {
-    emailVerificationMessageDiv.classList.add('hidden');
-    verificationMessageTextSpan.textContent = '';
+    if (emailVerificationMessageDiv && verificationMessageTextSpan) {
+        emailVerificationMessageDiv.classList.add('hidden');
+        verificationMessageTextSpan.textContent = '';
+    }
 }
 
 /**
  * Renders the current state of the form inputs.
  */
 function renderForm() {
-    leadNameInput.value = newLead.name;
-    leadEmailInput.value = newLead.email;
-    callBookingLinkInput.value = newLead.callBookingLink;
-    instagramLinkInput.value = newLead.instagramLink;
-    youtubeLinkInput.value = newLead.youtubeLink;
-    tiktokLinkInput.value = newLead.tiktokLink;
-    avgViewsInput.value = newLead.avgViews;
-    leadNotesTextarea.value = newLead.notes;
-    otherNicheNotesTextarea.value = newLead.otherNicheNotes;
+    // Only render form elements if they exist on the current page (index.html)
+    if (leadNameInput) leadNameInput.value = newLead.name;
+    if (leadEmailInput) leadEmailInput.value = newLead.email;
+    if (callBookingLinkInput) callBookingLinkInput.value = newLead.callBookingLink;
+    if (instagramLinkInput) instagramLinkInput.value = newLead.instagramLink;
+    if (youtubeLinkInput) youtubeLinkInput.value = newLead.youtubeLink;
+    if (tiktokLinkInput) tiktokLinkInput.value = newLead.tiktokLink;
+    if (avgViewsInput) avgViewsInput.value = newLead.avgViews;
+    if (leadNotesTextarea) leadNotesTextarea.value = newLead.notes;
+    if (otherNicheNotesTextarea) otherNicheNotesTextarea.value = newLead.otherNicheNotes;
 
     // Update radio buttons
-    follower10KUpRadio.checked = newLead.followerCount === '10K up';
-    followerLess10KRadio.checked = newLead.followerCount === 'Less 10k';
+    if (follower10KUpRadio) follower10KUpRadio.checked = newLead.followerCount === '10K up';
+    if (followerLess10KRadio) followerLess10KRadio.checked = newLead.followerCount === 'Less 10k';
 
     // Render niches checkboxes and sub-niches
-    nichesContainer.innerHTML = ''; // Clear previous niches
-    poppyAINiches.forEach(majorNiche => {
-        const div = document.createElement('div');
-        div.className = 'mb-3';
+    if (nichesContainer) {
+        nichesContainer.innerHTML = ''; // Clear previous niches
+        poppyAINiches.forEach(majorNiche => {
+            const div = document.createElement('div');
+            div.className = 'mb-3';
 
-        const label = document.createElement('label');
-        label.className = 'inline-flex items-center';
+            const label = document.createElement('label');
+            label.className = 'inline-flex items-center';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'niches';
-        checkbox.value = majorNiche.name;
-        checkbox.className = 'form-checkbox h-4 w-4 text-indigo-600 rounded';
-        checkbox.checked = newLead.niches.includes(majorNiche.name);
-        checkbox.addEventListener('change', handleNicheChange);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'niches';
+            checkbox.value = majorNiche.name;
+            checkbox.className = 'form-checkbox h-4 w-4 text-indigo-600 rounded';
+            checkbox.checked = newLead.niches.includes(majorNiche.name);
+            checkbox.addEventListener('change', handleNicheChange);
 
-        const span = document.createElement('span');
-        span.className = 'ml-2 text-gray-800 font-semibold';
-        span.textContent = majorNiche.name;
+            const span = document.createElement('span');
+            span.className = 'ml-2 text-gray-800 font-semibold';
+            span.textContent = majorNiche.name;
 
-        label.appendChild(checkbox);
-        label.appendChild(span);
-        div.appendChild(label);
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            div.appendChild(label);
 
-        // Display sub-niches as enumerated notes if the major niche is selected
-        if (newLead.niches.includes(majorNiche.name) && majorNiche.subNiches && majorNiche.subNiches.length > 0) {
-            const ol = document.createElement('ol');
-            ol.className = 'list-decimal list-inside ml-6 text-gray-500 italic text-sm mt-1';
-            majorNiche.subNiches.forEach((subNiche, index) => {
-                const li = document.createElement('li');
-                li.textContent = subNiche;
-                ol.appendChild(li);
-            });
-            div.appendChild(ol);
-        }
-        nichesContainer.appendChild(div);
-    });
+            // Display sub-niches as enumerated notes if the major niche is selected
+            if (newLead.niches.includes(majorNiche.name) && majorNiche.subNiches && majorNiche.subNiches.length > 0) {
+                const ol = document.createElement('ol');
+                ol.className = 'list-decimal list-inside ml-6 text-gray-500 italic text-sm mt-1';
+                majorNiche.subNiches.forEach((subNiche, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = subNiche;
+                    ol.appendChild(li);
+                });
+                div.appendChild(ol);
+            }
+            nichesContainer.appendChild(div);
+        });
+    }
+
 
     // Show/hide "Others" notes field
-    if (newLead.niches.includes('Others')) {
-        otherNicheNotesContainer.classList.remove('hidden');
-    } else {
-        otherNicheNotesContainer.classList.add('hidden');
+    if (otherNicheNotesContainer) {
+        if (newLead.niches.includes('Others')) {
+            otherNicheNotesContainer.classList.remove('hidden');
+        } else {
+            otherNicheNotesContainer.classList.add('hidden');
+        }
     }
+
 
     // Update form title and buttons based on editing state
-    if (editingLeadId) {
-        formTitle.textContent = 'Edit Lead';
-        addLeadBtn.classList.add('hidden');
-        updateLeadBtn.classList.remove('hidden');
-        cancelEditBtn.classList.remove('hidden');
-    } else {
-        formTitle.textContent = 'Add New Lead';
-        addLeadBtn.classList.remove('hidden');
-        updateLeadBtn.classList.add('hidden');
-        cancelEditBtn.classList.add('hidden');
+    if (formTitle && addLeadBtn && updateLeadBtn && cancelEditBtn) {
+        if (editingLeadId) {
+            formTitle.textContent = 'Edit Lead';
+            addLeadBtn.classList.add('hidden');
+            updateLeadBtn.classList.remove('hidden');
+            cancelEditBtn.classList.remove('hidden');
+        } else {
+            formTitle.textContent = 'Add New Lead';
+            addLeadBtn.classList.remove('hidden');
+            updateLeadBtn.classList.add('hidden');
+            cancelEditBtn.classList.add('hidden');
+        }
     }
+
 
     // Display validation error if any
-    if (validationError) {
-        validationErrorDiv.classList.remove('hidden');
-        errorMessageSpan.textContent = validationError;
-    } else {
-        validationErrorDiv.classList.add('hidden');
-        errorMessageSpan.textContent = '';
+    if (validationErrorDiv && errorMessageSpan) {
+        if (validationError) {
+            validationErrorDiv.classList.remove('hidden');
+            errorMessageSpan.textContent = validationError;
+        } else {
+            validationErrorDiv.classList.add('hidden');
+            errorMessageSpan.textContent = '';
+        }
     }
 
+
     // Display authentication error
-    if (authError) {
-        authErrorDiv.classList.remove('hidden');
-        authErrorMessageSpan.textContent = authError;
-    } else {
-        authErrorDiv.classList.add('hidden');
-        authErrorMessageSpan.textContent = '';
+    if (authErrorDiv && authErrorMessageSpan) {
+        if (authError) {
+            authErrorDiv.classList.remove('hidden');
+            authErrorMessageSpan.textContent = authError;
+        } else {
+            authErrorDiv.classList.add('hidden');
+            authErrorMessageSpan.textContent = '';
+        }
     }
 }
 
@@ -472,51 +492,53 @@ function resetForm() {
  * Renders the list of leads.
  */
 function renderLeadsList() {
-    leadsListDiv.innerHTML = ''; // Clear existing list
-    if (leads.length === 0) {
-        noLeadsMessage.classList.remove('hidden');
-        leadsListDiv.appendChild(noLeadsMessage);
-    } else {
-        noLeadsMessage.classList.add('hidden');
-        leads.forEach(lead => {
-            const leadDiv = document.createElement('div');
-            leadDiv.className = 'bg-white p-5 rounded-lg shadow-md border border-indigo-200 flex flex-col sm:flex-row justify-between items-start sm:items-center';
-            leadDiv.innerHTML = `
-                <div class="flex-grow mb-3 sm:mb-0">
-                    <h3 class="text-xl font-bold text-gray-900">${lead.name || 'No Name'}</h3>
-                    ${lead.email ? `<p class="text-gray-600 text-sm">Email: <a href="mailto:${lead.email}" class="text-indigo-500 hover:underline">${lead.email}</a></p>` : ''}
-                    ${lead.callBookingLink ? `<p class="text-gray-600 text-sm">Call Booking: <a href="${lead.callBookingLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.callBookingLink}</a></p>` : ''}
-                    ${lead.instagramLink ? `<p class="text-gray-600 text-sm ml-4">Instagram: <a href="${lead.instagramLink}" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.instagramLink}</a></p>` : ''}
-                    ${lead.youtubeLink ? `<p class="text-gray-600 text-sm ml-4">YouTube: <a href="${lead.youtubeLink}" target="_blank" rel="noopener noreferrer" class="text-red-600 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.youtubeLink}</a></p>` : ''}
-                    ${lead.tiktokLink ? `<p class="text-gray-600 text-sm ml-4">TikTok: <a href="${lead.tiktokLink}" target="_blank" rel="noopener noreferrer" class="text-gray-800 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.tiktokLink}</a></p>` : ''}
-                    ${lead.followerCount ? `<p class="text-gray-700 text-sm">Followers: <span class="font-medium">${lead.followerCount}</span></p>` : ''}
-                    ${lead.avgViews ? `<p class="text-gray-700 text-sm">Avg. Views: <span class="font-medium">${lead.avgViews}</span></p>` : ''}
-                    ${lead.niches && lead.niches.length > 0 ? `<p class="text-gray-700 text-sm mt-2">Niches: <span class="font-medium">${lead.niches.join(', ')}</span></p>` : ''}
-                    ${lead.otherNicheNotes ? `<p class="text-gray-700 text-sm mt-1 italic">Other Niche Details: ${lead.otherNicheNotes}</p>` : ''}
-                    ${lead.notes ? `<p class="text-gray-800 text-sm mt-2 italic">Notes: ${lead.notes}</p>` : ''}
-                    <p class="text-gray-500 text-xs mt-1">
-                        Added by: ${lead.createdBy?.substring(0, 8)}... on ${lead.createdAt?.toDate().toLocaleString()}
-                    </p>
-                </div>
-                <div class="flex space-x-2 mt-3 sm:mt-0">
-                    <button data-id="${lead.id}" class="edit-btn px-4 py-2 bg-yellow-500 text-white rounded-lg shadow-sm hover:bg-yellow-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-yellow-400">
-                        Edit
-                    </button>
-                    <button data-id="${lead.id}" class="delete-btn px-4 py-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400">
-                        Delete
-                    </button>
-                </div>
-            `;
-            leadsListDiv.appendChild(leadDiv);
-        });
+    if (leadsListDiv && noLeadsMessage) {
+        leadsListDiv.innerHTML = ''; // Clear existing list
+        if (leads.length === 0) {
+            noLeadsMessage.classList.remove('hidden');
+            leadsListDiv.appendChild(noLeadsMessage);
+        } else {
+            noLeadsMessage.classList.add('hidden');
+            leads.forEach(lead => {
+                const leadDiv = document.createElement('div');
+                leadDiv.className = 'bg-white p-5 rounded-lg shadow-md border border-indigo-200 flex flex-col sm:flex-row justify-between items-start sm:items-center';
+                leadDiv.innerHTML = `
+                    <div class="flex-grow mb-3 sm:mb-0">
+                        <h3 class="text-xl font-bold text-gray-900">${lead.name || 'No Name'}</h3>
+                        ${lead.email ? `<p class="text-gray-600 text-sm">Email: <a href="mailto:${lead.email}" class="text-indigo-500 hover:underline">${lead.email}</a></p>` : ''}
+                        ${lead.callBookingLink ? `<p class="text-gray-600 text-sm">Call Booking: <a href="${lead.callBookingLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.callBookingLink}</a></p>` : ''}
+                        ${lead.instagramLink ? `<p class="text-gray-600 text-sm ml-4">Instagram: <a href="${lead.instagramLink}" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.instagramLink}</a></p>` : ''}
+                        ${lead.youtubeLink ? `<p class="text-gray-600 text-sm ml-4">YouTube: <a href="${lead.youtubeLink}" target="_blank" rel="noopener noreferrer" class="text-red-600 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.youtubeLink}</a></p>` : ''}
+                        ${lead.tiktokLink ? `<p class="text-gray-600 text-sm ml-4">TikTok: <a href="${lead.tiktokLink}" target="_blank" rel="noopener noreferrer" class="text-gray-800 hover:underline truncate inline-block max-w-[200px] sm:max-w-full">${lead.tiktokLink}</a></p>` : ''}
+                        ${lead.followerCount ? `<p class="text-gray-700 text-sm">Followers: <span class="font-medium">${lead.followerCount}</span></p>` : ''}
+                        ${lead.avgViews ? `<p class="text-gray-700 text-sm">Avg. Views: <span class="font-medium">${lead.avgViews}</span></p>` : ''}
+                        ${lead.niches && lead.niches.length > 0 ? `<p class="text-gray-700 text-sm mt-2">Niches: <span class="font-medium">${lead.niches.join(', ')}</span></p>` : ''}
+                        ${lead.otherNicheNotes ? `<p class="text-gray-700 text-sm mt-1 italic">Other Niche Details: ${lead.otherNicheNotes}</p>` : ''}
+                        ${lead.notes ? `<p class="text-gray-800 text-sm mt-2 italic">Notes: ${lead.notes}</p>` : ''}
+                        <p class="text-gray-500 text-xs mt-1">
+                            Added by: ${lead.createdBy?.substring(0, 8)}... on ${lead.createdAt?.toDate().toLocaleString()}
+                        </p>
+                    </div>
+                    <div class="flex space-x-2 mt-3 sm:mt-0">
+                        <button data-id="${lead.id}" class="edit-btn px-4 py-2 bg-yellow-500 text-white rounded-lg shadow-sm hover:bg-yellow-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            Edit
+                        </button>
+                        <button data-id="${lead.id}" class="delete-btn px-4 py-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400">
+                            Delete
+                        </button>
+                    </div>
+                `;
+                leadsListDiv.appendChild(leadDiv);
+            });
 
-        // Attach event listeners to newly created buttons
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', (e) => handleEditLead(e.target.dataset.id));
-        });
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => handleDeleteLead(e.target.dataset.id));
-        });
+            // Attach event listeners to newly created buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', (e) => handleEditLead(e.target.dataset.id));
+            });
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => handleDeleteLead(e.target.dataset.id));
+            });
+        }
     }
 }
 
@@ -597,15 +619,15 @@ async function handleSignIn() {
             // User is signed in but email not verified, show error
             authError = `Please verify your email address (${user.email}) to access the dashboard.`;
             showEmailVerificationMessage(user.email); // Explicitly show the yellow message
-            // Keep them on the auth section
-            authSection.classList.remove('hidden');
-            appContent.classList.add('hidden');
             // Sign out the user to prevent partial access before verification
             await signOut(auth);
+            // Redirect to login page
+            window.location.href = 'login.html';
         } else {
-            // Email is verified, onAuthStateChanged will handle showing the dashboard
+            // Email is verified, redirect to main app content
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
+            window.location.href = 'index.html';
         }
         renderForm(); // Re-render to show authError or clear it
     } catch (error) {
@@ -622,7 +644,8 @@ async function handleSignIn() {
 async function handleSignOut() {
     try {
         await signOut(auth);
-        // Auth state listener will handle UI update on successful sign-out
+        // Redirect to login page after sign out
+        window.location.href = 'login.html';
         resetForm(); // Clear form data on logout
     } catch (error) {
         console.error("Sign Out Error:", error);
@@ -689,56 +712,78 @@ async function initApp() {
         db = getFirestore(app);
         auth = getAuth(app);
 
+        // Determine if we are on the login page or the main app page
+        const isLoginPage = window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('/');
+
         // Listen for auth state changes to get the user ID
-        onAuthStateChanged(auth, async (user) => { // Made async to allow user.reload()
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Reload user to get the latest emailVerified status
-                await user.reload(); // Important for checking verification status after user clicks link
+                await user.reload(); // Important for checking verification status
 
                 if (user.emailVerified) {
                     currentUserId = user.uid;
-                    currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
-                    authSection.classList.add('hidden'); // Hide auth section
-                    hideEmailVerificationMessage(); // Hide verification message
-                    appContent.classList.remove('hidden'); // Show app content
-                    authError = ''; // Clear any lingering auth errors
+                    if (currentUserIdSpan) currentUserIdSpan.textContent = user.email || user.uid;
+                    if (userIdDisplay) userIdDisplay.classList.remove('hidden');
 
-                    // Start Firestore listener AFTER user is authenticated and verified
-                    const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
-                    onSnapshot(leadsCollectionRef, (snapshot) => {
-                        leads = snapshot.docs.map(doc => ({
-                            id: doc.id,
-                            ...doc.data()
-                        }));
-                        // Sort leads by creation time in memory
-                        leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-                        renderLeadsList();
-                    }, (error) => {
-                        console.error("Error fetching leads:", error);
-                        validationError = `Error fetching leads: ${error.message}.`;
-                        renderForm();
-                    });
+                    hideEmailVerificationMessage(); // Hide verification message
+
+                    // If on login page and verified, redirect to index.html
+                    if (isLoginPage) {
+                        window.location.href = 'index.html';
+                    } else {
+                        // If on index.html and verified, ensure app content is visible
+                        if (appContent) appContent.classList.remove('hidden');
+                        authError = ''; // Clear any lingering auth errors
+                        // Start Firestore listener AFTER user is authenticated and verified
+                        const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
+                        onSnapshot(leadsCollectionRef, (snapshot) => {
+                            leads = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            // Sort leads by creation time in memory
+                            leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+                            renderLeadsList();
+                        }, (error) => {
+                            console.error("Error fetching leads:", error);
+                            validationError = `Error fetching leads: ${error.message}.`;
+                            renderForm();
+                        });
+                    }
                 } else {
                     // User is signed in but email not verified
                     currentUserId = null; // Treat as not fully authenticated for app access
-                    authSection.classList.remove('hidden'); // Show auth section
-                    appContent.classList.add('hidden'); // Hide app content
-                    console.warn("User signed in but email not verified:", user.email);
+                    if (!isLoginPage) { // If on index.html, redirect to login
+                        window.location.href = 'login.html';
+                    } else {
+                        // If on login.html, ensure auth section is visible and show verification message
+                        if (authSection) authSection.classList.remove('hidden');
+                        if (appContent) appContent.classList.add('hidden'); // Ensure app content is hidden
+                        showEmailVerificationMessage(user.email);
+                        console.warn("User signed in but email not verified:", user.email);
+                    }
                 }
             } else {
+                // No user signed in
                 currentUserId = null;
-                currentUserIdSpan.textContent = '';
-                userIdDisplay.classList.add('hidden'); // Hide user ID display
-                authSection.classList.remove('hidden'); // Show auth section
+                if (currentUserIdSpan) currentUserIdSpan.textContent = '';
+                if (userIdDisplay) userIdDisplay.classList.add('hidden');
                 hideEmailVerificationMessage(); // Hide verification message if no user
-                appContent.classList.add('hidden'); // Hide app content
                 leads = []; // Clear leads if no user
-                renderLeadsList();
+
+                if (!isLoginPage) { // If on index.html and not logged in, redirect to login
+                    window.location.href = 'login.html';
+                } else {
+                    // If on login.html and not logged in, ensure auth section is visible
+                    if (authSection) authSection.classList.remove('hidden');
+                    if (appContent) appContent.classList.add('hidden'); // Ensure app content is hidden
+                }
+                renderLeadsList(); // Clear leads list on UI
             }
             renderForm(); // Update UI after auth state change
         });
 
-        // Initial render of the form
+        // Initial render of the form (only for elements present on the current page)
         renderForm();
 
     } catch (error) {
@@ -752,30 +797,28 @@ async function initApp() {
 // --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Authentication button listeners
-signupBtn.addEventListener('click', handleSignUp);
-signinBtn.addEventListener('click', handleSignIn);
-logoutBtn.addEventListener('click', handleSignOut);
-closeMessageBtn.addEventListener('click', hideMessage); // Event listener for the "Got It!" button
-// Re-added event listeners for email verification message buttons
-resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
-refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+// Attach event listeners only if the elements exist on the current page
+if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
+if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
+if (logoutBtn) logoutBtn.addEventListener('click', handleSignOut);
+if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
+if (resendVerificationBtn) resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
 
+// Form input listeners (only if elements exist)
+if (leadNameInput) leadNameInput.addEventListener('input', updateFormInput);
+if (leadEmailInput) leadEmailInput.addEventListener('input', updateFormInput);
+if (callBookingLinkInput) callBookingLinkInput.addEventListener('input', updateFormInput);
+if (instagramLinkInput) instagramLinkInput.addEventListener('input', updateFormInput);
+if (youtubeLinkInput) youtubeLinkInput.addEventListener('input', updateFormInput);
+if (tiktokLinkInput) tiktokLinkInput.addEventListener('input', updateFormInput);
+if (follower10KUpRadio) follower10KUpRadio.addEventListener('change', updateFormInput);
+if (followerLess10KRadio) followerLess10KRadio.addEventListener('change', updateFormInput);
+if (avgViewsInput) avgViewsInput.addEventListener('input', updateFormInput);
+if (otherNicheNotesTextarea) otherNicheNotesTextarea.addEventListener('input', updateFormInput);
+if (leadNotesTextarea) leadNotesTextarea.addEventListener('input', updateFormInput);
 
-// Form input listeners
-leadNameInput.addEventListener('input', updateFormInput);
-leadEmailInput.addEventListener('input', updateFormInput);
-callBookingLinkInput.addEventListener('input', updateFormInput);
-instagramLinkInput.addEventListener('input', updateFormInput);
-youtubeLinkInput.addEventListener('input', updateFormInput);
-tiktokLinkInput.addEventListener('input', updateFormInput);
-follower10KUpRadio.addEventListener('change', updateFormInput);
-followerLess10KRadio.addEventListener('change', updateFormInput);
-avgViewsInput.addEventListener('input', updateFormInput);
-otherNicheNotesTextarea.addEventListener('input', updateFormInput);
-leadNotesTextarea.addEventListener('input', updateFormInput);
-
-// Button listeners for lead management
-addLeadBtn.addEventListener('click', handleAddLead);
-updateLeadBtn.addEventListener('click', handleUpdateLead);
-cancelEditBtn.addEventListener('click', resetForm); // Cancel button simply resets the form
+// Button listeners for lead management (only if elements exist)
+if (addLeadBtn) addLeadBtn.addEventListener('click', handleAddLead);
+if (updateLeadBtn) updateLeadBtn.addEventListener('click', handleUpdateLead);
+if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
