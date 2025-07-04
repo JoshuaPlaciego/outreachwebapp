@@ -23,7 +23,7 @@ const verificationMessageTextSpan = document.getElementById('verification-messag
  */
 function showEmailVerificationMessage(email) {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        verificationMessageMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+        verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
         emailVerificationMessageDiv.classList.remove('hidden');
     }
 }
@@ -59,6 +59,7 @@ function renderAuthForm() {
  */
 async function handleSignUp() {
     authError = ''; // Clear previous auth errors for a fresh attempt
+    hideEmailVerificationMessage(); // Clear any previous verification messages
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
@@ -114,6 +115,7 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authError = ''; // Clear previous auth errors
+    hideEmailVerificationMessage(); // Clear any previous verification messages
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
