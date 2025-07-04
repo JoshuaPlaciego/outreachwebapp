@@ -540,50 +540,33 @@ async function handleSignUp() {
     }
 
     try {
-        // Attempt to create a new user first
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Scenario 3: New user created successfully
         await sendEmailVerification(user);
-        showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
-        hideEmailVerificationMessage(); // Ensure hidden for new sign-ups
+        showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
+
+        // Clear input fields after successful signup
         authEmailInput.value = '';
         authPasswordInput.value = '';
         authError = ''; // Clear any auth error if sign up was successful
 
-    } catch (error) {
-        if (error.code === 'auth/email-already-in-use') {
-            // User already exists, now try to sign them in to check verification status
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                await user.reload(); // Get latest status
+        // Sign out the user immediately after sending verification email.
+        // This ensures they must go through the sign-in flow after verification.
+        await signOut(auth);
 
-                if (user.emailVerified) {
-                    // Scenario 1: Existing & Verified
-                    authError = 'User already exists and is verified. Please sign in directly.';
-                    hideEmailVerificationMessage(); // Ensure hidden
-                } else {
-                    // Scenario 2: Existing & Not Verified
-                    authError = ''; // Clear red error to show yellow message
-                    showEmailVerificationMessage(user.email);
-                }
-                authEmailInput.value = ''; // Clear credentials for existing users too
-                authPasswordInput.value = '';
-                await signOut(auth); // Keep them on auth screen
-            } catch (signInError) {
-                // If sign-in fails even after 'email-already-in-use' (e.g., wrong password for existing user)
-                console.error("Sign In Error (existing user during Sign Up attempt):", signInError);
-                authError = `Sign Up Failed: ${signInError.message}`;
-                hideEmailVerificationMessage(); // Hide yellow message if sign-in failed
-            }
+    } catch (error) {
+        console.error("Sign Up Error:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            authError = 'This email is already registered. Please sign in or use a different email.';
+        } else if (error.code === 'auth/invalid-email') {
+            authError = 'Invalid email address format.';
+        } else if (error.code === 'auth/weak-password') {
+            authError = 'Password is too weak. Please choose a stronger password.';
         } else {
-            // Other sign-up errors (e.g., weak password, invalid email format for new user creation)
-            console.error("Sign Up Error:", error);
             authError = `Sign Up Failed: ${error.message}`;
-            hideEmailVerificationMessage(); // Hide yellow message on other sign-up errors
         }
+        hideEmailVerificationMessage(); // Ensure hidden on sign-up errors
     } finally {
         renderForm(); // Always re-render to update UI based on final state
     }
