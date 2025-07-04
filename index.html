@@ -34,11 +34,15 @@
 
         <!-- Email Verification Message Div -->
         <div id="email-verification-message" class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
-            <!-- The strong tag "Verification Needed:" is removed from here. login.js will dynamically add the full message. -->
+            <strong class="font-bold">Verification Needed: </strong>
             <span id="verification-message-text" class="block sm:inline">
-                <!-- Content will be dynamically set by JavaScript, including the inline resend link -->
+                <!-- This span will contain the main message text, dynamically set by JS -->
             </span>
-            <!-- The div containing the refresh status button is removed -->
+            <!-- The inline resend link and Refresh Status button are now separate elements -->
+            <div class="flex justify-center mt-3 space-x-2">
+                <a href="#" id="inline-resend-link" class="text-indigo-600 hover:underline font-semibold hidden">Resend Verification Email</a>
+                <button id="refresh-status-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm hidden">Refresh Status</button>
+            </div>
         </div>
 
         <div class="mb-4">

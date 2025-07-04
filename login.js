@@ -13,8 +13,8 @@ const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
 const verificationMessageTextSpan = document.getElementById('verification-message-text');
-// Removed direct reference to resendVerificationBtn as it's now inline
-const refreshStatusBtn = document.getElementById('refresh-status-btn'); // Remains a separate button
+const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
+// Removed direct reference to refreshStatusBtn as the button is no longer needed
 
 
 // --- Functions (specific to login page) ---
@@ -26,7 +26,7 @@ const refreshStatusBtn = document.getElementById('refresh-status-btn'); // Remai
  */
 function showEmailVerificationMessage(email) {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        // Construct the HTML for the message, including the inline resend link
+        // Set the text content without rebuilding the entire HTML
         verificationMessageTextSpan.innerHTML = `
             <strong class="font-bold">Verification Needed: </strong>
             Please verify your email address (${email}) to access the dashboard.
@@ -36,19 +36,14 @@ function showEmailVerificationMessage(email) {
         `;
         emailVerificationMessageDiv.classList.remove('hidden');
 
+        // Show the inline resend link (refresh button is removed from HTML)
+        if (inlineResendLink) inlineResendLink.classList.remove('hidden');
+
+
         // Explicitly hide the authentication error message when showing verification message
         if (authErrorDiv) {
             authErrorDiv.classList.add('hidden');
             authErrorMessageSpan.textContent = ''; // Clear content too
-        }
-
-        // Attach event listener to the dynamically created inline link
-        const inlineResendLink = document.getElementById('inline-resend-link');
-        if (inlineResendLink) {
-            inlineResendLink.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent default link behavior (page reload)
-                handleResendVerificationEmail();
-            });
         }
     }
 }
@@ -59,7 +54,9 @@ function showEmailVerificationMessage(email) {
 function hideEmailVerificationMessage() {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
         emailVerificationMessageDiv.classList.add('hidden');
-        verificationMessageTextSpan.innerHTML = ''; // Clear content too
+        verificationMessageTextSpan.innerHTML = ''; // Clear content
+        // Hide the inline resend link (refresh button is removed from HTML)
+        if (inlineResendLink) inlineResendLink.classList.add('hidden');
     }
 }
 
@@ -259,7 +256,13 @@ export function initLoginPage(user) {
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
     // The resend link is now dynamically created and attached within showEmailVerificationMessage
     // The refreshStatusBtn listener is removed as the button is no longer in HTML
-    // if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+    // if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus); // This line is commented out as the button is removed
+    if (inlineResendLink) { // Ensure inlineResendLink exists before attaching listener
+        inlineResendLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleResendVerificationEmail();
+        });
+    }
     
     // Initial render of the form
     renderAuthForm();
