@@ -94,6 +94,14 @@ async function initApp() {
 
         // Listen for auth state changes to handle routing
         onAuthStateChanged(auth, async (user) => {
+            // If user is null and we are waiting for custom token auth, do nothing yet.
+            // This prevents premature redirects if the initial auth state is not yet established.
+            if (!user && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                // We are likely in the process of signing in with custom token.
+                // Do not redirect yet, wait for the next onAuthStateChanged event.
+                return;
+            }
+
             if (user) {
                 // Always reload user to get the absolute latest emailVerified status
                 try {
@@ -156,7 +164,7 @@ async function initApp() {
                     }
                 }
             } else {
-                // No user signed in
+                // No user signed in (and not waiting for custom token)
                 currentUserId = null;
                 if (!isLoginPage) {
                     // If on addleads.html, redirect to login page (index.html)

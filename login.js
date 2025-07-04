@@ -132,8 +132,8 @@ async function handleSignUp() {
         // Set info message for successful signup and verification email sent
         infoMessage = `Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`;
         
-        // DO NOT sign out here. Let main.js handle the state change based on email verification.
-        // The user will remain signed in (unverified) on the login page.
+        // Sign out the user immediately after sending email, so they have to sign in again to trigger verification check
+        await window.auth.signOut(); // This line was re-added in a previous step to ensure logout after signup.
 
     } catch (error) {
         // Handle specific Firebase authentication errors
