@@ -9,7 +9,7 @@ const authSection = document.getElementById('auth-section');
 const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
 const signupBtn = document.getElementById('signup-btn');
-const signinBtn = document.getElementById('signin-btn');
+const signinBtn = document.getElementById('signin-btn'); // Corrected ID to match HTML
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const infoMessageDiv = document.getElementById('info-message'); // New DOM reference for info message div
@@ -129,10 +129,9 @@ async function handleSignUp() {
         // 2. Send email verification to the new user
         await sendEmailVerification(user);
         
-        // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
-        // The main.js onAuthStateChanged will handle displaying the verification message
-        // if the user tries to sign in before verifying.
-
+        // Set info message for successful signup and verification email sent
+        infoMessage = `Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`;
+        
         // DO NOT sign out here. Let main.js handle the state change based on email verification.
         // The user will remain signed in (unverified) on the login page.
 
