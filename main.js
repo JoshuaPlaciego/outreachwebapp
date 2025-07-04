@@ -30,6 +30,8 @@ const currentUserIdSpan = document.getElementById('current-user-id'); // For add
 const userIdDisplay = document.getElementById('user-id-display'); // For addleads.html
 const logoutBtn = document.getElementById('logout-btn'); // For addleads.html
 
+// Flag to prevent multiple redirects during a single auth state change cycle
+let isRedirecting = false;
 
 // --- Shared Functions ---
 
@@ -80,11 +82,13 @@ async function initApp() {
 
         // Listen for auth state changes to handle routing and UI visibility
         onAuthStateChanged(auth, async (user) => {
+            // Prevent re-entry if a redirect is already in progress
+            if (isRedirecting) {
+                return;
+            }
+
             // If user is null and we are waiting for custom token auth, do nothing yet.
-            // This prevents premature redirects if the initial auth state is not yet established.
             if (!user && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                // We are likely in the process of signing in with custom token.
-                // Do not redirect yet, wait for the next onAuthStateChanged event.
                 return;
             }
 
@@ -97,17 +101,17 @@ async function initApp() {
                     // If reload fails, it might mean the session is no longer valid.
                     // Force sign out to prevent stale sessions.
                     await signOut(auth);
-                    // Redirect to login page if reload fails and user is forced out
-                    if (!isLoginPage) {
-                        window.location.href = 'index.html';
-                    }
-                    return; // Exit as user state is uncertain
+                    // Set redirecting flag and redirect to login page
+                    isRedirecting = true;
+                    window.location.href = 'index.html';
+                    return;
                 }
 
                 if (user.emailVerified) {
                     // User is authenticated and email is verified
                     if (isLoginPage) {
                         // If on login page, redirect to addleads.html
+                        isRedirecting = true;
                         window.location.href = 'addleads.html';
                     } else {
                         // If already on addleads.html, ensure app content is visible and load addleads.js
@@ -123,9 +127,9 @@ async function initApp() {
                     }
                 } else {
                     // User is signed in but email not verified
-                    // Keep them on the login page (index.html)
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
+                        isRedirecting = true;
                         window.location.href = 'index.html';
                     } else {
                         // If already on login page, ensure auth section is visible and load login.js
@@ -144,6 +148,7 @@ async function initApp() {
                 // No user signed in
                 if (!isLoginPage) {
                     // If on addleads.html, redirect to login page (index.html)
+                    isRedirecting = true;
                     window.location.href = 'index.html';
                 } else {
                     // If already on login page, ensure auth section is visible and load login.js
