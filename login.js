@@ -1,176 +1,121 @@
-// login.js (cleaned-up and optimized)
+// login.js
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { resendVerification } from "./resendVerification.js";
 
-// --- DOM Elements ---
-const authSection = document.getElementById('auth-section');
-const authEmailInput = document.getElementById('auth-email');
-const authPasswordInput = document.getElementById('auth-password');
-const signupBtn = document.getElementById('signup-btn');
-const signinBtn = document.getElementById('signin-btn');
-const authErrorDiv = document.getElementById('auth-error');
-const authErrorMessageSpan = document.getElementById('auth-error-message');
-const infoMessageDiv = document.getElementById('info-message');
-const infoMessageTextSpan = document.getElementById('info-message-text');
-const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-const verificationEmailDisplay = document.getElementById('verification-email-display');
-const inlineResendLink = document.getElementById('inline-resend-link');
+let auth;
 
-let authError = '';
-let infoMessage = '';
-
-function renderAuthForm() {
-    authErrorDiv.classList.add('hidden');
-    infoMessageDiv.classList.add('hidden');
-    hideEmailVerificationMessage();
-
-    if (authError) {
-        authErrorDiv.classList.remove('hidden');
-        authErrorMessageSpan.textContent = authError;
-    } else if (infoMessage) {
-        infoMessageDiv.classList.remove('hidden');
-        infoMessageTextSpan.textContent = infoMessage;
-    }
-}
-
-function showEmailVerificationMessage(email) {
-    verificationEmailDisplay.textContent = email;
-    emailVerificationMessageDiv.classList.remove('hidden');
-    inlineResendLink.classList.remove('hidden');
-
-    authErrorDiv.classList.add('hidden');
-    infoMessageDiv.classList.add('hidden');
-}
-
-function hideEmailVerificationMessage() {
-    emailVerificationMessageDiv.classList.add('hidden');
-    verificationEmailDisplay.textContent = '';
-    inlineResendLink.classList.add('hidden');
-}
-
-async function handleSignUp() {
-    resetMessages();
-
-    const email = authEmailInput.value;
-    const password = authPasswordInput.value;
-
-    if (!email || !password) return showError('Email and password are required for sign up.');
-    if (password.length < 6) return showError('Password must be at least 6 characters long.');
-
-    try {
-        const { user } = await createUserWithEmailAndPassword(window.auth, email, password);
-        await sendEmailVerification(user);
-        await signOut(window.auth); // Log out immediately after sign up
-        showInfo(`Account created for ${email}! A verification email has been sent. Please verify and then sign in.`);
-    } catch (error) {
-        handleAuthError(error);
-    } finally {
-        clearInputs();
-    }
-}
-
-async function handleSignIn() {
-    resetMessages();
-
-    const email = authEmailInput.value;
-    const password = authPasswordInput.value;
-
-    if (!email || !password) return showError('Email and password are required for sign in.');
-
-    try {
-        const { user } = await signInWithEmailAndPassword(window.auth, email, password);
-        await user.reload();
-
-        if (!user.emailVerified) {
-            showEmailVerificationMessage(user.email);
-            await signOut(window.auth); // Sign out immediately to prevent session persistence
-        } else {
-            showInfo('Successfully signed in and email verified!');
-        }
-    } catch (error) {
-        handleAuthError(error);
-    } finally {
-        clearInputs();
-    }
-}
-
-async function handleResendVerificationEmail() {
-    resetMessages();
-
-    const email = verificationEmailDisplay.textContent;
-    if (!email) return showError('No email address available to resend verification.');
-
-    try {
-        const { signInWithEmailAndPassword, sendEmailVerification, signOut } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-        const tempCredential = await signInWithEmailAndPassword(window.auth, email, prompt("Re-enter password to resend verification email:"));
-        await sendEmailVerification(tempCredential.user);
-        await signOut(window.auth);
-        showInfo('Verification email re-sent! Please check your inbox.');
-    } catch (error) {
-        showError(`Failed to resend verification email: ${error.message}`);
-    }
-}
-
-function showError(message) {
-    authError = message;
-    infoMessage = '';
-    renderAuthForm();
-}
-
-function showInfo(message) {
-    infoMessage = message;
-    authError = '';
-    renderAuthForm();
-}
-
-function resetMessages() {
-    authError = '';
-    infoMessage = '';
-    renderAuthForm();
-}
-
-function clearInputs() {
-    authEmailInput.value = '';
-    authPasswordInput.value = '';
-}
-
+/**
+ * Initializes the login page, setting up event listeners and handling auth actions.
+ * @param {object|null} user - The current Firebase user object or null.
+ */
 export function initLoginPage(user) {
-    authSection.classList.remove('hidden');
+    auth = window.auth;
 
-    hideEmailVerificationMessage();
+    const emailInput = document.getElementById('auth-email');
+    const passwordInput = document.getElementById('auth-password');
+    const signupBtn = document.getElementById('signup-btn');
+    const signinBtn = document.getElementById('signin-btn');
 
+    const authErrorDiv = document.getElementById('auth-error');
+    const authErrorMessage = document.getElementById('auth-error-message');
+
+    const verificationMessageDiv = document.getElementById('email-verification-message');
+    const verificationEmailDisplay = document.getElementById('verification-email-display');
+    const inlineResendLink = document.getElementById('inline-resend-link');
+
+    function showAuthError(message) {
+        authErrorMessage.textContent = message;
+        authErrorDiv.classList.remove('hidden');
+    }
+
+    function hideAuthError() {
+        authErrorDiv.classList.add('hidden');
+        authErrorMessage.textContent = '';
+    }
+
+    function showVerificationMessage(email) {
+        verificationEmailDisplay.textContent = email;
+        verificationMessageDiv.classList.remove('hidden');
+        inlineResendLink.classList.remove('hidden');
+    }
+
+    function hideVerificationMessage() {
+        verificationMessageDiv.classList.add('hidden');
+        verificationEmailDisplay.textContent = '';
+        inlineResendLink.classList.add('hidden');
+    }
+
+    async function handleSignUp() {
+        hideAuthError();
+        hideVerificationMessage();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await sendEmailVerification(userCredential.user);
+            window.showMessage("Sign-up successful. Verification email sent. Please check your inbox.");
+            await signOut(auth);
+        } catch (error) {
+            console.error("Sign-up error:", error);
+            showAuthError(error.message);
+        }
+    }
+
+    async function handleSignIn() {
+        hideAuthError();
+        hideVerificationMessage();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            await userCredential.user.reload();
+
+            if (!userCredential.user.emailVerified) {
+                showVerificationMessage(email);
+                window.showMessage("Your email is not verified. Please verify before proceeding.");
+                await signOut(auth);
+            }
+
+        } catch (error) {
+            console.error("Sign-in error:", error);
+            showAuthError(error.message);
+        }
+    }
+
+    // Attach event listeners
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    inlineResendLink.addEventListener('click', (e) => {
+
+    inlineResendLink.addEventListener('click', async (e) => {
         e.preventDefault();
-        handleResendVerificationEmail();
+
+        try {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+            if (userCredential.user.emailVerified) {
+                window.showMessage("Your email is already verified. Please sign in.");
+                await signOut(auth);
+                return;
+            }
+
+            await resendVerification(userCredential.user, window.showMessage);
+            await signOut(auth);
+        } catch (error) {
+            console.error("Resend verification sign-in error:", error);
+            showAuthError(error.message);
+        }
     });
 
-    renderAuthForm();
-}
-
-function handleAuthError(error) {
-    console.error("Auth Error:", error);
-    switch (error.code) {
-        case 'auth/email-already-in-use':
-            showError('This email is already registered. Please sign in or use a different email.');
-            break;
-        case 'auth/invalid-email':
-            showError('Invalid email address format.');
-            break;
-        case 'auth/weak-password':
-            showError('Password is too weak. Please choose a stronger password.');
-            break;
-        case 'auth/invalid-credential':
-        case 'auth/wrong-password':
-        case 'auth/user-not-found':
-            showError('Invalid email or password. Please check your credentials and try again.');
-            break;
-        case 'auth/user-disabled':
-            showError('Your account has been disabled. Please contact support.');
-            break;
-        default:
-            showError(`Authentication Failed: ${error.message}`);
-            break;
+    // If already signed in but not verified, show the verification message
+    if (user && !user.emailVerified) {
+        showVerificationMessage(user.email);
     }
 }
