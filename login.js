@@ -60,6 +60,8 @@ function renderAuthForm() {
 async function handleSignUp() {
     authError = ''; // Clear previous auth errors for a fresh attempt
     hideEmailVerificationMessage(); // Clear any previous verification messages
+    renderAuthForm(); // Immediately hide any existing auth error message visually
+
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
@@ -116,6 +118,8 @@ async function handleSignUp() {
 async function handleSignIn() {
     authError = ''; // Clear previous auth errors
     hideEmailVerificationMessage(); // Clear any previous verification messages
+    renderAuthForm(); // Immediately hide any existing auth error message visually
+
     const email = authEmailInput.value;
     const password = authPasswordInput.value;
 
