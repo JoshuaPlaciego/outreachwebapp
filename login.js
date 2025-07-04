@@ -5,10 +5,6 @@ import { resendVerification } from "./resendVerification.js";
 
 let auth;
 
-/**
- * Initializes the login page, setting up event listeners and handling auth actions.
- * @param {object|null} user - The current Firebase user object or null.
- */
 export function initLoginPage(user) {
     auth = window.auth;
 
@@ -87,7 +83,6 @@ export function initLoginPage(user) {
         }
     }
 
-    // Attach event listeners
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
 
@@ -114,7 +109,7 @@ export function initLoginPage(user) {
         }
     });
 
-    // If already signed in but not verified, show the verification message
+    // If user was passed in from onAuthStateChanged and is unverified
     if (user && !user.emailVerified) {
         showVerificationMessage(user.email);
     }

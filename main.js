@@ -1,58 +1,34 @@
 // main.js
-
-import { auth, db } from "./firebaseInit.js";
+import { auth, db } from './firebaseInit.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { initLoginPage } from "./login.js";
-import { initAddLeadsPage } from "./addleads.js";
+import { initLoginPage } from './login.js';
+import { initAddLeadsPage } from './addleads.js';
+import { initResendVerificationPage } from './resendVerification.js';
 
-// Attach Firebase services globally
+// Attach to window so other modules can access
 window.auth = auth;
 window.db = db;
-window.appId = "outreachwebapp-139d4"; // Optional, for organizing your Firestore structure
+window.appId = 'outreachwebapp-139d4';
 
-// Simple reusable message modal
-window.showMessage = (message) => {
-    const overlay = document.getElementById('custom-message-box-overlay');
-    const messageText = document.getElementById('message-text');
-    const closeButton = document.getElementById('close-message-btn');
-
-    if (messageText) messageText.textContent = message;
-    if (overlay) overlay.style.display = 'flex';
-
-    if (closeButton) {
-        closeButton.onclick = () => {
-            overlay.style.display = 'none';
-        };
-    }
+// Global feedback message function
+window.showMessage = (msg) => {
+    console.log(msg);
+    alert(msg); // Replace this with your own custom message box if desired
 };
 
-// Sections
-const authSection = document.getElementById('auth-section');
-const appContent = document.getElementById('app-content');
-
-function showLoginPage(user) {
-    if (appContent) appContent.classList.add('hidden');
-    if (authSection) authSection.classList.remove('hidden');
-    initLoginPage(user);
-}
-
-function showAddLeadsPage(user) {
-    if (authSection) authSection.classList.add('hidden');
-    if (appContent) appContent.classList.remove('hidden');
-    initAddLeadsPage(user);
-}
-
-// Watch auth state
+// Route based on auth state
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        user.reload().then(() => {
-            if (!user.emailVerified) {
-                showLoginPage(user);
-            } else {
-                showAddLeadsPage(user);
-            }
-        });
+    console.log("Auth state changed. User:", user);
+
+    const path = window.location.pathname;
+
+    if (path.includes('resendVerification.html')) {
+        initResendVerificationPage();
+    } else if (!user) {
+        initLoginPage(null);
+    } else if (!user.emailVerified) {
+        initLoginPage(user);
     } else {
-        showLoginPage(null);
+        initAddLeadsPage(user);
     }
 });

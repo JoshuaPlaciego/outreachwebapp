@@ -3,14 +3,14 @@
 import { sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 /**
- * Resends the verification email to the given user.
- * @param {object} user - The Firebase user object.
- * @param {function} showMessage - A function to display a message to the user.
+ * Resends the verification email for a given user.
+ * @param {User} user - The Firebase user object.
+ * @param {function} showMessage - A callback to display user feedback.
  */
 export async function resendVerification(user, showMessage) {
     if (!user) {
-        console.error("No user object provided for resendVerification");
-        showMessage("Resend failed: No user found.");
+        console.error("No user provided to resend verification.");
+        showMessage("Error: No user available to resend verification email.");
         return;
     }
 
