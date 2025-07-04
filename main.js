@@ -1,63 +1,58 @@
 // main.js
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { auth, db } from "./firebaseInit.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { initLoginPage } from "./login.js";
+import { initAddLeadsPage } from "./addleads.js";
 
-// --- Firebase Config ---
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
-
-// --- Initialize Firebase ---
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth();
-
-// Make globally accessible (optional but common in modular setups)
-window.app = app;
-window.db = db;
+// Attach Firebase services globally
 window.auth = auth;
-window.appId = firebaseConfig.projectId;
+window.db = db;
+window.appId = "outreachwebapp-139d4"; // Optional, for organizing your Firestore structure
 
-// --- Simple feedback message ---
+// Simple reusable message modal
 window.showMessage = (message) => {
-    const messageBoxOverlay = document.getElementById("custom-message-box-overlay");
-    const messageText = document.getElementById("message-text");
-    const closeBtn = document.getElementById("close-message-btn");
+    const overlay = document.getElementById('custom-message-box-overlay');
+    const messageText = document.getElementById('message-text');
+    const closeButton = document.getElementById('close-message-btn');
 
-    if (!messageBoxOverlay || !messageText || !closeBtn) return;
+    if (messageText) messageText.textContent = message;
+    if (overlay) overlay.style.display = 'flex';
 
-    messageText.textContent = message;
-    messageBoxOverlay.style.display = "flex";
-
-    const close = () => {
-        messageBoxOverlay.style.display = "none";
-        closeBtn.removeEventListener("click", close);
-    };
-
-    closeBtn.addEventListener("click", close);
+    if (closeButton) {
+        closeButton.onclick = () => {
+            overlay.style.display = 'none';
+        };
+    }
 };
 
-// --- Auth State Listener ---
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        await user.reload();
+// Sections
+const authSection = document.getElementById('auth-section');
+const appContent = document.getElementById('app-content');
 
-        if (user.emailVerified) {
-            import("./addleads.js").then(module => {
-                module.initAddLeadsPage(user);
-            });
-        } else {
-            initLoginPage(user); // Shows the verification needed message with resend option
-        }
+function showLoginPage(user) {
+    if (appContent) appContent.classList.add('hidden');
+    if (authSection) authSection.classList.remove('hidden');
+    initLoginPage(user);
+}
+
+function showAddLeadsPage(user) {
+    if (authSection) authSection.classList.add('hidden');
+    if (appContent) appContent.classList.remove('hidden');
+    initAddLeadsPage(user);
+}
+
+// Watch auth state
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        user.reload().then(() => {
+            if (!user.emailVerified) {
+                showLoginPage(user);
+            } else {
+                showAddLeadsPage(user);
+            }
+        });
     } else {
-        initLoginPage(null); // No user logged in
+        showLoginPage(null);
     }
 });
