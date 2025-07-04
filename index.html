@@ -35,7 +35,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
+            display: flex; /* This will be overridden by inline style initially */
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -51,18 +51,8 @@
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
-    <!-- Inline script to hide the message box immediately on load -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const overlay = document.getElementById('custom-message-box-overlay');
-            if (overlay) {
-                overlay.classList.add('hidden');
-            }
-        });
-    </script>
-
-    <!-- Custom Message Box Overlay -->
-    <div id="custom-message-box-overlay" class="hidden">
+    <!-- Custom Message Box Overlay - Now hidden by inline style directly -->
+    <div id="custom-message-box-overlay" style="display: none;">
         <div id="custom-message-box">
             <p id="message-text" class="text-lg text-gray-800 mb-6"></p>
             <button id="close-message-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -345,7 +335,7 @@
 
         // --- DOM Element References ---
         const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
-        const messageTextSpan = document.getElementById('document.getElementById('message-text');
+        const messageTextSpan = document.getElementById('message-text'); // Corrected ID reference
         const closeMessageBtn = document.getElementById('close-message-btn');
 
         const authSection = document.getElementById('auth-section');
@@ -452,14 +442,14 @@
          */
         function showMessage(message) {
             messageTextSpan.textContent = message;
-            customMessageBoxOverlay.classList.remove('hidden');
+            customMessageBoxOverlay.style.display = 'flex'; // Explicitly set to flex
         }
 
         /**
          * Hides the custom message box (modal).
          */
         function hideMessage() {
-            customMessageBoxOverlay.classList.add('hidden');
+            customMessageBoxOverlay.style.display = 'none'; // Explicitly set to none
             messageTextSpan.textContent = ''; // Clear message
         }
 
@@ -888,7 +878,7 @@
                 resetForm(); // Clear form data on logout
             } catch (error) {
                 console.error("Sign Out Error:", error);
-                authError = `Sign Out Failed: ${error.message}`;
+                authError = `Sign Out Failed: ${e.message}`;
                 renderForm();
             }
         }
