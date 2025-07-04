@@ -147,6 +147,8 @@ async function handleSignIn() {
 
         // Reload user to get the latest emailVerified status
         await user.reload();
+        // Force a refresh of the ID token to ensure emailVerified claim is up-to-date
+        await user.getIdToken(true); // Passing true forces a refresh
 
         if (!user.emailVerified) {
             // User is signed in but email not verified, show ONLY the yellow verification message
