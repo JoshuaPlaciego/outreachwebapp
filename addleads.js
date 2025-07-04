@@ -19,34 +19,16 @@ let newLead = {
 let editingLeadId = null;
 let validationError = '';
 
-// --- DOM Element References (specific to addleads.html) ---
-const appContent = document.getElementById('app-content');
-const logoutBtn = document.getElementById('logout-btn');
-const userIdDisplay = document.getElementById('user-id-display');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const formTitle = document.getElementById('form-title');
-const validationErrorDiv = document.getElementById('validation-error');
-const errorMessageSpan = document.getElementById('error-message');
+// --- DOM Element References (Declare them here with 'let', but DO NOT assign immediately) ---
+// These will be assigned inside initAddLeadsPage
+let appContent, logoutBtn, userIdDisplay, currentUserIdSpan, formTitle,
+    validationErrorDiv, errorMessageSpan,
+    leadNameInput, leadEmailInput, callBookingLinkInput, instagramLinkInput,
+    youtubeLinkInput, tiktokLinkInput, follower10KUpRadio, followerLess10KRadio,
+    avgViewsInput, nichesContainer, otherNicheNotesContainer,
+    otherNicheNotesTextarea, leadNotesTextarea,
+    addLeadBtn, updateLeadBtn, cancelEditBtn, leadsListDiv, noLeadsMessage;
 
-const leadNameInput = document.getElementById('lead-name');
-const leadEmailInput = document.getElementById('lead-email');
-const callBookingLinkInput = document.getElementById('call-booking-link');
-const instagramLinkInput = document.getElementById('instagram-link');
-const youtubeLinkInput = document.getElementById('youtube-link');
-const tiktokLinkInput = document = document.getElementById('tiktok-link');
-const follower10KUpRadio = document.getElementById('follower-10k-up');
-const followerLess10KRadio = document.getElementById('follower-less-10k');
-const avgViewsInput = document.getElementById('avg-views');
-const nichesContainer = document.getElementById('niches-container');
-const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
-const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
-const leadNotesTextarea = document.getElementById('lead-notes');
-
-const addLeadBtn = document.getElementById('add-lead-btn');
-const updateLeadBtn = document.getElementById('update-lead-btn');
-const cancelEditBtn = document.getElementById('cancel-edit-btn');
-const leadsListDiv = document.getElementById('leads-list');
-const noLeadsMessage = document.getElementById('no-leads-message');
 
 // --- Niche Definitions (specific to addleads page) ---
 const poppyAINiches = [
@@ -103,12 +85,14 @@ const poppyAINiches = [
     }
 ];
 
-// --- Functions (specific to addleads page) ---
+// --- Helper Functions (can remain outside, as they are just definitions) ---
 
 /**
  * Renders the current state of the form inputs.
  */
 function renderForm() {
+    // These checks (if element) are important because renderForm might be called before all elements are visible
+    // or if some elements are optional in the HTML
     if (leadNameInput) leadNameInput.value = newLead.name;
     if (leadEmailInput) leadEmailInput.value = newLead.email;
     if (callBookingLinkInput) callBookingLinkInput.value = newLead.callBookingLink;
@@ -462,8 +446,40 @@ async function handleSignOut() {
  * @param {object} user The current Firebase user object.
  */
 export function initAddLeadsPage(user) {
+    console.log("Initializing Add Leads Page. User:", user);
     currentUserId = user.uid;
-    if (appContent) appContent.classList.remove('hidden'); // Ensure app content is visible
+
+    // --- ASSIGN DOM Element References HERE (inside the function) ---
+    appContent = document.getElementById('app-content');
+    logoutBtn = document.getElementById('logout-btn');
+    userIdDisplay = document.getElementById('user-id-display');
+    currentUserIdSpan = document.getElementById('current-user-id');
+    formTitle = document.getElementById('form-title');
+    validationErrorDiv = document.getElementById('validation-error');
+    errorMessageSpan = document.getElementById('error-message');
+
+    leadNameInput = document.getElementById('lead-name');
+    leadEmailInput = document.getElementById('lead-email');
+    callBookingLinkInput = document.getElementById('call-booking-link');
+    instagramLinkInput = document.getElementById('instagram-link');
+    youtubeLinkInput = document.getElementById('youtube-link');
+    tiktokLinkInput = document.getElementById('tiktok-link'); // Corrected line
+    follower10KUpRadio = document.getElementById('follower-10k-up');
+    followerLess10KRadio = document.getElementById('follower-less-10k');
+    avgViewsInput = document.getElementById('avg-views');
+    nichesContainer = document.getElementById('niches-container');
+    otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
+    otherNicheNotesTextarea = document.getElementById('other-niche-notes');
+    leadNotesTextarea = document.getElementById('lead-notes');
+
+    addLeadBtn = document.getElementById('add-lead-btn');
+    updateLeadBtn = document.getElementById('update-lead-btn');
+    cancelEditBtn = document.getElementById('cancel-edit-btn');
+    leadsListDiv = document.getElementById('leads-list');
+    noLeadsMessage = document.getElementById('no-leads-message');
+
+    // Ensure app content is visible
+    if (appContent) appContent.classList.remove('hidden');
     if (currentUserIdSpan) currentUserIdSpan.textContent = user.email || user.uid;
     if (userIdDisplay) userIdDisplay.classList.remove('hidden');
 
