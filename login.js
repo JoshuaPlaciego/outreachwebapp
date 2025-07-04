@@ -146,18 +146,22 @@ async function handleSignIn() {
         const user = userCredential.user;
 
         // Reload user and force token refresh to ensure emailVerified claim is up-to-date
-        // These are crucial for the onAuthStateChanged listener in main.js to get the latest status
         await user.reload();
         await user.getIdToken(true); // Passing true forces a refresh
 
-        // IMPORTANT: Do NOT redirect from here.
-        // The onAuthStateChanged listener in main.js is now solely responsible for routing
-        // based on the user's verified status after sign-in.
-        
+        if (!user.emailVerified) {
+            // User is signed in but email not verified, show ONLY the yellow verification message
+            showEmailVerificationMessage(user.email);
+            // Sign out the user to prevent partial access before verification
+            await window.auth.signOut();
+        } else {
+            // Email is verified. Directly redirect to addleads.html.
+            // This ensures immediate navigation to the dashboard upon successful, verified sign-in.
+            window.location.href = 'addleads.html';
+        }
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures
-        // No need to call hideEmailVerificationMessage here, renderAuthForm handles it if authError is set
     } finally {
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
@@ -187,7 +191,6 @@ export function initLoginPage(user) {
     // Attach event listeners
     if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
-    // Removed event listener attachments for resendVerificationBtn and refreshStatusBtn
     
     // Initial render of the form
     renderAuthForm();
