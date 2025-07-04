@@ -12,7 +12,7 @@ const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
-// Removed verificationMessageTextSpan as it's no longer directly manipulated for full text
+const verificationMessageTextSpan = document.getElementById('verification-message-text'); // Re-added: Span for the main message text
 const verificationEmailDisplay = document.getElementById('verification-email-display'); // Span for dynamic email display
 const inlineResendLink = document.getElementById('inline-resend-link'); // Now a static element
 
@@ -25,19 +25,22 @@ const inlineResendLink = document.getElementById('inline-resend-link'); // Now a
  * @param {string} email The email address to display in the message.
  */
 function showEmailVerificationMessage(email) {
-    if (emailVerificationMessageDiv && verificationEmailDisplay) {
-        // Update only the dynamic email part, the rest of the message is static in HTML
+    // Ensure all necessary elements exist before attempting to manipulate them
+    if (emailVerificationMessageDiv && verificationMessageTextSpan && verificationEmailDisplay && inlineResendLink) {
+        // Update only the dynamic email part
         verificationEmailDisplay.textContent = email;
         emailVerificationMessageDiv.classList.remove('hidden');
 
         // Show the inline resend link
-        if (inlineResendLink) inlineResendLink.classList.remove('hidden');
+        inlineResendLink.classList.remove('hidden');
 
         // Explicitly hide the authentication error message when showing verification message
         if (authErrorDiv) {
             authErrorDiv.classList.add('hidden');
             authErrorMessageSpan.textContent = ''; // Clear content too
         }
+    } else {
+        console.error("One or more DOM elements for email verification message are missing.");
     }
 }
 
