@@ -144,15 +144,17 @@ async function handleSignIn() {
     }
 
     try {
+        // Set flag to indicate sign-in is in progress, deferring main.js routing
+        window.isSigningIn = true;
         // Attempt to sign in the user
-        // The onAuthStateChanged listener in main.js will then take over to
-        // check verification status and route accordingly.
         await signInWithEmailAndPassword(window.auth, email, password);
 
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures
     } finally {
+        // Unset flag after sign-in attempt, allowing main.js to proceed with routing
+        window.isSigningIn = false;
         // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
