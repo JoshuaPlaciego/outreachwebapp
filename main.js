@@ -26,9 +26,10 @@ const closeMessageBtn = document.getElementById('close-message-btn');
 // They are declared here but will only be accessed if they exist on the current page.
 const authSection = document.getElementById('auth-section');
 const appContent = document.getElementById('app-content');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const userIdDisplay = document.getElementById('user-id-display');
-const logoutBtn = document.getElementById('logout-btn'); // Declared once here
+const currentUserIdSpan = document.getElementById('current-user-id'); // For addleads.html
+const userIdDisplay = document.getElementById('user-id-display'); // For addleads.html
+const logoutBtn = document.getElementById('logout-btn'); // For addleads.html
+
 
 // --- Shared Functions ---
 
@@ -77,7 +78,7 @@ async function initApp() {
         // Determine if we are on the login page (index.html) or the main app page (addleads.html)
         const isLoginPage = window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/');
 
-        // Listen for auth state changes to handle routing
+        // Listen for auth state changes to handle routing and UI visibility
         onAuthStateChanged(auth, async (user) => {
             // If user is null and we are waiting for custom token auth, do nothing yet.
             // This prevents premature redirects if the initial auth state is not yet established.
@@ -96,7 +97,8 @@ async function initApp() {
                     // If reload fails, it might mean the session is no longer valid.
                     // Force sign out to prevent stale sessions.
                     await signOut(auth);
-                    if (!isLoginPage) { // Only redirect if not already on login page
+                    // Redirect to login page if reload fails and user is forced out
+                    if (!isLoginPage) {
                         window.location.href = 'index.html';
                     }
                     return; // Exit as user state is uncertain
@@ -108,7 +110,9 @@ async function initApp() {
                         // If on login page, redirect to addleads.html
                         window.location.href = 'addleads.html';
                     } else {
-                        // If already on addleads.html, load addleads.js
+                        // If already on addleads.html, ensure app content is visible and load addleads.js
+                        if (authSection) authSection.classList.add('hidden');
+                        if (appContent) appContent.classList.remove('hidden');
                         import('./addleads.js')
                             .then(module => {
                                 if (module.initAddLeadsPage) {
@@ -119,13 +123,14 @@ async function initApp() {
                     }
                 } else {
                     // User is signed in but email not verified
-                    // DO NOT sign out here. Keep them signed in on the login page
-                    // so they can use the "Resend Verification Email" link.
+                    // Keep them on the login page (index.html)
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
                         window.location.href = 'index.html';
                     } else {
-                        // If already on login page, load login.js and show verification message
+                        // If already on login page, ensure auth section is visible and load login.js
+                        if (authSection) authSection.classList.remove('hidden');
+                        if (appContent) appContent.classList.add('hidden');
                         import('./login.js')
                             .then(module => {
                                 if (module.initLoginPage) {
@@ -136,12 +141,14 @@ async function initApp() {
                     }
                 }
             } else {
-                // No user signed in (and not waiting for custom token)
+                // No user signed in
                 if (!isLoginPage) {
                     // If on addleads.html, redirect to login page (index.html)
                     window.location.href = 'index.html';
                 } else {
-                    // If already on login page, load login.js
+                    // If already on login page, ensure auth section is visible and load login.js
+                    if (authSection) authSection.classList.remove('hidden');
+                    if (appContent) appContent.classList.add('hidden');
                     import('./login.js')
                         .then(module => {
                             if (module.initLoginPage) {
@@ -150,15 +157,6 @@ async function initApp() {
                         })
                         .catch(error => console.error("Error loading login.js:", error));
                 }
-            }
-            // Always ensure the correct content is visible based on the page context
-            // This block is outside the 'hasInitializedPage' check to ensure consistent UI state
-            if (isLoginPage) {
-                if (authSection) authSection.classList.remove('hidden');
-                if (appContent) appContent.classList.add('hidden');
-            } else { // addleads.html
-                if (authSection) authSection.classList.add('hidden');
-                if (appContent) appContent.classList.remove('hidden');
             }
         });
 
