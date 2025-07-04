@@ -125,6 +125,8 @@ async function handleSignUp() {
 
 /**
  * Handles user sign-in with email and password.
+ * IMPORTANT: This function now only signs in. Routing based on email verification
+ * status is handled by onAuthStateChanged in main.js.
  */
 async function handleSignIn() {
     // Clear previous messages and errors visually at the very start of the attempt
@@ -142,23 +144,11 @@ async function handleSignIn() {
     }
 
     try {
-        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
-        const user = userCredential.user;
+        // Attempt to sign in the user
+        // The onAuthStateChanged listener in main.js will then take over to
+        // check verification status and route accordingly.
+        await signInWithEmailAndPassword(window.auth, email, password);
 
-        // Reload user and force token refresh to ensure emailVerified claim is up-to-date
-        await user.reload();
-        await user.getIdToken(true); // Passing true forces a refresh
-
-        if (!user.emailVerified) {
-            // User is signed in but email not verified, show ONLY the yellow verification message
-            showEmailVerificationMessage(user.email);
-            // Sign out the user to prevent partial access before verification
-            await window.auth.signOut();
-        } else {
-            // Email is verified. Directly redirect to addleads.html.
-            // This ensures immediate navigation to the dashboard upon successful, verified sign-in.
-            window.location.href = 'addleads.html';
-        }
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`; // Set authError for other sign-in failures

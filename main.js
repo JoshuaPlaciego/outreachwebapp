@@ -8,7 +8,7 @@ let auth;
 
 // --- IMPORTANT: Your Firebase Configuration ---
 const firebaseConfig = {
-    apiKey: "AIzaSyD6gijBHuULvJBIjTaoNP9miVr2ZYCKDSg",
+    apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
     authDomain: "outreachwebapp-139d4.firebaseapp.com",
     projectId: "outreachwebapp-139d4",
     storageBucket: "outreachwebapp-139d4.firebasestorage.app",
@@ -21,6 +21,11 @@ const appId = firebaseConfig.projectId; // Used for Firestore collection paths
 const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
 const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
+
+// --- Shared State for synchronization between login.js and main.js ---
+// This flag indicates if a sign-in operation is currently in progress.
+// It helps main.js defer routing decisions until login.js has completed its authentication.
+window.isSigningIn = false;
 
 // --- Shared Functions ---
 
@@ -71,6 +76,13 @@ async function initApp() {
 
         // Listen for auth state changes to handle routing
         onAuthStateChanged(auth, async (user) => {
+            // If a sign-in operation is in progress, defer routing until it completes.
+            // This prevents race conditions where onAuthStateChanged fires before emailVerified is updated.
+            if (window.isSigningIn) {
+                console.log("Sign-in in progress, deferring onAuthStateChanged routing.");
+                return;
+            }
+
             if (user) {
                 let isVerified = user.emailVerified;
                 let attempts = 0;
@@ -89,8 +101,8 @@ async function initApp() {
                     } catch (reloadError) {
                         console.error("Error reloading user or refreshing token in onAuthStateChanged:", reloadError);
                         // If reload/getIdToken fails, it might mean the session is no longer valid.
-                        // Break loop or force sign-out if critical. For now, we'll break.
-                        break;
+                        // For a production app, you might want to force a sign-out here.
+                        break; // Exit retry loop
                     }
                 }
 
