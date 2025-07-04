@@ -1,14 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- Global Firebase Instances ---
 let db;
 let auth;
 
 // --- IMPORTANT: Your Firebase Configuration ---
-// This configuration is now directly embedded.
-// Ensure these details match your Firebase project exactly.
 const firebaseConfig = {
     apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
     authDomain: "outreachwebapp-139d4.firebaseapp.com",
@@ -17,32 +15,14 @@ const firebaseConfig = {
     messagingSenderId: "189767218255",
     appId: "1:189767218255:web:dd2f5925fdcb15ed9ba63a"
 };
-// The appId for the Firestore collection path should be the projectId
-const appId = firebaseConfig.projectId;
+const appId = firebaseConfig.projectId; // Used for Firestore collection paths
 
-// --- DOM Element References (Global/Shared) ---
+// --- Shared DOM Element References (for custom message box) ---
 const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
 const messageTextSpan = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
 
-// These elements are specific to either index.html or addleads.html
-// They are declared here but will only be accessed if they exist on the current page.
-const authSection = document.getElementById('auth-section');
-const appContent = document.getElementById('app-content');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const userIdDisplay = document.getElementById('user-id-display');
-const logoutBtn = document.getElementById('logout-btn'); // Declared once here
-
-
-// --- Global State Variables (Shared, but mostly for addleads.js) ---
-// These are declared here to be globally accessible if addleads.js needs them
-// but their direct manipulation from main.js is minimized.
-let currentUserId = null;
-let leads = [];
-let validationError = ''; // Used for general app errors, not auth errors
-let authError = ''; // State for authentication errors, managed by login.js primarily
-
-// --- Functions (Global/Shared) ---
+// --- Shared Functions ---
 
 /**
  * Displays a custom message box (modal).
@@ -65,10 +45,6 @@ function hideMessage() {
     }
 }
 
-// Note: showEmailVerificationMessage, hideEmailVerificationMessage, renderForm
-// are now primarily handled within login.js and addleads.js as appropriate.
-// main.js will pass the user object to them for initialization.
-
 /**
  * Initializes the application, setting up Firebase and routing.
  */
@@ -77,12 +53,13 @@ async function initApp() {
     hideMessage();
 
     try {
-        // Initialize Firebase app with the directly provided config
+        // Initialize Firebase app
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
 
         // Make db, auth, showMessage, hideMessage, and appId globally accessible
+        // These will be available to dynamically imported scripts
         window.db = db;
         window.auth = auth;
         window.appId = appId;
@@ -103,28 +80,15 @@ async function initApp() {
             }
 
             if (user) {
-                // Always reload user to get the absolute latest emailVerified status
-                try {
-                    await user.reload();
-                } catch (reloadError) {
-                    console.error("Error reloading user in onAuthStateChanged:", reloadError);
-                    // If reload fails, it might mean the session is no longer valid.
-                    // Force sign out to prevent stale sessions.
-                    await signOut(auth);
-                    if (!isLoginPage) { // Only redirect if not already on login page
-                        window.location.href = 'index.html';
-                    }
-                    return; // Exit as user state is uncertain
-                }
+                await user.reload(); // Important for checking latest emailVerified status
 
                 if (user.emailVerified) {
                     // User is authenticated and email is verified
-                    currentUserId = user.uid; // Set current user ID globally
                     if (isLoginPage) {
                         // If on login page, redirect to addleads.html
                         window.location.href = 'addleads.html';
                     } else {
-                        // If already on addleads.html, load addleads.js and initialize it
+                        // If already on addleads.html, load addleads.js
                         import('./addleads.js')
                             .then(module => {
                                 if (module.initAddLeadsPage) {
@@ -132,19 +96,13 @@ async function initApp() {
                                 }
                             })
                             .catch(error => console.error("Error loading addleads.js:", error));
-
-                        // Update UI elements specific to addleads.html if they exist
-                        if (currentUserIdSpan) currentUserIdSpan.textContent = user.email || user.uid;
-                        if (userIdDisplay) userIdDisplay.classList.remove('hidden');
-                        if (authSection) authSection.classList.add('hidden'); // Hide auth section if it somehow appears
-                        if (appContent) appContent.classList.remove('hidden'); // Show app content
                     }
                 } else {
                     // User is signed in but email not verified
                     // DO NOT sign out here. Keep them signed in on the login page
                     // so they can use the "Resend Verification Email" link.
-                    currentUserId = null; // Still consider them not fully authenticated for app content access
-
+                    // The redirection logic below will handle sending them to the login page
+                    // if they are on addleads.html.
                     if (!isLoginPage) {
                         // If on addleads.html, redirect to login page (index.html)
                         window.location.href = 'index.html';
@@ -153,19 +111,14 @@ async function initApp() {
                         import('./login.js')
                             .then(module => {
                                 if (module.initLoginPage) {
-                                    module.initLoginPage(user); // Pass the *active but unverified* user object
+                                    module.initLoginPage(user); // Pass user object to login.js for message
                                 }
                             })
                             .catch(error => console.error("Error loading login.js:", error));
-                        
-                        // Ensure login page elements are visible and app content is hidden
-                        if (authSection) authSection.classList.remove('hidden');
-                        if (appContent) appContent.classList.add('hidden');
                     }
                 }
             } else {
                 // No user signed in (and not waiting for custom token)
-                currentUserId = null;
                 if (!isLoginPage) {
                     // If on addleads.html, redirect to login page (index.html)
                     window.location.href = 'index.html';
@@ -178,14 +131,7 @@ async function initApp() {
                             }
                         })
                         .catch(error => console.error("Error loading login.js:", error));
-                    
-                    // Ensure login page elements are visible and app content is hidden
-                    if (authSection) authSection.classList.remove('hidden');
-                    if (appContent) appContent.classList.add('hidden');
                 }
-                // Clear leads and hide leads list if no user
-                leads = [];
-                // renderLeadsList() is now in addleads.js, no need to call here
             }
         });
 
@@ -195,25 +141,10 @@ async function initApp() {
     }
 }
 
-// --- Event Listeners (Global) ---
+// --- Event Listeners for Shared Elements ---
 document.addEventListener('DOMContentLoaded', initApp);
-
-// Close message box listener
 if (closeMessageBtn) {
     closeMessageBtn.addEventListener('click', hideMessage);
-}
-
-// Logout button listener (only exists on addleads.html, but main.js can handle it)
-if (logoutBtn) { // Use the already declared logoutBtn
-    logoutBtn.addEventListener('click', async () => {
-        try {
-            await signOut(auth);
-            // onAuthStateChanged will handle redirection
-        } catch (error) {
-            console.error("Sign Out Error:", error);
-            showMessage(`Sign Out Failed: ${error.message}`);
-        }
-    });
 }
 
 // Add event listener to log out when the tab is closed
