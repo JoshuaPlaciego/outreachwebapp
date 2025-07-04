@@ -344,7 +344,7 @@
         const authEmailInput = document.getElementById('auth-email');
         const authPasswordInput = document.getElementById('auth-password');
         const signupBtn = document.getElementById('signup-btn');
-        const signinBtn = document.getElementById('signin-in');
+        const signinBtn = document.getElementById('signin-btn'); // Corrected ID
         const logoutBtn = document.getElementById('logout-btn');
         const authErrorDiv = document.getElementById('auth-error');
         const authErrorMessageSpan = document.getElementById('auth-error-message');
@@ -850,6 +850,7 @@
                     authError = 'User already exists and is verified. Please sign in directly.';
                     authEmailInput.value = ''; // Clear credentials
                     authPasswordInput.value = '';
+                    hideEmailVerificationMessage(); // Ensure hidden
                     await signOut(auth); // Sign out the user to keep them on the auth screen
                 } else {
                     // Scenario 2: User exists but is NOT verified
@@ -870,9 +871,12 @@
                         // Send email verification
                         await sendEmailVerification(user);
                         
-                        // Show custom message box
+                        // Show custom message box (Got It!)
                         showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
                         
+                        // Ensure the yellow verification message is hidden for new sign-ups
+                        hideEmailVerificationMessage(); 
+
                         // Sign out the user immediately after sending verification
                         // to force them to sign in again after verification.
                         await signOut(auth);
@@ -919,6 +923,7 @@
                 if (!user.emailVerified) {
                     // User is signed in but email not verified, show error
                     authError = `Please verify your email address (${user.email}) to access the dashboard.`;
+                    showEmailVerificationMessage(user.email); // Explicitly show the yellow message
                     // Keep them on the auth section
                     authSection.classList.remove('hidden');
                     appContent.classList.add('hidden');
@@ -927,11 +932,13 @@
                 } else {
                     // Email is verified, onAuthStateChanged will handle showing the dashboard
                     authError = ''; // Clear error if successfully signed in and verified
+                    hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
                 }
                 renderForm(); // Re-render to show authError or clear it
             } catch (error) {
                 console.error("Sign In Error:", error);
                 authError = `Sign In Failed: ${error.message}`;
+                hideEmailVerificationMessage(); // Hide verification message on sign-in error
                 renderForm();
             }
         }
@@ -1042,10 +1049,13 @@
                             // User is signed in but email not verified
                             currentUserId = null; // Treat as not fully authenticated for app access
                             authSection.classList.remove('hidden'); // Show auth section
-                            showEmailVerificationMessage(user.email); // Show verification message
+                            // IMPORTANT: DO NOT call showEmailVerificationMessage(user.email) here directly.
+                            // This will be handled by handleSignIn/handleSignUp for specific scenarios.
+                            // If the user is just unverified and the page loads, we want the auth form.
+                            // The error message will be set by the sign-in/sign-up attempt.
+                            hideEmailVerificationMessage(); // Ensure it's hidden unless explicitly shown by an action
                             appContent.classList.add('hidden'); // Hide app content
                             console.warn("User signed in but email not verified:", user.email);
-                            // Do NOT set authError here. It will be set by handleSignIn if user explicitly tries to sign in.
                         }
                     } else {
                         currentUserId = null;
