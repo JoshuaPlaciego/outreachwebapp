@@ -71,7 +71,15 @@
             <span id="auth-error-message" class="block sm:inline"></span>
         </div>
 
-        <!-- Removed: Email Verification Message Div -->
+        <!-- Re-added: Email Verification Message Div -->
+        <div id="email-verification-message" class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
+            <strong class="font-bold">Verification Needed: </strong>
+            <span id="verification-message-text" class="block sm:inline">Please verify your email address to access the dashboard. Check your inbox for a verification link.</span>
+            <div class="flex justify-center mt-3 space-x-2">
+                <button id="resend-verification-btn" class="px-4 py-2 bg-yellow-600 text-white rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out text-sm">Resend Email</button>
+                <button id="refresh-status-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm">Refresh Status</button>
+            </div>
+        </div>
 
         <div class="mb-4">
             <label for="auth-email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
@@ -340,7 +348,11 @@
         const logoutBtn = document.getElementById('logout-btn');
         const authErrorDiv = document.getElementById('auth-error');
         const authErrorMessageSpan = document.getElementById('auth-error-message');
-        // Removed: emailVerificationMessageDiv, verificationMessageTextSpan, resendVerificationBtn, refreshStatusBtn
+        // Re-added DOM references for email verification message
+        const emailVerificationMessageDiv = document.getElementById('email-verification-message');
+        const verificationMessageTextSpan = document.getElementById('verification-message-text');
+        const resendVerificationBtn = document.getElementById('resend-verification-btn');
+        const refreshStatusBtn = document.getElementById('refresh-status-btn');
 
 
         const userIdDisplay = document.getElementById('user-id-display');
@@ -441,6 +453,23 @@
         function hideMessage() {
             customMessageBoxOverlay.style.display = 'none'; // Explicitly set to none
             messageTextSpan.textContent = ''; // Clear message
+        }
+
+        /**
+         * Displays the email verification message box.
+         * @param {string} email The email address to display in the message.
+         */
+        function showEmailVerificationMessage(email) {
+            verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+            emailVerificationMessageDiv.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the email verification message box.
+         */
+        function hideEmailVerificationMessage() {
+            emailVerificationMessageDiv.classList.add('hidden');
+            verificationMessageTextSpan.textContent = '';
         }
 
         /**
@@ -810,27 +839,54 @@
             }
 
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // First, try to sign in to check if the user already exists
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Send email verification
-                await sendEmailVerification(user);
-                
-                // Show custom message box
-                showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
-                
-                // Optionally sign out the user immediately after sending verification
-                // to force them to sign in again after verification.
-                await signOut(auth);
+                await user.reload(); // Get the latest verification status
 
-                // Clear login form fields after successful sign up
-                authEmailInput.value = '';
-                authPasswordInput.value = '';
-                
+                if (user.emailVerified) {
+                    // Scenario 1: User exists and is verified
+                    authError = 'User already exists and is verified. Please sign in directly.';
+                    await signOut(auth); // Sign out the user to keep them on the auth screen
+                } else {
+                    // Scenario 2: User exists but is NOT verified
+                    authError = ''; // Clear auth error to show verification message
+                    showEmailVerificationMessage(user.email); // Show the yellow verification message
+                    await signOut(auth); // Sign out the user to keep them on the auth screen
+                }
             } catch (error) {
-                console.error("Sign Up Error:", error);
-                authError = `Sign Up Failed: ${error.message}`;
-                renderForm();
+                if (error.code === 'auth/user-not-found') {
+                    // Scenario 3: User does not exist, proceed with sign up
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const user = userCredential.user;
+
+                        // Send email verification
+                        await sendEmailVerification(user);
+                        
+                        // Show custom message box
+                        showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify to sign in.`);
+                        
+                        // Sign out the user immediately after sending verification
+                        // to force them to sign in again after verification.
+                        await signOut(auth);
+
+                        // Clear login form fields after successful sign up
+                        authEmailInput.value = '';
+                        authPasswordInput.value = '';
+                        authError = ''; // Clear any auth error if sign up was successful
+                    } catch (signUpError) {
+                        console.error("Sign Up Error (New User):", signUpError);
+                        authError = `Sign Up Failed: ${signUpError.message}`;
+                    }
+                } else {
+                    // Other sign-in errors (e.g., wrong password for existing user)
+                    console.error("Sign In Error (during Sign Up attempt):", error);
+                    authError = `Sign In Failed: ${error.message}`;
+                }
+            } finally {
+                renderForm(); // Always re-render to update UI based on final state
             }
         }
 
@@ -890,7 +946,49 @@
             }
         }
 
-        // Removed: handleResendVerificationEmail and handleRefreshStatus functions
+        /**
+         * Handles resending the email verification.
+         */
+        async function handleResendVerificationEmail() {
+            authError = ''; // Clear previous auth errors
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await sendEmailVerification(user);
+                    authError = 'Verification email re-sent! Please check your inbox.';
+                    renderForm();
+                } catch (error) {
+                    console.error("Resend Verification Error:", error);
+                    authError = `Failed to resend verification email: ${error.message}`;
+                    renderForm();
+                }
+            } else {
+                authError = 'No user is currently signed in to resend verification.';
+                renderForm();
+            }
+        }
+
+        /**
+         * Handles refreshing the user's authentication status to check email verification.
+         */
+        async function handleRefreshStatus() {
+            authError = ''; // Clear previous auth errors
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await user.reload(); // Reloads the user's profile
+                    // The onAuthStateChanged listener will then re-evaluate user.emailVerified
+                } catch (error) {
+                    console.error("Refresh Status Error:", error);
+                    authError = `Failed to refresh status: ${error.message}`;
+                    renderForm();
+                }
+            } else {
+                authError = 'No user is currently signed in to refresh status.';
+                renderForm();
+            }
+        }
+
 
         /**
          * Initializes the application, setting up Firebase and listeners.
@@ -898,6 +996,7 @@
         async function initApp() {
             // Ensure the custom message box is hidden on initial load
             hideMessage(); 
+            hideEmailVerificationMessage(); // Ensure this is also hidden on load
 
             try {
                 // Initialize Firebase app with the directly provided config
@@ -915,6 +1014,7 @@
                             currentUserId = user.uid;
                             currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
                             authSection.classList.add('hidden'); // Hide auth section
+                            hideEmailVerificationMessage(); // Hide verification message
                             appContent.classList.remove('hidden'); // Show app content
                             authError = ''; // Clear any lingering auth errors
 
@@ -937,6 +1037,7 @@
                             // User is signed in but email not verified
                             currentUserId = null; // Treat as not fully authenticated for app access
                             authSection.classList.remove('hidden'); // Show auth section
+                            showEmailVerificationMessage(user.email); // Show verification message
                             appContent.classList.add('hidden'); // Hide app content
                             console.warn("User signed in but email not verified:", user.email);
                             // Do NOT set authError here. It will be set by handleSignIn if user explicitly tries to sign in.
@@ -946,6 +1047,7 @@
                         currentUserIdSpan.textContent = '';
                         userIdDisplay.classList.add('hidden'); // Hide user ID display
                         authSection.classList.remove('hidden'); // Show auth section
+                        hideEmailVerificationMessage(); // Hide verification message if no user
                         appContent.classList.add('hidden'); // Hide app content
                         leads = []; // Clear leads if no user
                         renderLeadsList();
@@ -972,6 +1074,9 @@
         signinBtn.addEventListener('click', handleSignIn);
         logoutBtn.addEventListener('click', handleSignOut);
         closeMessageBtn.addEventListener('click', hideMessage); // Event listener for the "Got It!" button
+        // Re-added event listeners for email verification message buttons
+        resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+        refreshStatusBtn.addEventListener('click', handleRefreshStatus);
 
 
         // Form input listeners
