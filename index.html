@@ -849,8 +849,25 @@
             }
 
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged listener will handle UI update and verification check
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Reload user to get the latest emailVerified status
+                await user.reload(); 
+
+                if (!user.emailVerified) {
+                    // User is signed in but email not verified, show error
+                    authError = `Please verify your email address (${user.email}) to access the dashboard.`;
+                    // Keep them on the auth section
+                    authSection.classList.remove('hidden');
+                    appContent.classList.add('hidden');
+                    // Sign out the user to prevent partial access before verification
+                    await signOut(auth); 
+                } else {
+                    // Email is verified, onAuthStateChanged will handle showing the dashboard
+                    authError = ''; // Clear error if successfully signed in and verified
+                }
+                renderForm(); // Re-render to show authError or clear it
             } catch (error) {
                 console.error("Sign In Error:", error);
                 authError = `Sign In Failed: ${error.message}`;
@@ -868,7 +885,7 @@
                 resetForm(); // Clear form data on logout
             } catch (error) {
                 console.error("Sign Out Error:", error);
-                authError = `Sign Out Failed: ${error.message}`; // Corrected error reference
+                authError = `Sign Out Failed: ${error.message}`;
                 renderForm();
             }
         }
@@ -898,7 +915,6 @@
                             currentUserId = user.uid;
                             currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
                             authSection.classList.add('hidden'); // Hide auth section
-                            // Removed: emailVerificationMessageDiv.classList.add('hidden');
                             appContent.classList.remove('hidden'); // Show app content
                             authError = ''; // Clear any lingering auth errors
 
@@ -921,19 +937,15 @@
                             // User is signed in but email not verified
                             currentUserId = null; // Treat as not fully authenticated for app access
                             authSection.classList.remove('hidden'); // Show auth section
-                            // Removed: emailVerificationMessageDiv.classList.remove('hidden');
-                            // Removed: verificationMessageTextSpan.textContent = ...;
                             appContent.classList.add('hidden'); // Hide app content
                             console.warn("User signed in but email not verified:", user.email);
-                            // Display a message to the user that they need to verify their email
-                            authError = `Please verify your email address (${user.email}) to access the dashboard.`;
+                            // Do NOT set authError here. It will be set by handleSignIn if user explicitly tries to sign in.
                         }
                     } else {
                         currentUserId = null;
                         currentUserIdSpan.textContent = '';
                         userIdDisplay.classList.add('hidden'); // Hide user ID display
                         authSection.classList.remove('hidden'); // Show auth section
-                        // Removed: emailVerificationMessageDiv.classList.add('hidden');
                         appContent.classList.add('hidden'); // Hide app content
                         leads = []; // Clear leads if no user
                         renderLeadsList();
@@ -960,8 +972,6 @@
         signinBtn.addEventListener('click', handleSignIn);
         logoutBtn.addEventListener('click', handleSignOut);
         closeMessageBtn.addEventListener('click', hideMessage); // Event listener for the "Got It!" button
-        // Removed: resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
-        // Removed: refreshStatusBtn.addEventListener('click', handleRefreshStatus);
 
 
         // Form input listeners
