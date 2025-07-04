@@ -23,7 +23,7 @@ const verificationMessageTextSpan = document.getElementById('verification-messag
  */
 function showEmailVerificationMessage(email) {
     if (emailVerificationMessageDiv && verificationMessageTextSpan) {
-        verificationMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
+        verificationMessageMessageTextSpan.textContent = `Please verify your email address (${email}) to access the dashboard. Check your inbox for a verification link.`;
         emailVerificationMessageDiv.classList.remove('hidden');
     }
 }
@@ -66,18 +66,12 @@ async function handleSignUp() {
     if (!email || !password) {
         authError = 'Email and password are required for sign up.';
         renderAuthForm();
-        // Always clear fields even if validation fails
-        authEmailInput.value = '';
-        authPasswordInput.value = '';
-        return;
+        return; // Exit early, fields will be cleared in finally block
     }
     if (password.length < 6) {
         authError = 'Password must be at least 6 characters long.';
         renderAuthForm();
-        // Always clear fields even if validation fails
-        authEmailInput.value = '';
-        authPasswordInput.value = '';
-        return;
+        return; // Exit early, fields will be cleared in finally block
     }
 
     try {
@@ -108,7 +102,7 @@ async function handleSignUp() {
         }
         hideEmailVerificationMessage(); // Ensure verification message is hidden on sign-up errors
     } finally {
-        // Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
+        // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
         renderAuthForm();
@@ -126,10 +120,7 @@ async function handleSignIn() {
     if (!email || !password) {
         authError = 'Email and password are required for sign in.';
         renderAuthForm();
-        // Always clear fields even if validation fails
-        authEmailInput.value = '';
-        authPasswordInput.value = '';
-        return;
+        return; // Exit early, fields will be cleared in finally block
     }
 
     try {
@@ -151,14 +142,12 @@ async function handleSignIn() {
             authError = ''; // Clear error if successfully signed in and verified
             hideEmailVerificationMessage(); // Ensure hidden if they were unverified and just verified
         }
-        // renderAuthForm() will be called in finally block
     } catch (error) {
         console.error("Sign In Error:", error);
         authError = `Sign In Failed: ${error.message}`;
         hideEmailVerificationMessage(); // Hide verification message on sign-in error
-        // renderAuthForm() will be called in finally block
     } finally {
-        // Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
+        // Blanket rule: Always clear input fields and re-render the form to reflect the latest state (errors or cleared fields)
         authEmailInput.value = '';
         authPasswordInput.value = '';
         renderAuthForm();
