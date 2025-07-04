@@ -1,6 +1,6 @@
 // login.js (cleaned-up and optimized)
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- DOM Elements ---
 const authSection = document.getElementById('auth-section');
@@ -60,7 +60,8 @@ async function handleSignUp() {
     try {
         const { user } = await createUserWithEmailAndPassword(window.auth, email, password);
         await sendEmailVerification(user);
-        showInfo(`Account created for ${user.email}! A verification email has been sent. Please verify and then sign in.`);
+        await signOut(window.auth); // Log out immediately after sign up
+        showInfo(`Account created for ${email}! A verification email has been sent. Please verify and then sign in.`);
     } catch (error) {
         handleAuthError(error);
     } finally {
@@ -82,6 +83,7 @@ async function handleSignIn() {
 
         if (!user.emailVerified) {
             showEmailVerificationMessage(user.email);
+            await signOut(window.auth); // Sign out immediately to prevent session persistence
         } else {
             showInfo('Successfully signed in and email verified!');
         }
@@ -95,11 +97,14 @@ async function handleSignIn() {
 async function handleResendVerificationEmail() {
     resetMessages();
 
-    const user = window.auth.currentUser;
-    if (!user) return showError('No user is currently signed in.');
+    const email = verificationEmailDisplay.textContent;
+    if (!email) return showError('No email address available to resend verification.');
 
     try {
-        await sendEmailVerification(user);
+        const { signInWithEmailAndPassword, sendEmailVerification, signOut } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+        const tempCredential = await signInWithEmailAndPassword(window.auth, email, prompt("Re-enter password to resend verification email:"));
+        await sendEmailVerification(tempCredential.user);
+        await signOut(window.auth);
         showInfo('Verification email re-sent! Please check your inbox.');
     } catch (error) {
         showError(`Failed to resend verification email: ${error.message}`);
@@ -132,11 +137,7 @@ function clearInputs() {
 export function initLoginPage(user) {
     authSection.classList.remove('hidden');
 
-    if (user && !user.emailVerified) {
-        showEmailVerificationMessage(user.email);
-    } else {
-        hideEmailVerificationMessage();
-    }
+    hideEmailVerificationMessage();
 
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
