@@ -133,7 +133,7 @@ async function initApp() {
                     }
                 } else {
                     // User is signed in but email not verified
-                    // DO NOT sign out here if on login page. Keep them signed in on the login page
+                    // DO NOT sign out here. Keep them signed in on the login page
                     // so they can use the "Resend Verification Email" link.
                     currentUserId = null; // Still consider them not fully authenticated for app content access
 
@@ -207,3 +207,15 @@ if (logoutBtn) { // Use the already declared logoutBtn
         }
     });
 }
+
+// Add event listener to log out when the tab is closed
+window.addEventListener('beforeunload', async () => {
+    if (auth && auth.currentUser) {
+        try {
+            await signOut(auth);
+            console.log("User signed out on tab close.");
+        } catch (error) {
+            console.error("Error signing out on tab close:", error);
+        }
+    }
+});
