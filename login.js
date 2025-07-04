@@ -13,8 +13,7 @@ const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessageSpan = document.getElementById('auth-error-message');
 const emailVerificationMessageDiv = document.getElementById('email-verification-message');
 const verificationMessageTextSpan = document.getElementById('verification-message-text');
-const resendVerificationBtn = document.getElementById('resend-verification-btn');
-const refreshStatusBtn = document.getElementById('refresh-status-btn');
+// Removed references to resendVerificationBtn and refreshStatusBtn
 
 // --- Functions (specific to login page) ---
 
@@ -82,7 +81,7 @@ async function handleSignUp() {
 
         // 2. Send email verification to the new user
         await sendEmailVerification(user);
-        window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
+        // Removed: window.showMessage(`Account created for ${user.email}! A verification email has been sent to your address. Please verify your email and then sign in.`);
 
         // 3. Clear input fields and sign out the user
         // Signing out immediately forces them to verify email before logging in again.
@@ -152,42 +151,8 @@ async function handleSignIn() {
     }
 }
 
-/**
- * Handles resending the email verification.
- */
-async function handleResendVerificationEmail() {
-    authError = ''; // Clear previous auth errors
-    const user = window.auth.currentUser;
-    if (user) {
-        try {
-            await sendEmailVerification(user);
-            authError = 'Verification email re-sent! Please check your inbox.';
-            renderAuthForm();
-        } catch (error) {
-            console.error("Resend Verification Error:", error);
-            authError = `Failed to resend verification email: ${error.message}`;
-            renderAuthForm();
-        }
-    }
-}
-
-/**
- * Handles refreshing the user's authentication status to check email verification.
- */
-async function handleRefreshStatus() {
-    authError = ''; // Clear previous auth errors
-    const user = window.auth.currentUser;
-    if (user) {
-        try {
-            await user.reload(); // Reloads the user's profile
-            // The onAuthStateChanged listener in main.js will then re-evaluate user.emailVerified
-        } catch (error) {
-            console.error("Refresh Status Error:", error);
-            authError = `Failed to refresh status: ${error.message}`;
-            renderAuthForm();
-        }
-    }
-}
+// Removed: handleResendVerificationEmail function
+// Removed: handleRefreshStatus function
 
 /**
  * Initializes the login page specific elements and listeners.
@@ -207,8 +172,7 @@ export function initLoginPage(user) {
     // Attach event listeners
     if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
     if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
-    if (resendVerificationBtn) resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
-    if (refreshStatusBtn) refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+    // Removed event listener attachments for resendVerificationBtn and refreshStatusBtn
     
     // Initial render of the form
     renderAuthForm();
