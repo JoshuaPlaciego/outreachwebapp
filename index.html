@@ -41,6 +41,15 @@
             <span id="auth-error-message" class="block sm:inline"></span>
         </div>
 
+        <div id="email-verification-message" class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
+            <strong class="font-bold">Verification Needed: </strong>
+            <span id="verification-message-text" class="block sm:inline">Please verify your email address to access the dashboard. Check your inbox for a verification link.</span>
+            <div class="flex justify-center mt-3 space-x-2">
+                <button id="resend-verification-btn" class="px-4 py-2 bg-yellow-600 text-white rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out text-sm">Resend Email</button>
+                <button id="refresh-status-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm">Refresh Status</button>
+            </div>
+        </div>
+
         <div class="mb-4">
             <label for="auth-email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
             <input
@@ -255,7 +264,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Global State Variables ---
@@ -304,6 +313,11 @@
         const logoutBtn = document.getElementById('logout-btn');
         const authErrorDiv = document.getElementById('auth-error');
         const authErrorMessageSpan = document.getElementById('auth-error-message');
+        const emailVerificationMessageDiv = document.getElementById('email-verification-message');
+        const verificationMessageTextSpan = document.getElementById('verification-message-text');
+        const resendVerificationBtn = document.getElementById('resend-verification-btn');
+        const refreshStatusBtn = document.getElementById('refresh-status-btn');
+
 
         const userIdDisplay = document.getElementById('user-id-display');
         const currentUserIdSpan = document.getElementById('current-user-id');
@@ -755,8 +769,19 @@
             }
 
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // Auth state listener will handle UI update on successful sign-up
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Send email verification
+                await sendEmailVerification(user);
+                authError = 'Account created! A verification email has been sent to your address. Please verify to sign in.';
+                emailVerificationMessageDiv.classList.remove('hidden');
+                verificationMessageTextSpan.textContent = `A verification email has been sent to ${user.email}. Please verify to sign in.`;
+                renderForm();
+
+                // Optionally sign out the user immediately after sending verification
+                // to force them to sign in again after verification.
+                await signOut(auth);
             } catch (error) {
                 console.error("Sign Up Error:", error);
                 authError = `Sign Up Failed: ${error.message}`;
@@ -780,7 +805,7 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // Auth state listener will handle UI update on successful sign-in
+                // onAuthStateChanged listener will handle UI update and verification check
             } catch (error) {
                 console.error("Sign In Error:", error);
                 authError = `Sign In Failed: ${error.message}`;
@@ -804,6 +829,50 @@
         }
 
         /**
+         * Handles resending the email verification.
+         */
+        async function handleResendVerificationEmail() {
+            authError = ''; // Clear previous auth errors
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await sendEmailVerification(user);
+                    authError = 'Verification email re-sent! Please check your inbox.';
+                    renderForm();
+                } catch (error) {
+                    console.error("Resend Verification Error:", error);
+                    authError = `Failed to resend verification email: ${error.message}`;
+                    renderForm();
+                }
+            } else {
+                authError = 'No user is currently signed in to resend verification.';
+                renderForm();
+            }
+        }
+
+        /**
+         * Handles refreshing the user's authentication status to check email verification.
+         */
+        async function handleRefreshStatus() {
+            authError = ''; // Clear previous auth errors
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await user.reload(); // Reloads the user's profile
+                    // The onAuthStateChanged listener will then re-evaluate user.emailVerified
+                } catch (error) {
+                    console.error("Refresh Status Error:", error);
+                    authError = `Failed to refresh status: ${error.message}`;
+                    renderForm();
+                }
+            } else {
+                authError = 'No user is currently signed in to refresh status.';
+                renderForm();
+            }
+        }
+
+
+        /**
          * Initializes the application, setting up Firebase and listeners.
          */
         async function initApp() {
@@ -818,33 +887,51 @@
                 auth = getAuth(app);
 
                 // Listen for auth state changes to get the user ID
-                onAuthStateChanged(auth, (user) => {
+                onAuthStateChanged(auth, async (user) => { // Made async to allow user.reload()
                     if (user) {
-                        currentUserId = user.uid;
-                        currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
-                        authSection.classList.add('hidden'); // Hide auth section
-                        appContent.classList.remove('hidden'); // Show app content
+                        // Reload user to get the latest emailVerified status
+                        await user.reload(); // Important for checking verification status after user clicks link
 
-                        // Start Firestore listener AFTER user is authenticated
-                        const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
-                        onSnapshot(leadsCollectionRef, (snapshot) => {
-                            leads = snapshot.docs.map(doc => ({
-                                id: doc.id,
-                                ...doc.data()
-                            }));
-                            // Sort leads by creation time in memory
-                            leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-                            renderLeadsList();
-                        }, (error) => {
-                            console.error("Error fetching leads:", error);
-                            validationError = `Error fetching leads: ${error.message}.`;
-                            renderForm();
-                        });
+                        if (user.emailVerified) {
+                            currentUserId = user.uid;
+                            currentUserIdSpan.textContent = user.email || user.uid; // Display email if available
+                            authSection.classList.add('hidden'); // Hide auth section
+                            emailVerificationMessageDiv.classList.add('hidden'); // Hide verification message
+                            appContent.classList.remove('hidden'); // Show app content
+                            authError = ''; // Clear any lingering auth errors
+
+                            // Start Firestore listener AFTER user is authenticated and verified
+                            const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
+                            onSnapshot(leadsCollectionRef, (snapshot) => {
+                                leads = snapshot.docs.map(doc => ({
+                                    id: doc.id,
+                                    ...doc.data()
+                                }));
+                                // Sort leads by creation time in memory
+                                leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+                                renderLeadsList();
+                            }, (error) => {
+                                console.error("Error fetching leads:", error);
+                                validationError = `Error fetching leads: ${error.message}.`;
+                                renderForm();
+                            });
+                        } else {
+                            // User is signed in but email not verified
+                            currentUserId = null; // Treat as not fully authenticated for app access
+                            authSection.classList.remove('hidden'); // Show auth section
+                            emailVerificationMessageDiv.classList.remove('hidden'); // Show verification message
+                            verificationMessageTextSpan.textContent = `Please verify your email address (${user.email}) to access the dashboard. Check your inbox for a verification link.`;
+                            appContent.classList.add('hidden'); // Hide app content
+                            // Optionally sign out unverified user to prevent partial access, or just keep them on auth screen
+                            // await signOut(auth); // Consider if you want to force sign out here
+                            console.warn("User signed in but email not verified:", user.email);
+                        }
                     } else {
                         currentUserId = null;
                         currentUserIdSpan.textContent = '';
                         userIdDisplay.classList.add('hidden'); // Hide user ID display
                         authSection.classList.remove('hidden'); // Show auth section
+                        emailVerificationMessageDiv.classList.add('hidden'); // Hide verification message if no user
                         appContent.classList.add('hidden'); // Hide app content
                         leads = []; // Clear leads if no user
                         renderLeadsList();
@@ -870,6 +957,9 @@
         signupBtn.addEventListener('click', handleSignUp);
         signinBtn.addEventListener('click', handleSignIn);
         logoutBtn.addEventListener('click', handleSignOut);
+        resendVerificationBtn.addEventListener('click', handleResendVerificationEmail);
+        refreshStatusBtn.addEventListener('click', handleRefreshStatus);
+
 
         // Form input listeners
         leadNameInput.addEventListener('input', updateFormInput);
