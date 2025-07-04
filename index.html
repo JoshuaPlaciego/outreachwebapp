@@ -226,6 +226,19 @@
         let editingLeadId = null;
         let validationError = '';
 
+        // --- IMPORTANT: Your Firebase Configuration ---
+        // Replace these with your actual Firebase project details from Firebase Console -> Project settings -> Your apps -> Web app
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
+            authDomain: "outreachwebapp-139d4.firebaseapp.com",
+            projectId: "outreachwebapp-139d4",
+            storageBucket: "outreachwebapp-139d4.firebasestorage.app",
+            messagingSenderId: "189767218255",
+            appId: "1:189767218255:web:dd2f5925fdcb15ed9ba63a"
+        };
+        // The appId for the Firestore collection path should be the projectId
+        const appId = firebaseConfig.projectId;
+
         // --- DOM Element References ---
         const userIdDisplay = document.getElementById('user-id-display');
         const currentUserIdSpan = document.getElementById('current-user-id');
@@ -489,6 +502,9 @@
         async function handleAddLead() {
             if (!db || !currentUserId) {
                 console.error("Firestore not initialized or user not authenticated.");
+                // Display a user-friendly error if Firebase isn't ready
+                validationError = "Application not fully loaded or authenticated. Please refresh and try again.";
+                renderForm();
                 return;
             }
             if (!validateForm()) {
@@ -497,7 +513,7 @@
             }
 
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                // Use the hardcoded appId from the firebaseConfig
                 await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), {
                     ...newLead,
                     createdAt: serverTimestamp(), // Use serverTimestamp for consistent time
@@ -506,6 +522,8 @@
                 resetForm();
             } catch (e) {
                 console.error("Error adding document: ", e);
+                validationError = `Error adding lead: ${e.message}. Check console for details.`;
+                renderForm();
             }
         }
 
@@ -531,6 +549,8 @@
         async function handleUpdateLead() {
             if (!db || !currentUserId || !editingLeadId) {
                 console.error("Firestore not initialized, user not authenticated, or no lead selected for editing.");
+                validationError = "Application not fully loaded or authenticated. Cannot update.";
+                renderForm();
                 return;
             }
             if (!validateForm()) {
@@ -539,7 +559,7 @@
             }
 
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                // Use the hardcoded appId from the firebaseConfig
                 const leadRef = doc(db, `artifacts/${appId}/public/data/leads`, editingLeadId);
                 await updateDoc(leadRef, {
                     ...newLead,
@@ -549,6 +569,8 @@
                 resetForm();
             } catch (e) {
                 console.error("Error updating document: ", e);
+                validationError = `Error updating lead: ${e.message}. Check console for details.`;
+                renderForm();
             }
         }
 
@@ -559,13 +581,17 @@
         async function handleDeleteLead(id) {
             if (!db || !currentUserId) {
                 console.error("Firestore not initialized or user not authenticated.");
+                validationError = "Application not fully loaded or authenticated. Cannot delete.";
+                renderForm();
                 return;
             }
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                // Use the hardcoded appId from the firebaseConfig
                 await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, id));
             } catch (e) {
                 console.error("Error removing document: ", e);
+                validationError = `Error deleting lead: ${e.message}. Check console for details.`;
+                renderForm();
             }
         }
 
@@ -640,16 +666,14 @@
          */
         async function initApp() {
             try {
-                // Retrieve Firebase config and app ID from global variables
-                // In a real local setup, you'd paste your firebaseConfig here directly.
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
+                // Initialize Firebase app with the directly provided config
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
                 // Sign in with custom token if available, otherwise anonymously
+                // Note: __initial_auth_token is typically provided by Canvas.
+                // For GitHub Pages, it will be undefined, so it will sign in anonymously.
                 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
                 if (initialAuthToken) {
@@ -696,7 +720,7 @@
             } catch (error) {
                 console.error("Failed to initialize Firebase:", error);
                 // Display a user-friendly error message if Firebase fails to initialize
-                validationError = "Failed to load application. Please check console for details.";
+                validationError = "Failed to load application. Please ensure Firebase configuration is correct and try refreshing.";
                 renderForm();
             }
         }
