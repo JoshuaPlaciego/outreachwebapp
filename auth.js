@@ -50,12 +50,12 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-// Renamed inlineResendLink to messageBoxResendLink as it's now inside the message box
-const messageBoxResendLink = document.getElementById('message-box-resend-link');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
 // Message Box Elements
-const closeMessageBtn = document.getElementById('close-message-btn');
+const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // New: Resend button inside message box
+const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // New: Close icon
 
 // --- Utility Functions (moved to utils.js, keeping only switchView here) ---
 
@@ -149,8 +149,8 @@ async function handleSignIn() {
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
             // If email is not verified, show verification message via general message box
-            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`);
-            messageBoxResendLink.classList.remove('hidden'); // Show the resend link inside the message box
+            // Pass true to showResendButton
+            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`, true);
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
             loadingIndicator.classList.add('hidden');
@@ -187,7 +187,7 @@ async function resendVerification() {
 
     try {
         await sendEmailVerification(user); // send to the current user
-        showMessage("Verification email resent successfully. Please check your inbox.");
+        showMessage("Verification email sent successfully. Please check your inbox.");
     } catch (error) {
         showMessage(`Resend failed: ${error.message}`);
     }
@@ -218,19 +218,26 @@ async function handleForgotPassword() {
 function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    // Attach listener to the new message box resend link
-    messageBoxResendLink.addEventListener('click', (e) => {
+
+    // Attach listener to the new message box resend button
+    messageBoxResendBtn.addEventListener('click', (e) => {
         e.preventDefault();
         resendVerification();
     });
+
     forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
         handleForgotPassword();
     });
-    // Modify closeMessageBtn listener to hide the resend link
+
+    // Modify closeMessageBtn listener to hide the resend button and close icon
     closeMessageBtn.addEventListener('click', () => {
         hideMessage();
-        messageBoxResendLink.classList.add('hidden'); // Hide the resend link when message box closes
+    });
+
+    // New: Event listener for the close icon
+    messageBoxCloseIcon.addEventListener('click', () => {
+        hideMessage();
     });
 }
 
