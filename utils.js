@@ -47,11 +47,6 @@ export function hideMessage() {
             // Ensure both buttons are hidden when closing the message box
             if (closeMessageBtn) closeMessageBtn.classList.add('hidden');
             if (messageBoxResendBtn) messageBoxResendBtn.classList.add('hidden');
-
-            // NEW: Call the global reset function defined in auth.js
-            if (window.resetSignUpFlag) {
-                window.resetSignUpFlag();
-            }
         }, 300);
     } else {
         console.error("Message box elements not found. Cannot hide message.");

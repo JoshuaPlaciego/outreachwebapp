@@ -25,7 +25,7 @@ import {
 
 
 // Import utility functions for messages
-import { showMessage, hideMessage } from './utils.js'; // NEW: Import from utils.js
+import { showMessage, hideMessage } from './utils.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -110,7 +110,7 @@ function resetAuthForm() {
         if (element) {
             element.classList.remove('text-green-500');
             element.classList.add('text-red-500');
-            element.querySelector('i').classList.remove('fa-times-circle');
+            element.querySelector('i').classList.remove('fa-check-circle');
             element.querySelector('i').classList.add('fa-times-circle'); // Ensure it's times-circle
         }
     }
