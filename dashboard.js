@@ -3,7 +3,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import {
     getAuth,
     onAuthStateChanged,
-    signOut
+    signOut,
+    EmailAuthProvider, // For re-authentication with email/password
+    GoogleAuthProvider, // For re-authentication with Google
+    reauthenticateWithCredential, // For re-authentication
+    signInWithPopup, // For re-authentication with Google popup
+    updatePassword // To update the user's password
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -17,6 +22,9 @@ import {
     query,
     where
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Import utility functions for messages
+import { showMessage, hideMessage } from './utils.js';
 
 // Your web app's Firebase configuration (duplicate for dashboard.js)
 const firebaseConfig = {
@@ -32,6 +40,7 @@ const firebaseConfig = {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
+let reauthenticated = false; // Flag to track re-authentication status
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
@@ -53,10 +62,11 @@ const appView = document.getElementById('app-view');
 const logoutBtn = document.getElementById('logout-btn');
 const currentUserIdSpan = document.getElementById('current-user-id');
 const addLeadModalBtn = document.getElementById('add-new-lead-modal-btn'); // Button to open modal
+const profileSettingsBtn = document.getElementById('profile-settings-btn'); // New: Profile Settings button
 
 const formTitle = document.getElementById('form-title');
-const validationErrorDiv = document.getElementById('validation-error');
-const errorMessageSpan = document.getElementById('error-message');
+const validationErrorDiv = document.getElementById('validation-error'); // Still needed for specific form validation
+const errorMessageSpan = document.getElementById('error-message'); // Still needed for specific form validation
 const leadNameInput = document.getElementById('lead-name');
 const leadEmailInput = document.getElementById('lead-email');
 const callBookingLinkInput = document.getElementById('call-booking-link');
@@ -74,42 +84,35 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const leadsListDiv = document.getElementById('leads-list');
 const noLeadsMessage = document.getElementById('no-leads-message');
 
-// Modal Elements
+// Lead Modal Elements
 const leadModalOverlay = document.getElementById('lead-modal-overlay');
 const leadModal = document.getElementById('lead-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 
-// Message Box Elements (duplicated from auth.js, can be refactored into a shared utility if desired)
-const messageOverlay = document.getElementById('custom-message-box-overlay');
-const messageBox = document.getElementById('custom-message-box');
-const messageText = document.getElementById('message-text');
+// Profile Settings Modal Elements (NEW)
+const profileModalOverlay = document.getElementById('profile-modal-overlay');
+const profileModal = document.getElementById('profile-modal');
+const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
+const profileEmailDisplay = document.getElementById('profile-email-display');
+const reauthSection = document.getElementById('reauth-section');
+const reauthEmailPasswordSection = document.getElementById('reauth-email-password-section');
+const reauthCurrentPasswordInput = document.getElementById('reauth-current-password');
+const reauthEmailPasswordBtn = document.getElementById('reauth-email-password-btn');
+const reauthGoogleSection = document.getElementById('reauth-google-section');
+const reauthGoogleBtn = document.getElementById('reauth-google-btn');
+const reauthError = document.getElementById('reauth-error');
+const setPasswordSection = document.getElementById('set-password-section');
+const newPasswordInput = document.getElementById('new-password');
+const confirmNewPasswordInput = document.getElementById('confirm-new-password');
+const profilePasswordError = document.getElementById('profile-password-error');
+const setPasswordBtn = document.getElementById('set-password-btn');
+
+
+// Message Box Elements (These are now handled by utils.js, but the close button still needs an event listener)
 const closeMessageBtn = document.getElementById('close-message-btn');
 
-// --- Utility Functions ---
 
-/**
- * Displays a custom message to the user.
- * @param {string} msg - The message to display.
- */
-function showMessage(msg) {
-    messageText.textContent = msg;
-    messageOverlay.classList.remove('hidden');
-    setTimeout(() => {
-        messageOverlay.style.opacity = '1';
-        messageBox.style.transform = 'scale(1)';
-    }, 10);
-}
-
-/**
- * Hides the custom message box.
- */
-function hideMessage() {
-    messageOverlay.style.opacity = '0';
-    messageBox.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-        messageOverlay.classList.add('hidden');
-    }, 300);
-}
+// --- Utility Functions (for Modals and Loading States) ---
 
 /**
  * Switches the main view of the application.
@@ -143,6 +146,63 @@ function hideLeadModal() {
     }, 300);
 }
 
+/**
+ * Shows the profile settings modal.
+ */
+function showProfileModal() {
+    profileModalOverlay.classList.remove('hidden');
+    setTimeout(() => {
+        profileModalOverlay.style.opacity = '1';
+        profileModal.style.transform = 'scale(1)';
+    }, 10);
+    // Populate email display
+    const user = auth.currentUser;
+    if (user) {
+        profileEmailDisplay.textContent = user.email;
+        checkAuthenticationMethodAndShowReauthOptions(user);
+    }
+    // Reset password fields and errors
+    newPasswordInput.value = '';
+    confirmNewPasswordInput.value = '';
+    profilePasswordError.classList.add('hidden');
+    reauthError.classList.add('hidden');
+    setPasswordBtn.disabled = true; // Disable set password until re-authenticated
+}
+
+/**
+ * Hides the profile settings modal.
+ */
+function hideProfileModal() {
+    profileModalOverlay.style.opacity = '0';
+    profileModal.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        profileModalOverlay.classList.add('hidden');
+        reauthenticated = false; // Reset re-authentication flag on close
+        reauthSection.classList.add('hidden'); // Hide reauth section
+        reauthEmailPasswordSection.classList.add('hidden');
+        reauthGoogleSection.classList.add('hidden');
+        reauthCurrentPasswordInput.value = ''; // Clear password field
+        setPasswordSection.classList.remove('hidden'); // Ensure password section is visible for next open
+    }, 300);
+}
+
+/**
+ * Sets the loading state for a button.
+ * @param {HTMLElement} button - The button element.
+ * @param {boolean} isLoading - True to show loading state, false otherwise.
+ * @param {string} originalText - The original text of the button.
+ */
+function setButtonLoading(button, isLoading, originalText) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...'; // Add spinner icon
+    } else {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+
 // --- Authentication Logic (for Dashboard) ---
 
 /**
@@ -163,6 +223,136 @@ async function handleSignOut() {
         showMessage(`Sign Out Failed: ${error.message}`);
     }
 }
+
+/**
+ * Checks the user's current authentication method and displays appropriate re-authentication options.
+ * @param {firebase.User} user - The current Firebase user object.
+ */
+function checkAuthenticationMethodAndShowReauthOptions(user) {
+    reauthSection.classList.remove('hidden');
+    reauthEmailPasswordSection.classList.add('hidden');
+    reauthGoogleSection.classList.add('hidden');
+    reauthError.classList.add('hidden');
+    setPasswordBtn.disabled = true; // Disable until re-authenticated
+
+    const providers = user.providerData.map(p => p.providerId);
+
+    if (providers.includes(EmailAuthProvider.PROVIDER_ID)) {
+        reauthEmailPasswordSection.classList.remove('hidden');
+    }
+    if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
+        reauthGoogleSection.classList.remove('hidden');
+    }
+
+    // If the user only has a social provider (e.g., Google) and no password set,
+    // they might not see the email/password re-auth option.
+    // In this case, we still need to allow them to set a password after re-auth.
+    // The setPasswordSection should always be visible, but its button enabled only after reauth.
+}
+
+/**
+ * Handles re-authentication with email and password.
+ */
+async function handleReauthenticateWithPassword() {
+    const user = auth.currentUser;
+    const currentPassword = reauthCurrentPasswordInput.value;
+    reauthError.classList.add('hidden');
+
+    if (!currentPassword) {
+        reauthError.textContent = "Please enter your current password.";
+        reauthError.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(reauthEmailPasswordBtn, true, 'Re-authenticate with Password');
+
+    try {
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, credential);
+        reauthenticated = true;
+        reauthSection.classList.add('hidden'); // Hide re-auth section on success
+        setPasswordBtn.disabled = false; // Enable set password button
+        showMessage("Re-authentication successful. You can now set your new password.");
+    } catch (error) {
+        reauthError.textContent = `Re-authentication failed: ${error.message}`;
+        reauthError.classList.remove('hidden');
+    } finally {
+        setButtonLoading(reauthEmailPasswordBtn, false, 'Re-authenticate with Password');
+        reauthCurrentPasswordInput.value = ''; // Clear password field
+    }
+}
+
+/**
+ * Handles re-authentication with Google.
+ */
+async function handleReauthenticateWithGoogle() {
+    const user = auth.currentUser;
+    reauthError.classList.add('hidden');
+
+    setButtonLoading(reauthGoogleBtn, true, '<i class="fab fa-google mr-2"></i> Re-authenticate with Google');
+
+    try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(user, provider); // Use signInWithPopup on the user object for re-auth
+        // The result.credential contains the re-authentication credential
+        await reauthenticateWithCredential(user, result.credential);
+        reauthenticated = true;
+        reauthSection.classList.add('hidden'); // Hide re-auth section on success
+        setPasswordBtn.disabled = false; // Enable set password button
+        showMessage("Re-authentication successful. You can now set your new password.");
+    } catch (error) {
+        reauthError.textContent = `Re-authentication failed: ${error.message}`;
+        reauthError.classList.remove('hidden');
+    } finally {
+        setButtonLoading(reauthGoogleBtn, false, '<i class="fab fa-google mr-2"></i> Re-authenticate with Google');
+    }
+}
+
+/**
+ * Handles setting/updating the user's password.
+ */
+async function handleSetPassword() {
+    if (!reauthenticated) {
+        profilePasswordError.textContent = "Please re-authenticate first.";
+        profilePasswordError.classList.remove('hidden');
+        return;
+    }
+
+    const newPassword = newPasswordInput.value;
+    const confirmNewPassword = confirmNewPasswordInput.value;
+    profilePasswordError.classList.add('hidden');
+
+    if (!newPassword || !confirmNewPassword) {
+        profilePasswordError.textContent = "New password and confirmation cannot be empty.";
+        profilePasswordError.classList.remove('hidden');
+        return;
+    }
+    if (newPassword.length < 6) {
+        profilePasswordError.textContent = "New password must be at least 6 characters long.";
+        profilePasswordError.classList.remove('hidden');
+        return;
+    }
+    if (newPassword !== confirmNewPassword) {
+        profilePasswordError.textContent = "New password and confirmation do not match.";
+        profilePasswordError.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(setPasswordBtn, true, 'Set Password');
+
+    try {
+        const user = auth.currentUser;
+        await updatePassword(user, newPassword);
+        showMessage("Password updated successfully!");
+        hideProfileModal(); // Close modal on success
+    } catch (error) {
+        profilePasswordError.textContent = `Failed to set password: ${error.message}`;
+        profilePasswordError.classList.remove('hidden');
+    } finally {
+        setButtonLoading(setPasswordBtn, false, 'Set Password');
+    }
+}
+
 
 // --- Lead Management Logic ---
 
@@ -434,19 +624,52 @@ function attachEventListeners() {
         resetForm(); // Ensure form is clean for new entry
         showLeadModal();
     });
+    profileSettingsBtn.addEventListener('click', showProfileModal); // New: Open Profile Settings modal
 
     // Lead Form (inside modal)
     addLeadBtn.addEventListener('click', handleAddLead);
     updateLeadBtn.addEventListener('click', handleUpdateLead);
     cancelEditBtn.addEventListener('click', hideLeadModal); // Cancel button closes modal
 
-    // Modal close buttons
+    // Lead Modal close buttons
     closeModalBtn.addEventListener('click', hideLeadModal);
     leadModalOverlay.addEventListener('click', (e) => {
         if (e.target === leadModalOverlay) { // Only close if clicking on the overlay itself, not the modal content
             hideLeadModal();
         }
     });
+
+    // Profile Settings Modal close buttons (NEW)
+    closeProfileModalBtn.addEventListener('click', hideProfileModal);
+    profileModalOverlay.addEventListener('click', (e) => {
+        if (e.target === profileModalOverlay) { // Only close if clicking on the overlay itself
+            hideProfileModal();
+        }
+    });
+
+    // Profile Settings Re-authentication and Password Update (NEW)
+    reauthEmailPasswordBtn.addEventListener('click', handleReauthenticateWithPassword);
+    reauthGoogleBtn.addEventListener('click', handleReauthenticateWithGoogle);
+    setPasswordBtn.addEventListener('click', handleSetPassword);
+    newPasswordInput.addEventListener('input', () => {
+        // Simple validation to enable/disable set password button
+        if (reauthenticated && newPasswordInput.value.length >= 6 && newPasswordInput.value === confirmNewPasswordInput.value) {
+            setPasswordBtn.disabled = false;
+        } else {
+            setPasswordBtn.disabled = true;
+        }
+        profilePasswordError.classList.add('hidden'); // Hide error on input
+    });
+    confirmNewPasswordInput.addEventListener('input', () => {
+        // Simple validation to enable/disable set password button
+        if (reauthenticated && newPasswordInput.value.length >= 6 && newPasswordInput.value === confirmNewPasswordInput.value) {
+            setPasswordBtn.disabled = false;
+        } else {
+            setPasswordBtn.disabled = true;
+        }
+        profilePasswordError.classList.add('hidden'); // Hide error on input
+    });
+
 
     // Leads List (Event Delegation)
     leadsListDiv.addEventListener('click', (e) => {
@@ -488,6 +711,7 @@ async function main() {
                 userId = user.uid;
                 currentUserIdSpan.textContent = userId;
                 switchView('app-view');
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator once app is ready
 
                 // Start Firestore listener if it's not already running
                 if (!leadsUnsubscribe) {
