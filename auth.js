@@ -20,6 +20,7 @@ import {
     onSnapshot,
     deleteDoc,
     doc,
+    setDoc, // Import setDoc for creating documents with specific IDs
     updateDoc,
     serverTimestamp,
     query,
@@ -250,7 +251,22 @@ async function handleSignUp() {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(userCredential.user);
+        const user = userCredential.user;
+        console.log("User created in Firebase Authentication:", user.uid, user.email); // Log user info
+
+        // --- Create User Profile Document in Firestore ---
+        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
+        await setDoc(userProfileRef, {
+            email: user.email,
+            createdAt: serverTimestamp(),
+            // You can add more default profile fields here if needed
+            // e.g., displayName: user.displayName || 'New User',
+            // e.g., lastLogin: serverTimestamp(),
+        });
+        console.log("User profile document created in Firestore for UID:", user.uid);
+        // --- End Create User Profile Document ---
+
+        await sendEmailVerification(user);
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         // Show success message without resend button, as user is now signed out
@@ -313,7 +329,33 @@ async function handleGoogleAuth() {
 
     try {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Check if this is a new user (first time signing in with Google)
+        // If user.metadata.creationTime === user.metadata.lastSignInTime, it's likely a new user.
+        // Or, check if a profile document already exists for this UID.
+        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+
+        if (!userProfileSnap.exists()) {
+            // If profile doesn't exist, create it
+            await setDoc(userProfileRef, {
+                email: user.email,
+                displayName: user.displayName || null,
+                photoURL: user.photoURL || null,
+                createdAt: serverTimestamp(),
+                // You can add more default profile fields here
+            });
+            console.log("New Google user profile document created in Firestore for UID:", user.uid);
+        } else {
+            console.log("Existing Google user profile found in Firestore for UID:", user.uid);
+            // Optionally update last login time or other fields for existing users
+            await updateDoc(userProfileRef, {
+                lastLogin: serverTimestamp()
+            });
+        }
+
         // The onAuthStateChanged observer will handle the redirect if successful.
         // Google sign-in typically auto-verifies email if it's a new account.
     } catch (error) {
@@ -416,14 +458,12 @@ async function main() {
                 // User is authenticated and verified, redirect to dashboard
                 window.location.href = 'dashboard.html';
             } else {
-                // This block is for when onAuthStateChanged detects an unverified user.
-                // This can happen if they just signed up and haven't been signed out yet by handleSignUp,
-                // or if they refreshed the page while signed in but unverified.
-                // In this specific case, we don't want to show a message or sign out here,
-                // as handleSignIn/handleSignUp already handle that.
-                // The primary role of this 'else' is to ensure they stay on the auth view.
+                // User is signed in but email is not verified
+                // Display a message and keep them on the auth page
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
                 switchView('auth-view');
-                emailInput.value = user.email; // Pre-fill email for resend if they try to sign in again
+                // Ensure email field is pre-filled for resend
+                emailInput.value = user.email;
             }
         } else {
             // User is signed out or not logged in, show auth view
