@@ -7,8 +7,8 @@ export function showMessage(msg, showResendButton = false) {
     const messageOverlay = document.getElementById('custom-message-box-overlay');
     const messageBox = document.getElementById('custom-message-box');
     const messageText = document.getElementById('message-text');
-    const gotItBtn = document.getElementById('close-message-btn'); // Renamed for clarity
-    const resendBtn = document.getElementById('message-box-resend-btn');
+    const gotItBtn = document.getElementById('close-message-btn'); // "Got It!" button
+    const resendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
 
     if (messageText && messageOverlay && messageBox && gotItBtn && resendBtn) {
         messageText.textContent = msg;
@@ -41,7 +41,7 @@ export function showMessage(msg, showResendButton = false) {
 export function hideMessage() {
     const messageOverlay = document.getElementById('custom-message-box-overlay');
     const messageBox = document.getElementById('custom-message-box');
-    const gotItBtn = document.getElementById('close-message-btn'); // Renamed for clarity
+    const gotItBtn = document.getElementById('close-message-btn');
     const resendBtn = document.getElementById('message-box-resend-btn');
 
     if (messageOverlay && messageBox && gotItBtn && resendBtn) {
