@@ -311,9 +311,13 @@ async function handleSignUp() {
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
-        // Show success message WITHOUT resend button
-        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
-        resetAuthForm(); // Clear fields and reset strength after successful signup
+        // Add a small delay to allow onAuthStateChanged to process the signOut before showing the message
+        setTimeout(() => {
+            // Show success message WITHOUT resend button
+            showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
+            resetAuthForm(); // Clear fields and reset strength after successful signup
+        }, 100); // 100ms delay
+        
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
