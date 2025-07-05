@@ -119,57 +119,63 @@
         </div>
     </div>
 
-    <!-- Profile Settings Modal -->
+    <!-- Re-authentication Modal (NEW) -->
+    <div id="reauth-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
+        <div id="reauth-modal" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-all duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-indigo-800">Re-authentication Required</h2>
+                <button id="close-reauth-modal-btn" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
+            </div>
+
+            <div class="p-5 border border-red-300 rounded-lg bg-red-50 shadow-sm">
+                <h3 class="text-lg font-semibold text-red-700 mb-3 flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> Security Check
+                </h3>
+                <p class="text-red-700 text-sm mb-4">Please re-authenticate to securely access and modify your profile settings.</p>
+                
+                <div id="reauth-email-password-section" class="space-y-3 hidden">
+                    <label for="reauth-current-password" class="block text-gray-700 text-sm font-bold mb-1">Current Password:</label>
+                    <input type="password" id="reauth-current-password" placeholder="Enter your current password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400" />
+                    <button id="reauth-email-password-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Re-authenticate with Password</button>
+                </div>
+                
+                <div id="reauth-google-section" class="space-y-3 mt-4 hidden">
+                    <p class="text-gray-700 text-sm text-center">OR</p>
+                    <button id="reauth-google-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <i class="fab fa-google mr-2"></i> Re-authenticate with Google
+                    </button>
+                </div>
+                <p id="reauth-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Settings Modal (Now only for password update) -->
     <div id="profile-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
         <div id="profile-modal" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-all duration-300">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-indigo-800">Profile Settings</h2>
+                <h2 class="text-2xl font-semibold text-indigo-800">Set New Password</h2>
                 <button id="close-profile-modal-btn" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
             </div>
 
-            <div class="space-y-6">
-                <p class="text-gray-700 text-lg"><strong>Email:</strong> <span id="profile-email-display" class="font-medium text-indigo-700"></span></p>
+            <p class="text-gray-700 text-lg mb-6"><strong>Email:</strong> <span id="profile-email-display" class="font-medium text-indigo-700"></span></p>
 
-                <!-- Re-authentication Section -->
-                <div id="reauth-section" class="p-5 border border-red-300 rounded-lg bg-red-50 shadow-sm hidden">
-                    <h3 class="text-lg font-semibold text-red-700 mb-3 flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> Re-authentication Required
-                    </h3>
-                    <p class="text-red-700 text-sm mb-4">For security, please re-authenticate to update your password or other sensitive settings.</p>
-                    
-                    <div id="reauth-email-password-section" class="space-y-3 hidden">
-                        <label for="reauth-current-password" class="block text-gray-700 text-sm font-bold mb-1">Current Password:</label>
-                        <input type="password" id="reauth-current-password" placeholder="Enter your current password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400" />
-                        <button id="reauth-email-password-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Re-authenticate with Password</button>
+            <div class="p-5 border border-indigo-300 rounded-lg bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
+                    <i class="fas fa-lock mr-2"></i> Update Your Password
+                </h3>
+                <p class="text-gray-600 text-sm mb-4">Enter a new password for your account. Minimum 6 characters.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label for="new-password" class="block text-gray-700 text-sm font-bold mb-1">New Password:</label>
+                        <input type="password" id="new-password" placeholder="Minimum 6 characters" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
-                    
-                    <div id="reauth-google-section" class="space-y-3 mt-4 hidden">
-                        <p class="text-gray-700 text-sm text-center">OR</p>
-                        <button id="reauth-google-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                            <i class="fab fa-google mr-2"></i> Re-authenticate with Google
-                        </button>
+                    <div>
+                        <label for="confirm-new-password" class="block text-gray-700 text-sm font-bold mb-1">Confirm New Password:</label>
+                        <input type="password" id="confirm-new-password" placeholder="Confirm your new password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
-                    <p id="reauth-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
-                </div>
-
-                <!-- Set New Password Section -->
-                <div id="set-password-section" class="p-5 border border-indigo-300 rounded-lg bg-white shadow-sm">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
-                        <i class="fas fa-lock mr-2"></i> Set New Password
-                    </h3>
-                    <p class="text-gray-600 text-sm mb-4">Enter a new password for your account. Minimum 6 characters.</p>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="new-password" class="block text-gray-700 text-sm font-bold mb-1">New Password:</label>
-                            <input type="password" id="new-password" placeholder="Minimum 6 characters" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-                        </div>
-                        <div>
-                            <label for="confirm-new-password" class="block text-gray-700 text-sm font-bold mb-1">Confirm New Password:</label>
-                            <input type="password" id="confirm-new-password" placeholder="Confirm your new password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-                        </div>
-                        <p id="profile-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                        <button id="set-password-btn" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Update Password</button>
-                    </div>
+                    <p id="profile-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    <button id="set-password-btn" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Update Password</button>
                 </div>
             </div>
         </div>
