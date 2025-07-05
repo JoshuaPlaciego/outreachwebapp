@@ -362,6 +362,8 @@ async function handleGoogleAuth() {
         passwordInput.value = '';
         updatePasswordRequirements(); // Reset password checklist/bar
 
+        // The onAuthStateChanged observer will handle the redirect if successful.
+        // Google sign-in typically auto-verifies email if it's a new account.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
