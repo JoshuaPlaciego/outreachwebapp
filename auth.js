@@ -107,8 +107,10 @@ async function handleSignUp() {
 
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
-        // Removed: showMessage(`Sign-up successful! A verification email has been sent to ${email}. Please check your inbox and then sign in.`);
         resetAuthForm(); // Clear fields after successful signup and sign out
+        // Display the "Sign up successful" message here
+        showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`);
+
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
