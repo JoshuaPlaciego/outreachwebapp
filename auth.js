@@ -251,9 +251,10 @@ async function handleSignUp() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        // Reinstating signOut and the specific success message for signup
-        await signOut(auth); // End the session immediately after signup
-        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false); // No resend button here
+        // Sign out immediately after successful signup and sending verification email
+        await signOut(auth);
+        // Show success message without resend button, as user is now signed out
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false);
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -285,11 +286,12 @@ async function handleSignIn() {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         if (!userCredential.user.emailVerified) {
-            // Only show resend button if signing in with unverified email
+            // If user signs in with unverified email, show message with resend button
             showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
-            await signOut(auth); // Sign out if not verified
+            // Sign out the unverified user to keep them in the "trap"
+            await signOut(auth);
         }
-        // The onAuthStateChanged observer will handle the redirect to dashboard.
+        // If email is verified, the onAuthStateChanged observer will handle the redirect to dashboard.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -312,7 +314,8 @@ async function handleGoogleAuth() {
     try {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
-        // onAuthStateChanged will handle the redirect
+        // The onAuthStateChanged observer will handle the redirect if successful.
+        // Google sign-in typically auto-verifies email if it's a new account.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -413,19 +416,26 @@ async function main() {
                 // User is authenticated and verified, redirect to dashboard
                 window.location.href = 'dashboard.html';
             } else {
-                // User is signed in but email is not verified
-                // Display a message and keep them on the auth page
-                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                // This block is for when onAuthStateChanged detects an unverified user.
+                // This can happen if they just signed up and haven't been signed out yet by handleSignUp,
+                // or if they refreshed the page while signed in but unverified.
+                // In this specific case, we don't want to show a message or sign out here,
+                // as handleSignIn/handleSignUp already handle that.
+                // The primary role of this 'else' is to ensure they stay on the auth view.
                 switchView('auth-view');
-                // Ensure email field is pre-filled for resend
-                emailInput.value = user.email;
-                // Sign out the user if they are unverified and trying to access
-                // This ensures they cannot proceed until verified.
-                await signOut(auth);
+                emailInput.value = user.email; // Pre-fill email for resend if they try to sign in again
             }
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
+            // Clear inputs, but only if no verification message is active from a recent sign-up/sign-in attempt
+            const messageBoxActive = !messageOverlay.classList.contains('hidden');
+            const resendButtonVisible = !messageBoxResendBtn.classList.contains('hidden');
+
+            if (!messageBoxActive || !resendButtonVisible) {
+                emailInput.value = '';
+                passwordInput.value = '';
+            }
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
     });
