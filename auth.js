@@ -251,7 +251,8 @@ async function handleSignUp() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", true);
+        // Changed showResendButton to false for signup success message
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false);
         await signOut(auth); // Sign out to force user to verify first
     } catch (error) {
         authErrorMessage.textContent = error.message;
