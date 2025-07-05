@@ -31,7 +31,6 @@ import {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
-let suppressOnAuthStateChangedMessage = false; // NEW: Flag to suppress message from onAuthStateChanged
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -58,15 +57,12 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-const verificationMessageDiv = document.getElementById('email-verification-message'); // This is not in the current index.html
-const verificationEmailDisplay = document.getElementById('verification-email-display'); // This is not in the current index.html
-const inlineResendLink = document.getElementById('inline-resend-link'); // This is not in the current index.html
 
 const togglePasswordVisibility = document.getElementById('toggle-password-visibility');
 const passwordError = document.getElementById('password-error');
 const passwordStrength = document.getElementById('password-strength');
-const passwordStrengthLabel = document.getElementById('password-strength-label'); // New: for strength text
-const passwordStrengthBar = document.getElementById('password-strength-bar'); // New: for the visual bar
+const passwordStrengthLabel = document.getElementById('password-strength-label');
+const passwordStrengthBar = document.getElementById('password-strength-bar');
 
 // Password Requirements Checklist
 const passwordRequirements = {
@@ -115,9 +111,6 @@ function hideMessage() {
     messageBox.style.transform = 'scale(0.95)';
     setTimeout(() => {
         messageOverlay.classList.add('hidden');
-        // NEW: Reset the suppression flag when the message box is fully hidden
-        suppressOnAuthStateChangedMessage = false;
-        console.log("suppressOnAuthStateChangedMessage reset to false after message hide.");
     }, 300);
 }
 
@@ -265,17 +258,12 @@ async function handleSignUp() {
         await setDoc(userProfileRef, {
             email: user.email,
             createdAt: serverTimestamp(),
-            // You can add more default profile fields here if needed
-            // e.g., displayName: user.displayName || 'New User',
-            // e.g., lastLogin: serverTimestamp(),
         });
         console.log("User profile document created in Firestore for UID:", user.uid);
         // --- End Create User Profile Document ---
 
         await sendEmailVerification(user);
         
-        // NEW: Set flag to suppress onAuthStateChanged message right before showing this message
-        suppressOnAuthStateChangedMessage = true; 
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
@@ -350,8 +338,6 @@ async function handleGoogleAuth() {
         const user = result.user;
 
         // Check if this is a new user (first time signing in with Google)
-        // If user.metadata.creationTime === user.metadata.lastSignInTime, it's likely a new user.
-        // Or, check if a profile document already exists for this UID.
         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
         const userProfileSnap = await getDoc(userProfileRef);
 
@@ -362,12 +348,10 @@ async function handleGoogleAuth() {
                 displayName: user.displayName || null,
                 photoURL: user.photoURL || null,
                 createdAt: serverTimestamp(),
-                // You can add more default profile fields here
             });
             console.log("New Google user profile document created in Firestore for UID:", user.uid);
         } else {
             console.log("Existing Google user profile found in Firestore for UID:", user.uid);
-            // Optionally update last login time or other fields for existing users
             await updateDoc(userProfileRef, {
                 lastLogin: serverTimestamp()
             });
@@ -378,8 +362,6 @@ async function handleGoogleAuth() {
         passwordInput.value = '';
         updatePasswordRequirements(); // Reset password checklist/bar
 
-        // The onAuthStateChanged observer will handle the redirect if successful.
-        // Google sign-in typically auto-verifies email if it's a new account.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -403,7 +385,6 @@ async function resendVerification() {
             showMessage(`Failed to resend verification email: ${error.message}`);
         }
     } else {
-        // This case should ideally not be hit if the button is only shown when a user exists
         showMessage("No active user session found to resend verification email.");
     }
 }
@@ -482,10 +463,10 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified
-                // Only show message if not currently suppressed by a signup flow
-                if (!suppressOnAuthStateChangedMessage) {
-                    showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
-                }
+                // This state is primarily reached if they just signed up and are unverified,
+                // or if they refresh the page while signed in but unverified.
+                // The message with the resend button should consistently show here.
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
                 switchView('auth-view');
                 // Ensure email field is pre-filled for resend
                 emailInput.value = user.email;
@@ -493,13 +474,11 @@ async function main() {
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
-            // Clear inputs, but only if no verification message is active from a recent sign-up/sign-in attempt
-            // This condition is now largely handled by explicit clearing in handleSignUp/handleSignIn
-            // but kept as a safeguard for other scenarios.
+            // Clear inputs, but only if no message box is currently active and showing a resend button
             const messageBoxActive = !messageOverlay.classList.contains('hidden');
             const resendButtonVisible = !messageBoxResendBtn.classList.contains('hidden');
 
-            if (!messageBoxActive || !resendButtonVisible) {
+            if (!messageBoxActive || !resendButtonVisible) { // Only clear if no unverified message is present
                 emailInput.value = '';
                 passwordInput.value = '';
                 updatePasswordRequirements(); // Reset password checklist/bar
