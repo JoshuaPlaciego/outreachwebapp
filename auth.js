@@ -54,8 +54,8 @@ const forgotPasswordLink = document.getElementById('forgot-password-link');
 
 // Message Box Elements
 const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
-const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // New: Resend button inside message box
-const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // New: Close icon
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // Resend button inside message box
+const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
 
 // --- Utility Functions (moved to utils.js, keeping only switchView here) ---
 
@@ -109,8 +109,8 @@ async function handleSignUp() {
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
         resetAuthForm(); // Clear fields after successful signup and sign out
-        // Display the "Sign up successful" message here
-        showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`);
+        // Display the "Sign up successful" message here (without resend button)
+        showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`, false);
 
 
     } catch (error) {
@@ -149,7 +149,7 @@ async function handleSignIn() {
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
             // If email is not verified, show verification message via general message box
-            // Pass true to showResendButton
+            // Pass true to showResendButton to display the "Resend Verification Email" button
             showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`, true);
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
@@ -232,12 +232,12 @@ function attachEventListeners() {
 
     // Modify closeMessageBtn listener to hide the resend button and close icon
     closeMessageBtn.addEventListener('click', () => {
-        hideMessage();
+        hideMessage(); // This will also hide the resend button via utils.js
     });
 
     // New: Event listener for the close icon
     messageBoxCloseIcon.addEventListener('click', () => {
-        hideMessage();
+        hideMessage(); // This will also hide the resend button via utils.js
     });
 }
 

@@ -7,17 +7,23 @@ export function showMessage(msg, showResendButton = false) {
     const messageOverlay = document.getElementById('custom-message-box-overlay');
     const messageBox = document.getElementById('custom-message-box');
     const messageText = document.getElementById('message-text');
-    const resendBtn = document.getElementById('message-box-resend-btn'); // Get the new resend button
+    const gotItBtn = document.getElementById('close-message-btn'); // Renamed for clarity
+    const resendBtn = document.getElementById('message-box-resend-btn');
 
-    if (messageText && messageOverlay && messageBox && resendBtn) {
+    if (messageText && messageOverlay && messageBox && gotItBtn && resendBtn) {
         messageText.textContent = msg;
         messageOverlay.classList.remove('hidden');
         messageOverlay.classList.add('modal-active-overlay'); // Apply flex for centering
+
+        // Toggle button visibility based on showResendButton
         if (showResendButton) {
             resendBtn.classList.remove('hidden');
+            gotItBtn.classList.add('hidden'); // Hide "Got It!" button
         } else {
             resendBtn.classList.add('hidden');
+            gotItBtn.classList.remove('hidden'); // Show "Got It!" button
         }
+
         setTimeout(() => {
             messageOverlay.style.opacity = '1';
             messageBox.style.transform = 'scale(1)';
@@ -35,12 +41,15 @@ export function showMessage(msg, showResendButton = false) {
 export function hideMessage() {
     const messageOverlay = document.getElementById('custom-message-box-overlay');
     const messageBox = document.getElementById('custom-message-box');
-    const resendBtn = document.getElementById('message-box-resend-btn'); // Get the resend button
+    const gotItBtn = document.getElementById('close-message-btn'); // Renamed for clarity
+    const resendBtn = document.getElementById('message-box-resend-btn');
 
-    if (messageOverlay && messageBox && resendBtn) {
+    if (messageOverlay && messageBox && gotItBtn && resendBtn) {
         messageOverlay.style.opacity = '0';
         messageBox.style.transform = 'scale(0.95)';
-        resendBtn.classList.add('hidden'); // Always hide the resend button when closing
+        // Ensure both buttons are hidden when closing the message box
+        gotItBtn.classList.add('hidden');
+        resendBtn.classList.add('hidden');
         setTimeout(() => {
             messageOverlay.classList.add('hidden'); // Hide it (display: none)
             messageOverlay.classList.remove('modal-active-overlay'); // Remove flex properties
