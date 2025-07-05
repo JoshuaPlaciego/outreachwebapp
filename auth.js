@@ -7,7 +7,8 @@ import {
     signInWithEmailAndPassword,
     sendEmailVerification,
     signOut,
-    signInWithCustomToken
+    signInWithCustomToken,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // Import utility functions for messages
@@ -35,13 +36,14 @@ const emailInput = document.getElementById('auth-email');
 const passwordInput = document.getElementById('auth-password');
 const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
-const authErrorDiv = document.getElementById('auth-error'); // Still needed for specific auth error display
-const authErrorMessage = document.getElementById('auth-error-message'); // Still needed for specific auth error display
-const verificationMessageDiv = document.getElementById('email-verification-message'); // Still needed for specific verification message
-const verificationEmailDisplay = document.getElementById('verification-email-display'); // Still needed for specific verification message
+const authErrorDiv = document.getElementById('auth-error');
+const authErrorMessage = document.getElementById('auth-error-message');
+const verificationMessageDiv = document.getElementById('email-verification-message');
+const verificationEmailDisplay = document.getElementById('verification-email-display');
 const inlineResendLink = document.getElementById('inline-resend-link');
+const forgotPasswordLink = document.getElementById('forgot-password-link');
 
-// Message Box Elements (These are now handled by utils.js, but the close button still needs an event listener)
+// Message Box Elements
 const closeMessageBtn = document.getElementById('close-message-btn');
 
 // --- Utility Functions (moved to utils.js, keeping only switchView here) ---
@@ -61,23 +63,23 @@ function switchView(viewId) {
  * Handles user sign-up.
  */
 async function handleSignUp() {
-    authErrorDiv.classList.add('hidden'); // Hide specific error div
-    verificationMessageDiv.classList.add('hidden'); // Hide specific verification div
+    authErrorDiv.classList.add('hidden');
+    verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     if (!email || !password) {
-        showMessage("Email and password cannot be empty."); // Use generic message box
+        showMessage("Email and password cannot be empty.");
         return;
     }
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        // The onAuthStateChanged listener will now handle showing the verification message
-        await signOut(auth); // Sign out to force user to verify first
+        // REMOVED: await signOut(auth);
+        // The onAuthStateChanged listener will now correctly handle showing the verification message
+        // because the user remains signed in (but unverified).
     } catch (error) {
-        // For specific auth errors, still use the dedicated div for more context
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     }
@@ -87,13 +89,13 @@ async function handleSignUp() {
  * Handles user sign-in.
  */
 async function handleSignIn() {
-    authErrorDiv.classList.add('hidden'); // Hide specific error div
-    verificationMessageDiv.classList.add('hidden'); // Hide specific verification div
+    authErrorDiv.classList.add('hidden');
+    verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     if (!email || !password) {
-        showMessage("Email and password cannot be empty."); // Use generic message box
+        showMessage("Email and password cannot be empty.");
         return;
     }
 
@@ -101,7 +103,6 @@ async function handleSignIn() {
         await signInWithEmailAndPassword(auth, email, password);
         // onAuthStateChanged will handle the redirect if successful and verified
     } catch (error) {
-        // For specific auth errors, still use the dedicated div for more context
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     }
@@ -112,22 +113,42 @@ async function handleSignIn() {
  */
 async function resendVerification() {
     const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    if (!email || !password) {
-        showMessage("Please enter your email and password to resend the verification link.");
+    // No need for password here, as sendEmailVerification works on the current user.
+    // However, if the user is signed out, we might need a temporary sign-in.
+    // For simplicity, let's assume this is called when an unverified user is signed in.
+    const user = auth.currentUser;
+    if (!user) {
+        showMessage("Please sign in first to resend the verification link.");
+        return;
+    }
+
+    if (!user.email) { // Should not happen if user is signed in, but as a safeguard
+        showMessage("Could not determine your email address to resend verification.");
+        return;
+    }
+
+    try {
+        await sendEmailVerification(user);
+        showMessage("Verification email resent successfully. Please check your inbox.");
+    } catch (error) {
+        showMessage(`Resend failed: ${error.message}`);
+    }
+}
+
+/**
+ * Handles the "Forgot Password" functionality.
+ */
+async function handleForgotPassword() {
+    const email = emailInput.value.trim();
+    if (!email) {
+        showMessage("Please enter your email address to reset your password.");
         return;
     }
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        if (userCredential.user && !userCredential.user.emailVerified) {
-            await sendEmailVerification(userCredential.user);
-            showMessage("Verification email resent successfully. Please check your inbox.");
-        } else if (userCredential.user.emailVerified) {
-            showMessage("Your email is already verified. You can now sign in.");
-        }
-        await signOut(auth); // Sign out again
+        await sendPasswordResetEmail(auth, email);
+        showMessage("Password reset email sent! Please check your inbox for instructions.");
     } catch (error) {
-        showMessage(`Resend failed: ${error.message}`);
+        showMessage(`Password reset failed: ${error.message}`);
     }
 }
 
@@ -142,6 +163,10 @@ function attachEventListeners() {
     inlineResendLink.addEventListener('click', (e) => {
         e.preventDefault();
         resendVerification();
+    });
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleForgotPassword();
     });
     closeMessageBtn.addEventListener('click', hideMessage);
 }
@@ -169,33 +194,30 @@ async function main() {
                 // User is signed in but email is not verified, show verification message
                 verificationEmailDisplay.textContent = user.email;
                 verificationMessageDiv.classList.remove('hidden');
-                authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
+                authErrorDiv.classList.add('hidden');
                 switchView('auth-view');
-                loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth view is shown
+                loadingIndicator.classList.add('hidden');
             }
         } else {
             // User is signed out, show auth view
             switchView('auth-view');
-            verificationMessageDiv.classList.add('hidden');
+            verificationMessageDiv.classList.add('hidden'); // Ensure hidden when no user
             authErrorDiv.classList.add('hidden');
-            loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth view is shown
+            loadingIndicator.classList.add('hidden');
         }
     });
 
     // Initial check for custom token (if applicable, though null in this setup for GitHub Pages)
     try {
-        const initialAuthToken = null; // No custom token for direct GitHub Pages deployment
+        const initialAuthToken = null;
         if (initialAuthToken) {
             await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-            // If no initial token, the onAuthStateChanged listener will handle showing the auth-view
-            // No need to explicitly call switchView('auth-view') here as onAuthStateChanged will do it.
         }
     } catch (error) {
         console.error("Error during initial session check:", error);
-        showMessage("Session validation failed. Please sign in again."); // Use generic message box
+        showMessage("Session validation failed. Please sign in again.");
         switchView('auth-view');
-        loadingIndicator.classList.add('hidden'); // Hide loading indicator on error
+        loadingIndicator.classList.add('hidden');
     }
 }
 
