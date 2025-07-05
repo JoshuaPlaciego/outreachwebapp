@@ -49,6 +49,30 @@ body {
     padding: 0;
 }
 
+/* Password Strength Indicator Styles */
+#password-strength {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    width: 100%;
+    background-color: #e2e8f0; /* Tailwind gray-200 */
+    margin-top: 0.5rem;
+}
+
+#password-strength.weak {
+    background-color: #ef4444; /* Tailwind red-500 */
+    width: 33%;
+}
+
+#password-strength.medium {
+    background-color: #f59e0b; /* Tailwind amber-500 */
+    width: 66%;
+}
+
+#password-strength.strong {
+    background-color: #22c55e; /* Tailwind green-500 */
+    width: 100%;
+}
+
 
 /* --- View Transitions --- */
 .view {

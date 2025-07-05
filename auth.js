@@ -7,15 +7,21 @@ import {
     signInWithEmailAndPassword,
     sendEmailVerification,
     signOut,
-    signInWithCustomToken,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    setPersistence, // Import setPersistence
+    browserSessionPersistence, // For "Remember Me" (session)
+    browserLocalPersistence,   // For "Remember Me" (local)
+    GoogleAuthProvider,        // For Google Sign-in
+    FacebookAuthProvider,      // For Facebook Sign-in
+    signInWithPopup            // For social sign-in popups
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
     doc,
     setDoc,
     updateDoc,
-    serverTimestamp
+    serverTimestamp,
+    getDoc // Import getDoc for checking existing user documents
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 
@@ -51,13 +57,21 @@ const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
+const togglePasswordVisibility = document.getElementById('toggle-password-visibility'); // New
+const passwordStrengthIndicator = document.getElementById('password-strength'); // New
+const rememberMeCheckbox = document.getElementById('remember-me'); // New
+const googleSignInBtn = document.getElementById('google-signin-btn'); // New
+const facebookSignInBtn = document.getElementById('facebook-signin-btn'); // New
+const emailError = document.getElementById('email-error'); // New
+const passwordError = document.getElementById('password-error'); // New
+const recaptchaError = document.getElementById('recaptcha-error'); // New
 
 // Message Box Elements
 const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // Resend button inside message box
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
 
-// --- Utility Functions (moved to utils.js, keeping only switchView here) ---
+// --- Utility Functions ---
 
 /**
  * Switches the main view of the application.
@@ -75,6 +89,103 @@ function resetAuthForm() {
     emailInput.value = '';
     passwordInput.value = '';
     authErrorDiv.classList.add('hidden'); // Also hide any auth errors
+    emailError.classList.add('hidden'); // Hide email specific error
+    passwordError.classList.add('hidden'); // Hide password specific error
+    passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset strength indicator
+    passwordStrengthIndicator.style.width = '0%'; // Ensure width is reset
+    passwordStrengthIndicator.style.backgroundColor = 'transparent'; // Ensure background is reset
+    recaptchaError.classList.add('hidden'); // Hide recaptcha error
+    if (typeof grecaptcha !== 'undefined') { // Reset reCAPTCHA if it exists
+        grecaptcha.reset();
+    }
+}
+
+/**
+ * Sets the loading state for a button.
+ * @param {HTMLElement} button - The button element.
+ * @param {boolean} isLoading - True to show loading state, false otherwise.
+ * @param {string} originalText - The original text of the button.
+ */
+function setButtonLoading(button, isLoading, originalText) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...'; // Add spinner icon
+    } else {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+/**
+ * Validates email input in real-time.
+ */
+function validateEmailInput() {
+    const email = emailInput.value.trim();
+    if (email === '') {
+        emailError.classList.add('hidden');
+        return true;
+    }
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValid) {
+        emailError.textContent = "Invalid email format.";
+        emailError.classList.remove('hidden');
+    } else {
+        emailError.classList.add('hidden');
+    }
+    return isValid;
+}
+
+/**
+ * Validates password input in real-time and updates strength.
+ */
+function validatePasswordInput() {
+    const password = passwordInput.value;
+    const minLength = 6;
+    let isValid = true;
+
+    if (password.length < minLength && password.length > 0) {
+        passwordError.textContent = `Password must be at least ${minLength} characters.`;
+        passwordError.classList.remove('hidden');
+        isValid = false;
+    } else if (password.length === 0) {
+        passwordError.classList.add('hidden');
+        isValid = true; // No error if empty, but will be caught by overall validation
+    } else {
+        passwordError.classList.add('hidden');
+    }
+
+    updatePasswordStrength(password);
+    return isValid;
+}
+
+/**
+ * Updates the password strength indicator.
+ * @param {string} password - The password string.
+ */
+function updatePasswordStrength(password) {
+    let strength = 0;
+    if (password.length >= 6) strength += 1;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 1;
+    if (password.match(/\d/)) strength += 1;
+    if (password.match(/[^a-zA-Z\d]/)) strength += 1;
+
+    passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset classes
+    if (password.length === 0) {
+        passwordStrengthIndicator.style.width = '0%';
+        passwordStrengthIndicator.style.backgroundColor = 'transparent';
+    } else if (strength <= 2) {
+        passwordStrengthIndicator.classList.add('weak');
+        passwordStrengthIndicator.style.width = '33%';
+        passwordStrengthIndicator.style.backgroundColor = '#ef4444'; // red-500
+    } else if (strength === 3) {
+        passwordStrengthIndicator.classList.add('medium');
+        passwordStrengthIndicator.style.width = '66%';
+        passwordStrengthIndicator.style.backgroundColor = '#f59e0b'; // amber-500
+    } else {
+        passwordStrengthIndicator.classList.add('strong');
+        passwordStrengthIndicator.style.width = '100%';
+        passwordStrengthIndicator.style.backgroundColor = '#22c55e'; // green-500
+    }
 }
 
 // --- Authentication Logic ---
@@ -84,13 +195,22 @@ function resetAuthForm() {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
+    recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+    const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
 
-    if (!email || !password) {
-        showMessage("Email and password cannot be empty.");
+    if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
+        showMessage("Please correct the form errors.");
         return;
     }
+
+    if (recaptchaResponse.length === 0) {
+        recaptchaError.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(signupBtn, true, 'Sign Up');
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -109,13 +229,14 @@ async function handleSignUp() {
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
         resetAuthForm(); // Clear fields after successful signup and sign out
-        // Display the "Sign up successful" message here (without resend button)
         showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`, false);
-
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
 
@@ -124,15 +245,28 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
+    recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+    const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+    const rememberMe = rememberMeCheckbox.checked;
 
-    if (!email || !password) {
-        showMessage("Email and password cannot be empty.");
+    if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
+        showMessage("Please correct the form errors.");
         return;
     }
 
+    if (recaptchaResponse.length === 0) {
+        recaptchaError.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(signinBtn, true, 'Sign In');
+
     try {
+        // Set persistence based on "Remember Me" checkbox
+        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
@@ -154,13 +288,96 @@ async function handleSignIn() {
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
             loadingIndicator.classList.add('hidden');
+            await signOut(auth); // Sign out if not verified to force re-login after verification
         }
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signinBtn, false, 'Sign In');
+        if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
+
+/**
+ * Handles social sign-in (Google).
+ */
+async function handleGoogleSignIn() {
+    setButtonLoading(googleSignInBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+    try {
+        const provider = new GoogleAuthProvider();
+        await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Check if user exists in Firestore, if not, create a basic record
+        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+            await setDoc(userDocRef, {
+                email: user.email,
+                displayName: user.displayName,
+                emailVerified: user.emailVerified,
+                providerId: result.providerId,
+                createdAt: serverTimestamp()
+            });
+        } else {
+            // Update existing user record if necessary (e.g., emailVerified status)
+            await updateDoc(userDocRef, {
+                emailVerified: user.emailVerified,
+                lastSignInTime: serverTimestamp()
+            });
+        }
+        // onAuthStateChanged will handle redirect to dashboard
+    } catch (error) {
+        authErrorMessage.textContent = error.message;
+        authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(googleSignInBtn, false, '<i class="fab fa-google mr-2"></i> Google');
+    }
+}
+
+/**
+ * Handles social sign-in (Facebook).
+ */
+async function handleFacebookSignIn() {
+    setButtonLoading(facebookSignInBtn, true, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
+    try {
+        const provider = new FacebookAuthProvider();
+        await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Check if user exists in Firestore, if not, create a basic record
+        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+            await setDoc(userDocRef, {
+                email: user.email,
+                displayName: user.displayName,
+                emailVerified: user.emailVerified,
+                providerId: result.providerId,
+                createdAt: serverTimestamp()
+            });
+        } else {
+            // Update existing user record if necessary (e.g., emailVerified status)
+            await updateDoc(userDocRef, {
+                emailVerified: user.emailVerified,
+                lastSignInTime: serverTimestamp()
+            });
+        }
+        // onAuthStateChanged will handle redirect to dashboard
+    } catch (error) {
+        authErrorMessage.textContent = error.message;
+        authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(facebookSignInBtn, false, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
+    }
+}
+
 
 /**
  * Resends the verification email.
@@ -218,6 +435,8 @@ async function handleForgotPassword() {
 function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
+    googleSignInBtn.addEventListener('click', handleGoogleSignIn); // New
+    facebookSignInBtn.addEventListener('click', handleFacebookSignIn); // New
 
     // Attach listener to the new message box resend button
     messageBoxResendBtn.addEventListener('click', (e) => {
@@ -230,12 +449,23 @@ function attachEventListeners() {
         handleForgotPassword();
     });
 
-    // Modify closeMessageBtn listener to hide the resend button and close icon
+    // Event listener for password visibility toggle
+    togglePasswordVisibility.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        // Toggle eye icon
+        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye');
+        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+
+    // Real-time input validation
+    emailInput.addEventListener('input', validateEmailInput);
+    passwordInput.addEventListener('input', validatePasswordInput);
+
+    // Message box close buttons
     closeMessageBtn.addEventListener('click', () => {
         hideMessage(); // This will also hide the resend button via utils.js
     });
-
-    // New: Event listener for the close icon
     messageBoxCloseIcon.addEventListener('click', () => {
         hideMessage(); // This will also hide the resend button via utils.js
     });
@@ -276,19 +506,6 @@ async function main() {
             loadingIndicator.classList.add('hidden');
         }
     });
-
-    // Initial check for custom token (if applicable, though null in this setup for GitHub Pages)
-    try {
-        const initialAuthToken = null;
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-        }
-    } catch (error) {
-        console.error("Error during initial session check:", error);
-        showMessage("Session validation failed. Please sign in again.");
-        switchView('auth-view');
-        loadingIndicator.classList.add('hidden');
-    }
 }
 
 // Run the app
