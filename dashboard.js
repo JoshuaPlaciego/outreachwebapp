@@ -8,7 +8,8 @@ import {
     GoogleAuthProvider, // For re-authentication with Google
     reauthenticateWithCredential, // For re-authentication
     signInWithPopup, // For re-authentication with Google popup
-    updatePassword // To update the user's password
+    updatePassword, // To update the user's password
+    linkWithCredential // For linking new providers
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -112,6 +113,11 @@ const confirmNewPasswordInput = document.getElementById('confirm-new-password');
 const profilePasswordError = document.getElementById('profile-password-error');
 const setPasswordBtn = document.getElementById('set-password-btn');
 
+// New: Link Google Account Elements
+const linkGoogleSection = document.getElementById('link-google-section');
+const linkGoogleBtn = document.getElementById('link-google-btn');
+const linkGoogleError = document.getElementById('link-google-error');
+
 
 // Message Box Elements (These are now handled by utils.js, but the close button still needs an event listener)
 const closeMessageBtn = document.getElementById('close-message-btn');
@@ -193,7 +199,7 @@ function hideReauthModal() {
 }
 
 /**
- * Shows the profile settings modal (for password update).
+ * Shows the profile settings modal (for password update and linking).
  */
 function showProfileModal() {
     profileModalOverlay.classList.remove('hidden');
@@ -205,12 +211,22 @@ function showProfileModal() {
     const user = auth.currentUser;
     if (user) {
         profileEmailDisplay.textContent = user.email;
+        
+        // Check if Google provider is already linked and show/hide the link section
+        const providers = user.providerData.map(p => p.providerId);
+        if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
+            linkGoogleSection.classList.add('hidden'); // Hide if already linked
+        } else {
+            linkGoogleSection.classList.remove('hidden'); // Show if not linked
+            linkGoogleBtn.disabled = !reauthenticated; // Only enable if re-authenticated
+        }
     }
     // Reset password fields and errors
     newPasswordInput.value = '';
     confirmNewPasswordInput.value = '';
     profilePasswordError.classList.add('hidden');
-    setPasswordBtn.disabled = true; // Disable set password until re-authenticated (from previous modal)
+    linkGoogleError.classList.add('hidden');
+    setPasswordBtn.disabled = !reauthenticated; // Disable set password until re-authenticated (from previous modal)
 }
 
 /**
@@ -285,7 +301,7 @@ async function handleReauthenticateWithPassword() {
         reauthenticated = true;
         hideReauthModal(); // Hide re-auth modal on success
         showProfileModal(); // Show password update modal
-        showMessage("Re-authentication successful. You can now set your new password.");
+        showMessage("Re-authentication successful. You can now set your new password or link accounts.");
     } catch (error) {
         reauthError.textContent = `Re-authentication failed: ${error.message}`;
         reauthError.classList.remove('hidden');
@@ -313,7 +329,7 @@ async function handleReauthenticateWithGoogle() {
         reauthenticated = true;
         hideReauthModal(); // Hide re-auth modal on success
         showProfileModal(); // Show password update modal
-        showMessage("Re-authentication successful. You can now set your new password.");
+        showMessage("Re-authentication successful. You can now set your new password or link accounts.");
     } catch (error) {
         reauthError.textContent = `Re-authentication failed: ${error.message}`;
         reauthError.classList.remove('hidden');
@@ -364,6 +380,44 @@ async function handleSetPassword() {
         profilePasswordError.classList.remove('hidden');
     } finally {
         setButtonLoading(setPasswordBtn, false, 'Set Password');
+    }
+}
+
+/**
+ * Handles linking a Google account to the current user.
+ */
+async function handleLinkGoogleAccount() {
+    if (!reauthenticated) {
+        linkGoogleError.textContent = "Please re-authenticate first to link your Google account.";
+        linkGoogleError.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(linkGoogleBtn, true, '<i class="fab fa-google mr-2"></i> Linking...');
+    linkGoogleError.classList.add('hidden'); // Hide previous errors
+
+    try {
+        const user = auth.currentUser;
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider); // Sign in with Google
+
+        // Link the Google credential to the current user
+        await linkWithCredential(user, result.credential);
+
+        showMessage("Google account linked successfully! You can now sign in with Google.");
+        hideProfileModal(); // Close modal on success
+    } catch (error) {
+        let errorMessage = `Failed to link Google account: ${error.message}`;
+        if (error.code === 'auth/credential-already-in-use') {
+            errorMessage = "This Google account is already linked to another user or in use.";
+        } else if (error.code === 'auth/email-already-in-use') {
+             // This can happen if a Google account's email is already used by a *different* non-linked Firebase account
+             errorMessage = "This Google account's email is already associated with another account. Please use a different Google account or sign in with that account.";
+        }
+        linkGoogleError.textContent = errorMessage;
+        linkGoogleError.classList.remove('hidden');
+    } finally {
+        setButtonLoading(linkGoogleBtn, false, '<i class="fab fa-google mr-2"></i> Link with Google');
     }
 }
 
@@ -638,7 +692,7 @@ function attachEventListeners() {
         resetForm(); // Ensure form is clean for new entry
         showLeadModal();
     });
-    profileSettingsBtn.addEventListener('click', showReauthModal); // Changed to show reauth modal first
+    profileSettingsBtn.addEventListener('click', showReauthModal); // Show reauth modal first
 
     // Lead Form (inside modal)
     addLeadBtn.addEventListener('click', handleAddLead);
@@ -672,6 +726,8 @@ function attachEventListeners() {
     reauthEmailPasswordBtn.addEventListener('click', handleReauthenticateWithPassword);
     reauthGoogleBtn.addEventListener('click', handleReauthenticateWithGoogle);
     setPasswordBtn.addEventListener('click', handleSetPassword);
+    linkGoogleBtn.addEventListener('click', handleLinkGoogleAccount); // New: Link Google Account button
+
     newPasswordInput.addEventListener('input', () => {
         // Simple validation to enable/disable set password button
         if (reauthenticated && newPasswordInput.value.length >= 6 && newPasswordInput.value === confirmNewPasswordInput.value) {
