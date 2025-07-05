@@ -10,6 +10,9 @@ import {
     signInWithCustomToken
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+// Import utility functions for messages
+import { showMessage, hideMessage } from './utils.js';
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyD6gijBHmULvJBIjTaoNP9miVr2ZYCKDSg",
@@ -32,43 +35,16 @@ const emailInput = document.getElementById('auth-email');
 const passwordInput = document.getElementById('auth-password');
 const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
-const authErrorDiv = document.getElementById('auth-error');
-const authErrorMessage = document.getElementById('auth-error-message');
-const verificationMessageDiv = document.getElementById('email-verification-message');
-const verificationEmailDisplay = document.getElementById('verification-email-display');
+const authErrorDiv = document.getElementById('auth-error'); // Still needed for specific auth error display
+const authErrorMessage = document.getElementById('auth-error-message'); // Still needed for specific auth error display
+const verificationMessageDiv = document.getElementById('email-verification-message'); // Still needed for specific verification message
+const verificationEmailDisplay = document.getElementById('verification-email-display'); // Still needed for specific verification message
 const inlineResendLink = document.getElementById('inline-resend-link');
 
-// Message Box Elements
-const messageOverlay = document.getElementById('custom-message-box-overlay');
-const messageBox = document.getElementById('custom-message-box');
-const messageText = document.getElementById('message-text');
+// Message Box Elements (These are now handled by utils.js, but the close button still needs an event listener)
 const closeMessageBtn = document.getElementById('close-message-btn');
 
-// --- Utility Functions ---
-
-/**
- * Displays a custom message to the user.
- * @param {string} msg - The message to display.
- */
-function showMessage(msg) {
-    messageText.textContent = msg;
-    messageOverlay.classList.remove('hidden');
-    setTimeout(() => {
-        messageOverlay.style.opacity = '1';
-        messageBox.style.transform = 'scale(1)';
-    }, 10);
-}
-
-/**
- * Hides the custom message box.
- */
-function hideMessage() {
-    messageOverlay.style.opacity = '0';
-    messageBox.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-        messageOverlay.classList.add('hidden');
-    }, 300);
-}
+// --- Utility Functions (moved to utils.js, keeping only switchView here) ---
 
 /**
  * Switches the main view of the application.
@@ -85,14 +61,13 @@ function switchView(viewId) {
  * Handles user sign-up.
  */
 async function handleSignUp() {
-    authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
+    authErrorDiv.classList.add('hidden'); // Hide specific error div
+    verificationMessageDiv.classList.add('hidden'); // Hide specific verification div
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     if (!email || !password) {
-        authErrorMessage.textContent = "Email and password cannot be empty.";
-        authErrorDiv.classList.remove('hidden');
+        showMessage("Email and password cannot be empty."); // Use generic message box
         return;
     }
 
@@ -100,9 +75,9 @@ async function handleSignUp() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
         showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.");
-        // Sign out to force user to verify first, then they can sign in to dashboard
-        await signOut(auth);
+        await signOut(auth); // Sign out to force user to verify first
     } catch (error) {
+        // For specific auth errors, still use the dedicated div for more context
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     }
@@ -112,14 +87,13 @@ async function handleSignUp() {
  * Handles user sign-in.
  */
 async function handleSignIn() {
-    authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
+    authErrorDiv.classList.add('hidden'); // Hide specific error div
+    verificationMessageDiv.classList.add('hidden'); // Hide specific verification div
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     if (!email || !password) {
-        authErrorMessage.textContent = "Email and password cannot be empty.";
-        authErrorDiv.classList.remove('hidden');
+        showMessage("Email and password cannot be empty."); // Use generic message box
         return;
     }
 
@@ -127,6 +101,7 @@ async function handleSignIn() {
         await signInWithEmailAndPassword(auth, email, password);
         // onAuthStateChanged will handle the redirect if successful and verified
     } catch (error) {
+        // For specific auth errors, still use the dedicated div for more context
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     }
@@ -143,7 +118,6 @@ async function resendVerification() {
         return;
     }
     try {
-        // We need to sign in the user temporarily to get the user object
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         if (userCredential.user && !userCredential.user.emailVerified) {
             await sendEmailVerification(userCredential.user);
@@ -195,32 +169,33 @@ async function main() {
                 // User is signed in but email is not verified, show verification message
                 verificationEmailDisplay.textContent = user.email;
                 verificationMessageDiv.classList.remove('hidden');
-                authErrorDiv.classList.add('hidden');
+                authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
                 switchView('auth-view');
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth view is shown
             }
         } else {
             // User is signed out, show auth view
             switchView('auth-view');
             verificationMessageDiv.classList.add('hidden');
             authErrorDiv.classList.add('hidden');
-            // No need to reset form here as it's the initial state of the login page
+            loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth view is shown
         }
     });
 
     // Initial check for custom token (if applicable, though null in this setup for GitHub Pages)
-    // This block is primarily for environments like Canvas that inject a token.
-    // For GitHub Pages, the onAuthStateChanged listener handles initial state.
     try {
         const initialAuthToken = null; // No custom token for direct GitHub Pages deployment
         if (initialAuthToken) {
             await signInWithCustomToken(auth, initialAuthToken);
         } else {
-            switchView('auth-view'); // Ensure auth view is shown initially if no user/token
+            // If no initial token, the onAuthStateChanged listener will handle showing the auth-view
+            // No need to explicitly call switchView('auth-view') here as onAuthStateChanged will do it.
         }
     } catch (error) {
         console.error("Error during initial session check:", error);
+        showMessage("Session validation failed. Please sign in again."); // Use generic message box
         switchView('auth-view');
-        showMessage("Session validation failed. Please sign in again.");
+        loadingIndicator.classList.add('hidden'); // Hide loading indicator on error
     }
 }
 
