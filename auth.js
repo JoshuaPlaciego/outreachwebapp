@@ -60,10 +60,9 @@ const togglePasswordVisibility = document.getElementById('toggle-password-visibi
 const passwordStrengthIndicator = document.getElementById('password-strength'); // New
 const rememberMeCheckbox = document.getElementById('remember-me'); // New
 const googleSignInBtn = document.getElementById('google-signin-btn'); // New
-// Removed: const facebookSignInBtn = document.getElementById('facebook-signin-btn'); // New
 const emailError = document.getElementById('email-error'); // New
 const passwordError = document.getElementById('password-error'); // New
-const recaptchaError = document.getElementById('recaptcha-error'); // New
+// Removed: const recaptchaError = document.getElementById('recaptcha-error'); // Removed
 
 // Message Box Elements
 const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
@@ -93,10 +92,10 @@ function resetAuthForm() {
     passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset strength indicator
     passwordStrengthIndicator.style.width = '0%'; // Ensure width is reset
     passwordStrengthIndicator.style.backgroundColor = 'transparent'; // Ensure background is reset
-    recaptchaError.classList.add('hidden'); // Hide recaptcha error
-    if (typeof grecaptcha !== 'undefined') { // Reset reCAPTCHA if it exists
-        grecaptcha.reset();
-    }
+    // Removed: recaptchaError.classList.add('hidden'); // Hide recaptcha error
+    // Removed: if (typeof grecaptcha !== 'undefined') { // Reset reCAPTCHA if it exists
+    // Removed:     grecaptcha.reset();
+    // Removed: }
 }
 
 /**
@@ -194,20 +193,20 @@ function updatePasswordStrength(password) {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
-    recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
+    // Removed: recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+    // Removed: const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
 
     if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
         showMessage("Please correct the form errors.");
         return;
     }
 
-    if (recaptchaResponse.length === 0) {
-        recaptchaError.classList.remove('hidden');
-        return;
-    }
+    // Removed: if (recaptchaResponse.length === 0) {
+    // Removed:     recaptchaError.classList.remove('hidden');
+    // Removed:     return;
+    // Removed: }
 
     setButtonLoading(signupBtn, true, 'Sign Up');
 
@@ -235,7 +234,7 @@ async function handleSignUp() {
         authErrorDiv.classList.remove('hidden');
     } finally {
         setButtonLoading(signupBtn, false, 'Sign Up');
-        if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
+        // Removed: if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
 
@@ -244,10 +243,10 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
-    recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
+    // Removed: recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+    // Removed: const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
     const rememberMe = rememberMeCheckbox.checked;
 
     if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
@@ -255,10 +254,10 @@ async function handleSignIn() {
         return;
     }
 
-    if (recaptchaResponse.length === 0) {
-        recaptchaError.classList.remove('hidden');
-        return;
-    }
+    // Removed: if (recaptchaResponse.length === 0) {
+    // Removed:     recaptchaError.classList.remove('hidden');
+    // Removed:     return;
+    // Removed: }
 
     setButtonLoading(signinBtn, true, 'Sign In');
 
@@ -295,7 +294,7 @@ async function handleSignIn() {
         authErrorDiv.classList.remove('hidden');
     } finally {
         setButtonLoading(signinBtn, false, 'Sign In');
-        if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
+        // Removed: if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
 
@@ -337,43 +336,6 @@ async function handleGoogleSignIn() {
         setButtonLoading(googleSignInBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
-
-// Removed handleFacebookSignIn function
-// async function handleFacebookSignIn() {
-//     setButtonLoading(facebookSignInBtn, true, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
-//     try {
-//         const provider = new FacebookAuthProvider();
-//         await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
-//         const result = await signInWithPopup(auth, provider);
-//         const user = result.user;
-
-//         // Check if user exists in Firestore, if not, create a basic record
-//         const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-//         const userDocSnap = await getDoc(userDocRef);
-
-//         if (!userDocSnap.exists()) {
-//             await setDoc(userDocRef, {
-//                 email: user.email,
-//                 displayName: user.displayName,
-//                 emailVerified: user.emailVerified,
-//                 providerId: result.providerId,
-//                 createdAt: serverTimestamp()
-//             });
-//         } else {
-//             // Update existing user record if necessary (e.g., emailVerified status)
-//             await updateDoc(userDocRef, {
-//                 emailVerified: user.emailVerified,
-//                 lastSignInTime: serverTimestamp()
-//             });
-//         }
-//         // onAuthStateChanged will handle redirect to dashboard
-//     } catch (error) {
-//         authErrorMessage.textContent = error.message;
-//         authErrorDiv.classList.remove('hidden');
-//     } finally {
-//         setButtonLoading(facebookSignInBtn, false, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
-//     }
-// }
 
 
 /**
@@ -433,7 +395,6 @@ function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
     googleSignInBtn.addEventListener('click', handleGoogleSignIn); // New
-    // Removed: facebookSignInBtn.addEventListener('click', handleFacebookSignIn); // Removed
 
     // Attach listener to the new message box resend button
     messageBoxResendBtn.addEventListener('click', (e) => {
