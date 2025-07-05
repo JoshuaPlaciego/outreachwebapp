@@ -50,8 +50,7 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-const verificationMessageDiv = document.getElementById('email-verification-message');
-const verificationEmailDisplay = document.getElementById('verification-email-display');
+// Removed: verificationMessageDiv, verificationEmailDisplay
 const inlineResendLink = document.getElementById('inline-resend-link');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
@@ -76,7 +75,7 @@ function switchView(viewId) {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
+    // Removed: verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -101,7 +100,7 @@ async function handleSignUp() {
 
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
-        showMessage("Sign-up successful! Please check your email to verify and then sign in.");
+        showMessage(`Sign-up successful! A verification email has been sent to ${email}. Please check your inbox and then sign in.`);
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
@@ -114,7 +113,7 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
+    // Removed: verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -139,14 +138,12 @@ async function handleSignIn() {
             });
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
-            // If email is not verified, keep them on the auth page and show verification message
+            // If email is not verified, keep them on the auth page and show verification message via general message box
             // DO NOT signOut(auth) here, so auth.currentUser is available for resendVerification
-            verificationEmailDisplay.textContent = user.email;
-            verificationMessageDiv.classList.remove('hidden');
-            authErrorDiv.classList.add('hidden');
+            showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
+            authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
             loadingIndicator.classList.add('hidden');
-            // No need for a separate showMessage here as the div provides context
         }
 
     } catch (error) {
@@ -166,17 +163,23 @@ async function resendVerification() {
         return;
     }
 
-    // Ensure the email in the input matches the signed-in user's email for security
-    // Or, if the input email is empty, use the signed-in user's email
-    const emailToVerify = emailInput.value.trim() || user.email;
+    // Use the email from the input field as the primary target for resend,
+    // falling back to the current user's email if input is empty.
+    const emailToVerify = emailInput.value.trim();
 
+    if (!emailToVerify) {
+        showMessage("Please enter your email address in the email field to resend the verification link.");
+        return;
+    }
+
+    // Optional: Add a check if the input email matches the current user's email if signed in
     if (user.email !== emailToVerify) {
         showMessage("The email in the input field does not match your signed-in account. Please ensure they match or sign in with the correct account.");
         return;
     }
 
     try {
-        await sendEmailVerification(user);
+        await sendEmailVerification(user); // send to the current user
         showMessage("Verification email resent successfully. Please check your inbox.");
     } catch (error) {
         showMessage(`Resend failed: ${error.message}`);
@@ -241,8 +244,8 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified, show verification message
-                verificationEmailDisplay.textContent = user.email;
-                verificationMessageDiv.classList.remove('hidden');
+                // This will be shown via the general message box
+                showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
                 authErrorDiv.classList.add('hidden');
                 switchView('auth-view');
                 loadingIndicator.classList.add('hidden');
@@ -250,7 +253,8 @@ async function main() {
         } else {
             // User is signed out, show auth view
             switchView('auth-view');
-            verificationMessageDiv.classList.add('hidden');
+            // Ensure no verification message is shown if user is completely signed out
+            // Removed: verificationMessageDiv.classList.add('hidden');
             authErrorDiv.classList.add('hidden');
             loadingIndicator.classList.add('hidden');
         }
