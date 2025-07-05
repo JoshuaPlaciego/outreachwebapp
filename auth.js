@@ -12,7 +12,6 @@ import {
     browserSessionPersistence, // For "Remember Me" (session)
     browserLocalPersistence,   // For "Remember Me" (local)
     GoogleAuthProvider,        // For Google Sign-in
-    FacebookAuthProvider,      // For Facebook Sign-in
     signInWithPopup            // For social sign-in popups
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
@@ -61,7 +60,7 @@ const togglePasswordVisibility = document.getElementById('toggle-password-visibi
 const passwordStrengthIndicator = document.getElementById('password-strength'); // New
 const rememberMeCheckbox = document.getElementById('remember-me'); // New
 const googleSignInBtn = document.getElementById('google-signin-btn'); // New
-const facebookSignInBtn = document.getElementById('facebook-signin-btn'); // New
+// Removed: const facebookSignInBtn = document.getElementById('facebook-signin-btn'); // New
 const emailError = document.getElementById('email-error'); // New
 const passwordError = document.getElementById('password-error'); // New
 const recaptchaError = document.getElementById('recaptcha-error'); // New
@@ -339,44 +338,42 @@ async function handleGoogleSignIn() {
     }
 }
 
-/**
- * Handles social sign-in (Facebook).
- */
-async function handleFacebookSignIn() {
-    setButtonLoading(facebookSignInBtn, true, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
-    try {
-        const provider = new FacebookAuthProvider();
-        await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+// Removed handleFacebookSignIn function
+// async function handleFacebookSignIn() {
+//     setButtonLoading(facebookSignInBtn, true, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
+//     try {
+//         const provider = new FacebookAuthProvider();
+//         await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
+//         const result = await signInWithPopup(auth, provider);
+//         const user = result.user;
 
-        // Check if user exists in Firestore, if not, create a basic record
-        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+//         // Check if user exists in Firestore, if not, create a basic record
+//         const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
+//         const userDocSnap = await getDoc(userDocRef);
 
-        if (!userDocSnap.exists()) {
-            await setDoc(userDocRef, {
-                email: user.email,
-                displayName: user.displayName,
-                emailVerified: user.emailVerified,
-                providerId: result.providerId,
-                createdAt: serverTimestamp()
-            });
-        } else {
-            // Update existing user record if necessary (e.g., emailVerified status)
-            await updateDoc(userDocRef, {
-                emailVerified: user.emailVerified,
-                lastSignInTime: serverTimestamp()
-            });
-        }
-        // onAuthStateChanged will handle redirect to dashboard
-    } catch (error) {
-        authErrorMessage.textContent = error.message;
-        authErrorDiv.classList.remove('hidden');
-    } finally {
-        setButtonLoading(facebookSignInBtn, false, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
-    }
-}
+//         if (!userDocSnap.exists()) {
+//             await setDoc(userDocRef, {
+//                 email: user.email,
+//                 displayName: user.displayName,
+//                 emailVerified: user.emailVerified,
+//                 providerId: result.providerId,
+//                 createdAt: serverTimestamp()
+//             });
+//         } else {
+//             // Update existing user record if necessary (e.g., emailVerified status)
+//             await updateDoc(userDocRef, {
+//                 emailVerified: user.emailVerified,
+//                 lastSignInTime: serverTimestamp()
+//             });
+//         }
+//         // onAuthStateChanged will handle redirect to dashboard
+//     } catch (error) {
+//         authErrorMessage.textContent = error.message;
+//         authErrorDiv.classList.remove('hidden');
+//     } finally {
+//         setButtonLoading(facebookSignInBtn, false, '<i class="fab fa-facebook-f mr-2"></i> Facebook');
+//     }
+// }
 
 
 /**
@@ -436,7 +433,7 @@ function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
     googleSignInBtn.addEventListener('click', handleGoogleSignIn); // New
-    facebookSignInBtn.addEventListener('click', handleFacebookSignIn); // New
+    // Removed: facebookSignInBtn.addEventListener('click', handleFacebookSignIn); // Removed
 
     // Attach listener to the new message box resend button
     messageBoxResendBtn.addEventListener('click', (e) => {
