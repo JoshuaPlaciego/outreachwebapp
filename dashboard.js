@@ -401,8 +401,14 @@ async function handleLinkGoogleAccount() {
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider); // Sign in with Google
 
+        // Explicitly get credential from result and check if it's valid
+        const credential = GoogleAuthProvider.credentialFromResult(result); 
+        if (!credential) {
+            throw new Error("Google sign-in did not return a valid credential.");
+        }
+
         // Link the Google credential to the current user
-        await linkWithCredential(user, result.credential);
+        await linkWithCredential(user, credential);
 
         showMessage("Google account linked successfully! You can now sign in with Google.");
         hideProfileModal(); // Close modal on success
@@ -578,7 +584,7 @@ function populateFormForEdit(id) {
     formTitle.textContent = 'Edit Lead';
     addLeadBtn.classList.add('hidden');
     updateLeadBtn.classList.remove('hidden');
-    cancelEditBtn.classList.remove('hidden');
+    cancelEditBtn.classList.add('hidden');
 
     showLeadModal(); // Show modal when populating for edit
 }
