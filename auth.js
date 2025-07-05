@@ -40,6 +40,8 @@ const firebaseConfig = {
 // --- App State & Config ---
 let auth;
 let db;
+// NEW: Global flag to indicate if we are in the sign-up success flow
+window.isSignUpFlowActive = false;
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
@@ -291,6 +293,8 @@ async function handleSignUp() {
     setButtonLoading(signinBtn, true, 'Sign In');
     setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
 
+    // NEW: Set flag to indicate sign-up flow is active
+    window.isSignUpFlowActive = true;
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -311,16 +315,15 @@ async function handleSignUp() {
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
-        // Add a small delay to allow onAuthStateChanged to process the signOut before showing the message
-        setTimeout(() => {
-            // Show success message WITHOUT resend button
-            showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
-            resetAuthForm(); // Clear fields and reset strength after successful signup
-        }, 100); // 100ms delay
+        // Show success message WITHOUT resend button
+        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
+        resetAuthForm(); // Clear fields and reset strength after successful signup
         
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
+        // Ensure flag is reset on error
+        window.isSignUpFlowActive = false;
     } finally {
         setButtonLoading(signupBtn, false, 'Sign Up');
         setButtonLoading(signinBtn, false, 'Sign In');
@@ -554,8 +557,10 @@ async function main() {
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
-            // Ensure fields are clear when signed out
-            resetAuthForm();
+            // Only reset form if not currently in the middle of a sign-up success message flow
+            if (!window.isSignUpFlowActive) {
+                resetAuthForm();
+            }
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
     });
