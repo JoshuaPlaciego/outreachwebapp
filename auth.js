@@ -251,8 +251,9 @@ async function handleSignUp() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        // Removed the showMessage call here. onAuthStateChanged will handle the display.
-        // Removed await signOut(auth); here. Let onAuthStateChanged manage the state.
+        // Reinstating signOut and the specific success message for signup
+        await signOut(auth); // End the session immediately after signup
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false); // No resend button here
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -418,6 +419,9 @@ async function main() {
                 switchView('auth-view');
                 // Ensure email field is pre-filled for resend
                 emailInput.value = user.email;
+                // Sign out the user if they are unverified and trying to access
+                // This ensures they cannot proceed until verified.
+                await signOut(auth);
             }
         } else {
             // User is signed out or not logged in, show auth view
