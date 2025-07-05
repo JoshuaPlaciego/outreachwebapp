@@ -89,19 +89,24 @@ const leadModalOverlay = document.getElementById('lead-modal-overlay');
 const leadModal = document.getElementById('lead-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 
-// Profile Settings Modal Elements (NEW)
-const profileModalOverlay = document.getElementById('profile-modal-overlay');
-const profileModal = document.getElementById('profile-modal');
-const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
+// Profile Settings Modals (NEW)
+const reauthModalOverlay = document.getElementById('reauth-modal-overlay'); // New reauth modal overlay
+const reauthModal = document.getElementById('reauth-modal'); // New reauth modal
+const closeReauthModalBtn = document.getElementById('close-reauth-modal-btn'); // New close button for reauth modal
+
+const profileModalOverlay = document.getElementById('profile-modal-overlay'); // Existing profile modal overlay (now for password)
+const profileModal = document.getElementById('profile-modal'); // Existing profile modal (now for password)
+const closeProfileModalBtn = document.getElementById('close-profile-modal-btn'); // Existing close button for profile modal
+
 const profileEmailDisplay = document.getElementById('profile-email-display');
-const reauthSection = document.getElementById('reauth-section');
+const reauthSection = document.getElementById('reauth-section'); // This is inside reauth-modal, not profile-modal anymore
 const reauthEmailPasswordSection = document.getElementById('reauth-email-password-section');
 const reauthCurrentPasswordInput = document.getElementById('reauth-current-password');
 const reauthEmailPasswordBtn = document.getElementById('reauth-email-password-btn');
 const reauthGoogleSection = document.getElementById('reauth-google-section');
 const reauthGoogleBtn = document.getElementById('reauth-google-btn');
 const reauthError = document.getElementById('reauth-error');
-const setPasswordSection = document.getElementById('set-password-section');
+const setPasswordSection = document.getElementById('set-password-section'); // This is inside profile-modal
 const newPasswordInput = document.getElementById('new-password');
 const confirmNewPasswordInput = document.getElementById('confirm-new-password');
 const profilePasswordError = document.getElementById('profile-password-error');
@@ -147,7 +152,48 @@ function hideLeadModal() {
 }
 
 /**
- * Shows the profile settings modal.
+ * Shows the re-authentication modal.
+ */
+function showReauthModal() {
+    reauthModalOverlay.classList.remove('hidden');
+    setTimeout(() => {
+        reauthModalOverlay.style.opacity = '1';
+        reauthModal.style.transform = 'scale(1)';
+    }, 10);
+
+    // Reset re-authentication state
+    reauthenticated = false;
+    reauthCurrentPasswordInput.value = '';
+    reauthError.classList.add('hidden');
+    
+    // Determine which re-auth options to show
+    const user = auth.currentUser;
+    if (user) {
+        const providers = user.providerData.map(p => p.providerId);
+        reauthEmailPasswordSection.classList.toggle('hidden', !providers.includes(EmailAuthProvider.PROVIDER_ID));
+        reauthGoogleSection.classList.toggle('hidden', !providers.includes(GoogleAuthProvider.PROVIDER_ID));
+    } else {
+        // Should not happen if this modal is only opened when user is logged in, but as fallback
+        reauthEmailPasswordSection.classList.add('hidden');
+        reauthGoogleSection.classList.add('hidden');
+        reauthError.textContent = "No active user session found. Please log in.";
+        reauthError.classList.remove('hidden');
+    }
+}
+
+/**
+ * Hides the re-authentication modal.
+ */
+function hideReauthModal() {
+    reauthModalOverlay.style.opacity = '0';
+    reauthModal.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        reauthModalOverlay.classList.add('hidden');
+    }, 300);
+}
+
+/**
+ * Shows the profile settings modal (for password update).
  */
 function showProfileModal() {
     profileModalOverlay.classList.remove('hidden');
@@ -159,14 +205,12 @@ function showProfileModal() {
     const user = auth.currentUser;
     if (user) {
         profileEmailDisplay.textContent = user.email;
-        checkAuthenticationMethodAndShowReauthOptions(user);
     }
     // Reset password fields and errors
     newPasswordInput.value = '';
     confirmNewPasswordInput.value = '';
     profilePasswordError.classList.add('hidden');
-    reauthError.classList.add('hidden');
-    setPasswordBtn.disabled = true; // Disable set password until re-authenticated
+    setPasswordBtn.disabled = true; // Disable set password until re-authenticated (from previous modal)
 }
 
 /**
@@ -178,11 +222,6 @@ function hideProfileModal() {
     setTimeout(() => {
         profileModalOverlay.classList.add('hidden');
         reauthenticated = false; // Reset re-authentication flag on close
-        reauthSection.classList.add('hidden'); // Hide reauth section
-        reauthEmailPasswordSection.classList.add('hidden');
-        reauthGoogleSection.classList.add('hidden');
-        reauthCurrentPasswordInput.value = ''; // Clear password field
-        setPasswordSection.classList.remove('hidden'); // Ensure password section is visible for next open
     }, 300);
 }
 
@@ -225,32 +264,6 @@ async function handleSignOut() {
 }
 
 /**
- * Checks the user's current authentication method and displays appropriate re-authentication options.
- * @param {firebase.User} user - The current Firebase user object.
- */
-function checkAuthenticationMethodAndShowReauthOptions(user) {
-    reauthSection.classList.remove('hidden');
-    reauthEmailPasswordSection.classList.add('hidden');
-    reauthGoogleSection.classList.add('hidden');
-    reauthError.classList.add('hidden');
-    setPasswordBtn.disabled = true; // Disable until re-authenticated
-
-    const providers = user.providerData.map(p => p.providerId);
-
-    if (providers.includes(EmailAuthProvider.PROVIDER_ID)) {
-        reauthEmailPasswordSection.classList.remove('hidden');
-    }
-    if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
-        reauthGoogleSection.classList.remove('hidden');
-    }
-
-    // If the user only has a social provider (e.g., Google) and no password set,
-    // they might not see the email/password re-auth option.
-    // In this case, we still need to allow them to set a password after re-auth.
-    // The setPasswordSection should always be visible, but its button enabled only after reauth.
-}
-
-/**
  * Handles re-authentication with email and password.
  */
 async function handleReauthenticateWithPassword() {
@@ -270,8 +283,8 @@ async function handleReauthenticateWithPassword() {
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         await reauthenticateWithCredential(user, credential);
         reauthenticated = true;
-        reauthSection.classList.add('hidden'); // Hide re-auth section on success
-        setPasswordBtn.disabled = false; // Enable set password button
+        hideReauthModal(); // Hide re-auth modal on success
+        showProfileModal(); // Show password update modal
         showMessage("Re-authentication successful. You can now set your new password.");
     } catch (error) {
         reauthError.textContent = `Re-authentication failed: ${error.message}`;
@@ -298,8 +311,8 @@ async function handleReauthenticateWithGoogle() {
 
         await reauthenticateWithCredential(user, credential); // Use the current user and the obtained credential
         reauthenticated = true;
-        reauthSection.classList.add('hidden'); // Hide re-auth section on success
-        setPasswordBtn.disabled = false; // Enable set password button
+        hideReauthModal(); // Hide re-auth modal on success
+        showProfileModal(); // Show password update modal
         showMessage("Re-authentication successful. You can now set your new password.");
     } catch (error) {
         reauthError.textContent = `Re-authentication failed: ${error.message}`;
@@ -625,7 +638,7 @@ function attachEventListeners() {
         resetForm(); // Ensure form is clean for new entry
         showLeadModal();
     });
-    profileSettingsBtn.addEventListener('click', showProfileModal); // New: Open Profile Settings modal
+    profileSettingsBtn.addEventListener('click', showReauthModal); // Changed to show reauth modal first
 
     // Lead Form (inside modal)
     addLeadBtn.addEventListener('click', handleAddLead);
@@ -640,10 +653,17 @@ function attachEventListeners() {
         }
     });
 
-    // Profile Settings Modal close buttons (NEW)
-    closeProfileModalBtn.addEventListener('click', hideProfileModal);
+    // Profile Settings Modals (NEW)
+    closeReauthModalBtn.addEventListener('click', hideReauthModal); // Close button for reauth modal
+    reauthModalOverlay.addEventListener('click', (e) => {
+        if (e.target === reauthModalOverlay) {
+            hideReauthModal();
+        }
+    });
+
+    closeProfileModalBtn.addEventListener('click', hideProfileModal); // Close button for password modal
     profileModalOverlay.addEventListener('click', (e) => {
-        if (e.target === profileModalOverlay) { // Only close if clicking on the overlay itself
+        if (e.target === profileModalOverlay) {
             hideProfileModal();
         }
     });
