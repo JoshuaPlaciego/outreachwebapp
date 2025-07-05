@@ -293,10 +293,10 @@ async function handleReauthenticateWithGoogle() {
 
     try {
         const provider = new GoogleAuthProvider();
-        // Corrected: Call signInWithPopup on the auth object, not the user object
-        const result = await signInWithPopup(auth, provider);
-        // The result.credential contains the re-authentication credential
-        await reauthenticateWithCredential(user, result.credential);
+        const result = await signInWithPopup(auth, provider); // Call signInWithPopup on the auth object
+        const credential = GoogleAuthProvider.credentialFromResult(result); // Explicitly get credential from result
+
+        await reauthenticateWithCredential(user, credential); // Use the current user and the obtained credential
         reauthenticated = true;
         reauthSection.classList.add('hidden'); // Hide re-auth section on success
         setPasswordBtn.disabled = false; // Enable set password button
