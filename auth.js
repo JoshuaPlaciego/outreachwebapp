@@ -40,8 +40,7 @@ const firebaseConfig = {
 // --- App State & Config ---
 let auth;
 let db;
-// NEW: Global flag to indicate if we are in the sign-up success flow
-window.isSignUpFlowActive = false; // This flag is accessed by utils.js
+// Removed: window.isSignUpFlowActive = false; // This flag is no longer needed
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
@@ -293,9 +292,6 @@ async function handleSignUp() {
     setButtonLoading(signinBtn, true, 'Sign In');
     setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
 
-    // NEW: Set flag to indicate sign-up flow is active
-    window.isSignUpFlowActive = true;
-
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -322,8 +318,6 @@ async function handleSignUp() {
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
-        // Ensure flag is reset on error
-        window.isSignUpFlowActive = false;
     } finally {
         setButtonLoading(signupBtn, false, 'Sign Up');
         setButtonLoading(signinBtn, false, 'Sign In');
@@ -541,11 +535,7 @@ async function main() {
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
-        // NEW: If a sign-up flow is active, prevent onAuthStateChanged from interfering
-        if (window.isSignUpFlowActive) {
-            console.log("onAuthStateChanged: Sign-up flow active, skipping immediate processing.");
-            return; // Do nothing if sign-up flow is active
-        }
+        // Removed: if (window.isSignUpFlowActive) { return; } // This flag is no longer used for suppression here
 
         if (user) {
             await user.reload(); // Get latest user state
@@ -554,11 +544,14 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified.
-                // This state is reached if they refresh the page while signed in but unverified.
-                // In this specific scenario, we sign them out. The message will be shown
-                // when they attempt to sign in again.
-                console.log("Unverified user detected by onAuthStateChanged. Signing out.");
-                await signOut(auth);
+                // This state is reached if they just signed up, or if they refresh the page while unverified.
+                // Display the verification message and sign them out to force verification.
+                console.log("Unverified user detected by onAuthStateChanged. Displaying message and signing out.");
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                switchView('auth-view'); // Stay on auth view
+                emailInput.value = user.email; // Pre-fill email for convenience
+                await signOut(auth); // Sign out to keep them in the "trap"
+                resetAuthForm(); // Clear password field after sign out
             }
         } else {
             // User is signed out or not logged in, show auth view
