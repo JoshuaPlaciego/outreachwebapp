@@ -212,6 +212,9 @@ function showProfileModal() {
     if (user) {
         profileEmailDisplay.textContent = user.email;
         
+        // Log provider data for debugging
+        console.log("Current user providerData:", user.providerData.map(p => p.providerId));
+
         // Check if Google provider is already linked and show/hide the link section
         const providers = user.providerData.map(p => p.providerId);
         if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
@@ -414,8 +417,10 @@ async function handleLinkGoogleAccount() {
         hideProfileModal(); // Close modal on success
     } catch (error) {
         let errorMessage = `Failed to link Google account: ${error.message}`;
-        if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/provider-already-linked') {
-            errorMessage = "This Google account is already linked to another user or in use.";
+        if (error.code === 'auth/provider-already-linked') {
+            errorMessage = "This Google account is already linked to your current account.";
+        } else if (error.code === 'auth/credential-already-in-use') {
+            errorMessage = "This Google account is already linked to another user's account.";
         } else if (error.code === 'auth/email-already-in-use') {
              // This can happen if a Google account's email is already used by a *different* non-linked Firebase account
              errorMessage = "This Google account's email is already associated with another account. Please use a different Google account or sign in with that account.";
