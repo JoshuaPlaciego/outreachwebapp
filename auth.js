@@ -10,6 +10,14 @@ import {
     signInWithCustomToken,
     sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import {
+    getFirestore, // Import getFirestore
+    doc,          // Import doc
+    setDoc,       // Import setDoc
+    updateDoc,    // Import updateDoc
+    serverTimestamp // Import serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
 // Import utility functions for messages
 import { showMessage, hideMessage } from './utils.js';
@@ -26,6 +34,10 @@ const firebaseConfig = {
 
 // --- App State & Config ---
 let auth;
+let db; // Declare db variable
+
+// The appId is now derived directly from the firebaseConfig
+const appId = firebaseConfig.appId;
 
 // --- DOM Element References ---
 const loadingIndicator = document.getElementById('loading-indicator');
@@ -75,10 +87,22 @@ async function handleSignUp() {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(userCredential.user);
-        // REMOVED: await signOut(auth);
-        // The onAuthStateChanged listener will now correctly handle showing the verification message
-        // because the user remains signed in (but unverified).
+        const user = userCredential.user;
+
+        await sendEmailVerification(user);
+
+        // Create a user document in Firestore
+        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
+        await setDoc(userDocRef, {
+            email: user.email,
+            emailVerified: user.emailVerified, // Will be false initially
+            createdAt: serverTimestamp()
+        });
+
+        // Sign out the user immediately after signup
+        await signOut(auth);
+        showMessage("Sign-up successful! Please check your email to verify and then sign in.");
+
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -100,8 +124,31 @@ async function handleSignIn() {
     }
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // onAuthStateChanged will handle the redirect if successful and verified
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Reload user to get latest emailVerified status
+        await user.reload();
+
+        // Update Firestore user document's emailVerified status if it's now true
+        if (user.emailVerified) {
+            const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
+            await updateDoc(userDocRef, {
+                emailVerified: true,
+                lastSignInTime: serverTimestamp()
+            });
+            // Redirect to dashboard, onAuthStateChanged will handle this
+        } else {
+            // If email is not verified, keep them on the auth page and show message
+            verificationEmailDisplay.textContent = user.email;
+            verificationMessageDiv.classList.remove('hidden');
+            authErrorDiv.classList.add('hidden');
+            switchView('auth-view');
+            loadingIndicator.classList.add('hidden');
+            await signOut(auth); // Sign out if not verified to force re-login after verification
+            showMessage("Your email is not verified. Please verify your email to proceed.");
+        }
+
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -113,23 +160,26 @@ async function handleSignIn() {
  */
 async function resendVerification() {
     const email = emailInput.value.trim();
-    // No need for password here, as sendEmailVerification works on the current user.
-    // However, if the user is signed out, we might need a temporary sign-in.
-    // For simplicity, let's assume this is called when an unverified user is signed in.
-    const user = auth.currentUser;
-    if (!user) {
-        showMessage("Please sign in first to resend the verification link.");
-        return;
-    }
-
-    if (!user.email) { // Should not happen if user is signed in, but as a safeguard
-        showMessage("Could not determine your email address to resend verification.");
+    if (!email) {
+        showMessage("Please enter your email address to resend the verification link.");
         return;
     }
 
     try {
-        await sendEmailVerification(user);
-        showMessage("Verification email resent successfully. Please check your inbox.");
+        // To resend verification, the user needs to be signed in.
+        // If they are signed out (which they will be after signup in this new flow),
+        // we can't directly use auth.currentUser.
+        // A common pattern is to ask them to sign in first, or to temporarily sign them in.
+        // For simplicity and security, we'll assume this is called when an unverified user *is* signed in
+        // or prompt them to sign in if not.
+        const user = auth.currentUser;
+        if (user && user.email === email) { // Check if the currently signed-in user matches the email
+            await sendEmailVerification(user);
+            showMessage("Verification email resent successfully. Please check your inbox.");
+        } else {
+            // If no user is signed in or it's a different user, prompt to sign in
+            showMessage("Please sign in with the email you wish to verify, then try resending.");
+        }
     } catch (error) {
         showMessage(`Resend failed: ${error.message}`);
     }
@@ -180,6 +230,7 @@ async function main() {
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app); // Initialize Firestore
 
     attachEventListeners();
 
@@ -192,6 +243,8 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified, show verification message
+                // This state is now primarily reached after a successful sign-in attempt
+                // with an unverified email, or if they refresh while still signed in unverified.
                 verificationEmailDisplay.textContent = user.email;
                 verificationMessageDiv.classList.remove('hidden');
                 authErrorDiv.classList.add('hidden');
