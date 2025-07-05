@@ -251,9 +251,11 @@ async function handleSignUp() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        // Changed showResendButton to false for signup success message
+        // After successful signup and sending verification, display message.
+        // The onAuthStateChanged listener will then handle the unverified state
+        // and keep the user on the auth page with the resend button.
         showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false);
-        await signOut(auth); // Sign out to force user to verify first
+        // Removed await signOut(auth); here. Let onAuthStateChanged manage the state.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
