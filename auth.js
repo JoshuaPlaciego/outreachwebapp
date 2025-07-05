@@ -31,7 +31,7 @@ import {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
-let suppressOnAuthStateChangedMessage = false; // NEW: Flag to suppress message from onAuthStateChanged
+// Removed: let suppressOnAuthStateChangedMessage = false; // No longer needed
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -99,6 +99,7 @@ const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 function showMessage(msg, showResendButton = false) {
     messageText.textContent = msg;
     messageBoxResendBtn.classList.toggle('hidden', !showResendButton);
+    closeMessageBtn.classList.toggle('hidden', showResendButton); // Ensure Got It! button is hidden if resend is shown
     messageOverlay.classList.remove('hidden');
     setTimeout(() => {
         messageOverlay.style.opacity = '1';
@@ -114,18 +115,11 @@ function hideMessage() {
     messageBox.style.transform = 'scale(0.95)';
     setTimeout(() => {
         messageOverlay.classList.add('hidden');
-        // NEW: Reset the suppression flag when the message box is fully hidden
-        if (window.resetSuppressFlag) {
-            window.resetSuppressFlag();
-        }
+        // Removed: if (window.resetSuppressFlag) { window.resetSuppressFlag(); }
     }, 300);
 }
 
-// NEW: Global function to be called by utils.js when message box is hidden
-window.resetSuppressFlag = () => {
-    suppressOnAuthStateChangedMessage = false;
-    console.log("suppressOnAuthStateChangedMessage reset to false.");
-};
+// Removed: window.resetSuppressFlag = () => { ... }
 
 
 /**
@@ -282,9 +276,11 @@ async function handleSignUp() {
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
-        // NEW: Set flag to suppress onAuthStateChanged message right before showing this message
-        suppressOnAuthStateChangedMessage = true; 
-        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false); // No resend button here
+        // Show success message without resend button, as user is now signed out
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false);
+        emailInput.value = ''; // Clear email field after successful signup
+        passwordInput.value = ''; // Clear password field after successful signup
+        updatePasswordRequirements(); // Reset password checklist/bar
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -321,6 +317,10 @@ async function handleSignIn() {
             // Sign out the unverified user to keep them in the "trap"
             await signOut(auth);
         }
+        // Clear fields on successful sign-in (before redirect)
+        emailInput.value = '';
+        passwordInput.value = '';
+        updatePasswordRequirements(); // Reset password checklist/bar
         // If email is verified, the onAuthStateChanged observer will handle the redirect to dashboard.
     } catch (error) {
         authErrorMessage.textContent = error.message;
@@ -369,6 +369,11 @@ async function handleGoogleAuth() {
                 lastLogin: serverTimestamp()
             });
         }
+        
+        // Clear fields after Google Auth
+        emailInput.value = '';
+        passwordInput.value = '';
+        updatePasswordRequirements(); // Reset password checklist/bar
 
         // The onAuthStateChanged observer will handle the redirect if successful.
         // Google sign-in typically auto-verifies email if it's a new account.
@@ -413,6 +418,7 @@ async function handleForgotPassword() {
     try {
         await sendPasswordResetEmail(auth, email);
         showMessage(`Password reset email sent to ${email}. Please check your inbox.`);
+        emailInput.value = ''; // Clear email field after sending reset email
     } catch (error) {
         showMessage(`Failed to send password reset email: ${error.message}`);
     }
@@ -473,10 +479,10 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified
-                // Only show message if not currently suppressed by a signup flow
-                if (!suppressOnAuthStateChangedMessage) {
-                    showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
-                }
+                // This state is primarily reached if they just signed up and are unverified,
+                // or if they refresh the page while signed in but unverified.
+                // The message with the resend button should consistently show here.
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
                 switchView('auth-view');
                 // Ensure email field is pre-filled for resend
                 emailInput.value = user.email;
@@ -485,12 +491,15 @@ async function main() {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
             // Clear inputs, but only if no verification message is active from a recent sign-up/sign-in attempt
+            // This condition is now largely handled by explicit clearing in handleSignUp/handleSignIn
+            // but kept as a safeguard for other scenarios.
             const messageBoxActive = !messageOverlay.classList.contains('hidden');
             const resendButtonVisible = !messageBoxResendBtn.classList.contains('hidden');
 
             if (!messageBoxActive || !resendButtonVisible) {
                 emailInput.value = '';
                 passwordInput.value = '';
+                updatePasswordRequirements(); // Reset password checklist/bar
             }
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
