@@ -40,7 +40,6 @@ const firebaseConfig = {
 // --- App State & Config ---
 let auth;
 let db;
-// Removed: window.isSignUpFlowActive = false; // This flag is no longer needed
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
@@ -535,8 +534,6 @@ async function main() {
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
-        // Removed: if (window.isSignUpFlowActive) { return; } // This flag is no longer used for suppression here
-
         if (user) {
             await user.reload(); // Get latest user state
             if (user.emailVerified) {
