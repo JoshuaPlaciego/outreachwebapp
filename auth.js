@@ -50,7 +50,8 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-const inlineResendLink = document.getElementById('inline-resend-link');
+// Renamed inlineResendLink to messageBoxResendLink as it's now inside the message box
+const messageBoxResendLink = document.getElementById('message-box-resend-link');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
 // Message Box Elements
@@ -148,7 +149,8 @@ async function handleSignIn() {
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
             // If email is not verified, show verification message via general message box
-            showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
+            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`);
+            messageBoxResendLink.classList.remove('hidden'); // Show the resend link inside the message box
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
             loadingIndicator.classList.add('hidden');
@@ -216,7 +218,8 @@ async function handleForgotPassword() {
 function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    inlineResendLink.addEventListener('click', (e) => {
+    // Attach listener to the new message box resend link
+    messageBoxResendLink.addEventListener('click', (e) => {
         e.preventDefault();
         resendVerification();
     });
@@ -224,7 +227,11 @@ function attachEventListeners() {
         e.preventDefault();
         handleForgotPassword();
     });
-    closeMessageBtn.addEventListener('click', hideMessage);
+    // Modify closeMessageBtn listener to hide the resend link
+    closeMessageBtn.addEventListener('click', () => {
+        hideMessage();
+        messageBoxResendLink.classList.add('hidden'); // Hide the resend link when message box closes
+    });
 }
 
 // --- Initialization ---
