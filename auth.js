@@ -64,6 +64,7 @@ const togglePasswordVisibility = document.getElementById('toggle-password-visibi
 const passwordError = document.getElementById('password-error');
 const passwordStrength = document.getElementById('password-strength');
 const passwordStrengthLabel = document.getElementById('password-strength-label'); // New: for strength text
+const passwordStrengthBar = document.getElementById('password-strength-bar'); // New: for the visual bar
 
 // Password Requirements Checklist
 const passwordRequirements = {
@@ -172,29 +173,45 @@ function updatePasswordRequirements() {
     // Update password strength label
     let strengthText = '';
     let strengthColor = '';
+    let barColor = '';
 
     if (password.length === 0) {
         strengthText = '';
         strengthColor = '';
+        barColor = '#e5e7eb'; // Tailwind gray-200
     } else if (metCount === 5 && password.length >= 10) {
         strengthText = 'Very Strong';
         strengthColor = 'text-green-700';
+        barColor = '#15803d'; // Tailwind green-700
     } else if (metCount >= 4 && password.length >= 8) {
         strengthText = 'Strong';
         strengthColor = 'text-green-500';
+        barColor = '#22c55e'; // Tailwind green-500
     } else if (metCount >= 3 && password.length >= 6) {
         strengthText = 'Moderate';
         strengthColor = 'text-yellow-600';
+        barColor = '#eab308'; // Tailwind yellow-600
     } else if (metCount >= 1) {
         strengthText = 'Weak';
         strengthColor = 'text-orange-500';
+        barColor = '#f97316'; // Tailwind orange-500
     } else {
         strengthText = 'Very Weak';
         strengthColor = 'text-red-600';
+        barColor = '#dc2626'; // Tailwind red-600
     }
 
     passwordStrengthLabel.textContent = strengthText;
     passwordStrengthLabel.className = `font-semibold ${strengthColor}`; // Apply color class
+
+    // Update password strength bar
+    let barWidth = (metCount / 5) * 100; // Percentage of requirements met
+    if (password.length === 0) {
+        barWidth = 0; // No bar if no password
+    }
+    passwordStrengthBar.style.width = `${barWidth}%`;
+    passwordStrengthBar.style.backgroundColor = barColor;
+
 
     // Enable/disable signup button based on all requirements met
     const allRequirementsMet = Object.values(requirements).every(Boolean);

@@ -55,7 +55,10 @@
                         </span>
                     </div>
                     <p id="password-error" class="text-red-500 text-xs mt-1 hidden">Password must be at least 6 characters.</p>
-                    <div id="password-strength" class="text-xs mt-1">
+                    <div id="password-strength" class="w-full h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
+                        <div id="password-strength-bar" class="h-full rounded-full transition-all duration-300 ease-in-out" style="width: 0%; background-color: #e5e7eb;"></div>
+                    </div>
+                    <div class="text-xs mt-1 text-center">
                         <span id="password-strength-label" class="font-semibold"></span>
                     </div>
                     <!-- Password Requirements Checklist -->
