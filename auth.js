@@ -147,7 +147,7 @@ async function handleSignIn() {
             });
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
-            // If email is not verified, keep them on the auth page and show verification message via general message box
+            // If email is not verified, show verification message via general message box
             showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
@@ -248,8 +248,9 @@ async function main() {
                 // User is signed in and email is verified, redirect to dashboard
                 window.location.href = 'dashboard.html';
             } else {
-                // User is signed in but email is not verified, show verification message
-                showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
+                // User is signed in but email is not verified.
+                // We do NOT show the message here. It will only be shown if
+                // handleSignIn specifically detects an unverified user.
                 authErrorDiv.classList.add('hidden');
                 switchView('auth-view');
                 loadingIndicator.classList.add('hidden');
