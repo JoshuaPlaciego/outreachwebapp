@@ -31,7 +31,6 @@ import {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
-// Removed: let suppressOnAuthStateChangedMessage = false; // No longer needed
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -115,11 +114,8 @@ function hideMessage() {
     messageBox.style.transform = 'scale(0.95)';
     setTimeout(() => {
         messageOverlay.classList.add('hidden');
-        // Removed: if (window.resetSuppressFlag) { window.resetSuppressFlag(); }
     }, 300);
 }
-
-// Removed: window.resetSuppressFlag = () => { ... }
 
 
 /**
