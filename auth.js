@@ -31,6 +31,7 @@ import {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
+let suppressOnAuthStateChangedMessage = false; // NEW: Flag to suppress message from onAuthStateChanged
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -114,6 +115,9 @@ function hideMessage() {
     messageBox.style.transform = 'scale(0.95)';
     setTimeout(() => {
         messageOverlay.classList.add('hidden');
+        // NEW: Reset the suppression flag when the message box is fully hidden
+        suppressOnAuthStateChangedMessage = false;
+        console.log("suppressOnAuthStateChangedMessage reset to false after message hide.");
     }, 300);
 }
 
@@ -269,6 +273,9 @@ async function handleSignUp() {
         // --- End Create User Profile Document ---
 
         await sendEmailVerification(user);
+        
+        // NEW: Set flag to suppress onAuthStateChanged message right before showing this message
+        suppressOnAuthStateChangedMessage = true; 
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
@@ -475,10 +482,10 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified
-                // This state is primarily reached if they just signed up and are unverified,
-                // or if they refresh the page while signed in but unverified.
-                // The message with the resend button should consistently show here.
-                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                // Only show message if not currently suppressed by a signup flow
+                if (!suppressOnAuthStateChangedMessage) {
+                    showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                }
                 switchView('auth-view');
                 // Ensure email field is pre-filled for resend
                 emailInput.value = user.email;
