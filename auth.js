@@ -31,6 +31,7 @@ import {
 let auth, db, userId, leadsUnsubscribe = null;
 let leads = [];
 let editingLeadId = null;
+let suppressOnAuthStateChangedMessage = false; // NEW: Flag to suppress message from onAuthStateChanged
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -113,8 +114,19 @@ function hideMessage() {
     messageBox.style.transform = 'scale(0.95)';
     setTimeout(() => {
         messageOverlay.classList.add('hidden');
+        // NEW: Reset the suppression flag when the message box is fully hidden
+        if (window.resetSuppressFlag) {
+            window.resetSuppressFlag();
+        }
     }, 300);
 }
+
+// NEW: Global function to be called by utils.js when message box is hidden
+window.resetSuppressFlag = () => {
+    suppressOnAuthStateChangedMessage = false;
+    console.log("suppressOnAuthStateChangedMessage reset to false.");
+};
+
 
 /**
  * Switches the main view of the application.
@@ -269,8 +281,10 @@ async function handleSignUp() {
         await sendEmailVerification(user);
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
-        // Show success message without resend button, as user is now signed out
-        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false);
+        
+        // NEW: Set flag to suppress onAuthStateChanged message right before showing this message
+        suppressOnAuthStateChangedMessage = true; 
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", false); // No resend button here
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -459,8 +473,10 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified
-                // Display a message and keep them on the auth page
-                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                // Only show message if not currently suppressed by a signup flow
+                if (!suppressOnAuthStateChangedMessage) {
+                    showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+                }
                 switchView('auth-view');
                 // Ensure email field is pre-filled for resend
                 emailInput.value = user.email;

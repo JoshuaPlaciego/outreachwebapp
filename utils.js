@@ -53,6 +53,10 @@ export function hideMessage() {
         setTimeout(() => {
             messageOverlay.classList.add('hidden'); // Hide it (display: none)
             messageOverlay.classList.remove('modal-active-overlay'); // Remove flex properties
+            // NEW: Call the global reset function if it exists
+            if (window.resetSuppressFlag) {
+                window.resetSuppressFlag();
+            }
         }, 300);
     } else {
         console.error("Message box elements not found. Cannot hide message.");
