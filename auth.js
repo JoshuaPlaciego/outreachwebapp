@@ -68,6 +68,15 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
 }
 
+/**
+ * Resets the authentication form fields.
+ */
+function resetAuthForm() {
+    emailInput.value = '';
+    passwordInput.value = '';
+    authErrorDiv.classList.add('hidden'); // Also hide any auth errors
+}
+
 // --- Authentication Logic ---
 
 /**
@@ -75,7 +84,6 @@ function switchView(viewId) {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
-    // Removed: verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -101,6 +109,7 @@ async function handleSignUp() {
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
         showMessage(`Sign-up successful! A verification email has been sent to ${email}. Please check your inbox and then sign in.`);
+        resetAuthForm(); // Clear fields after successful signup and sign out
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
@@ -113,7 +122,6 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
-    // Removed: verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -163,8 +171,6 @@ async function resendVerification() {
         return;
     }
 
-    // Use the email from the input field as the primary target for resend,
-    // falling back to the current user's email if input is empty.
     const emailToVerify = emailInput.value.trim();
 
     if (!emailToVerify) {
@@ -172,7 +178,6 @@ async function resendVerification() {
         return;
     }
 
-    // Optional: Add a check if the input email matches the current user's email if signed in
     if (user.email !== emailToVerify) {
         showMessage("The email in the input field does not match your signed-in account. Please ensure they match or sign in with the correct account.");
         return;
@@ -244,18 +249,15 @@ async function main() {
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified, show verification message
-                // This will be shown via the general message box
                 showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
                 authErrorDiv.classList.add('hidden');
                 switchView('auth-view');
                 loadingIndicator.classList.add('hidden');
             }
         } else {
-            // User is signed out, show auth view
+            // User is signed out, show auth view and clear form
             switchView('auth-view');
-            // Ensure no verification message is shown if user is completely signed out
-            // Removed: verificationMessageDiv.classList.add('hidden');
-            authErrorDiv.classList.add('hidden');
+            resetAuthForm(); // Clear fields on sign out
             loadingIndicator.classList.add('hidden');
         }
     });
