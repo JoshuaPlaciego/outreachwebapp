@@ -9,7 +9,8 @@ export function showMessage(msg) {
 
     if (messageText && messageOverlay && messageBox) {
         messageText.textContent = msg;
-        messageOverlay.classList.remove('hidden');
+        messageOverlay.classList.remove('hidden'); // First, make it display: block
+        messageOverlay.classList.add('modal-active-overlay'); // Then, apply flex for centering
         setTimeout(() => {
             messageOverlay.style.opacity = '1';
             messageBox.style.transform = 'scale(1)';
@@ -32,7 +33,8 @@ export function hideMessage() {
         messageOverlay.style.opacity = '0';
         messageBox.style.transform = 'scale(0.95)';
         setTimeout(() => {
-            messageOverlay.classList.add('hidden');
+            messageOverlay.classList.add('hidden'); // Hide it (display: none)
+            messageOverlay.classList.remove('modal-active-overlay'); // Remove flex properties
         }, 300);
     } else {
         console.error("Message box elements not found. Cannot hide message.");
