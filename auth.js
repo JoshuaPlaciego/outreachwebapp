@@ -41,7 +41,7 @@ const firebaseConfig = {
 let auth;
 let db;
 // NEW: Global flag to indicate if we are in the sign-up success flow
-window.isSignUpFlowActive = false;
+window.isSignUpFlowActive = false; // This flag is accessed by utils.js
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
@@ -541,6 +541,12 @@ async function main() {
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
+        // NEW: If a sign-up flow is active, prevent onAuthStateChanged from interfering
+        if (window.isSignUpFlowActive) {
+            console.log("onAuthStateChanged: Sign-up flow active, skipping immediate processing.");
+            return; // Do nothing if sign-up flow is active
+        }
+
         if (user) {
             await user.reload(); // Get latest user state
             if (user.emailVerified) {
@@ -557,10 +563,8 @@ async function main() {
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
-            // Only reset form if not currently in the middle of a sign-up success message flow
-            if (!window.isSignUpFlowActive) {
-                resetAuthForm();
-            }
+            // Ensure fields are clear when signed out
+            resetAuthForm();
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
     });
