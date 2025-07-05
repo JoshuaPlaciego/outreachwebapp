@@ -33,7 +33,7 @@
                 <h1 class="text-3xl font-bold text-indigo-800">Leads Dashboard</h1>
                 <div class="flex space-x-4">
                     <button id="add-new-lead-modal-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Add New Lead</button>
-                    <button id="profile-settings-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Profile Settings</button>
+                    <button id="profile-settings-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Change Password</button>
                     <button id="logout-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400">Log Out</button>
                 </div>
             </div>
@@ -123,7 +123,7 @@
     <div id="reauth-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
         <div id="reauth-modal" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-all duration-300">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-indigo-800">Re-authentication Required</h2>
+                <h2 class="text-2xl font-semibold text-indigo-800">Change Password - Re-authentication</h2>
                 <button id="close-reauth-modal-btn" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
             </div>
 
@@ -131,7 +131,7 @@
                 <h3 class="text-lg font-semibold text-red-700 mb-3 flex items-center">
                     <i class="fas fa-exclamation-triangle mr-2"></i> Security Check
                 </h3>
-                <p class="text-red-700 text-sm mb-4">Please re-authenticate to securely access and modify your profile settings.</p>
+                <p class="text-red-700 text-sm mb-4">Please re-authenticate to securely access and modify your password.</p>
                 
                 <div id="reauth-email-password-section" class="space-y-3 hidden">
                     <label for="reauth-current-password" class="block text-gray-700 text-sm font-bold mb-1">Current Password:</label>
@@ -154,7 +154,7 @@
     <div id="profile-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
         <div id="profile-modal" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-all duration-300">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-indigo-800">Set New Password</h2>
+                <h2 class="text-2xl font-semibold text-indigo-800">Change Password</h2>
                 <button id="close-profile-modal-btn" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
             </div>
 
@@ -162,7 +162,7 @@
 
             <div class="p-5 border border-indigo-300 rounded-lg bg-white shadow-sm">
                 <h3 class="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
-                    <i class="fas fa-lock mr-2"></i> Update Your Password
+                    <i class="fas fa-lock mr-2"></i> Set/Update Your Password
                 </h3>
                 <p class="text-gray-600 text-sm mb-4">Enter a new password for your account. Minimum 6 characters.</p>
                 <div class="space-y-4">
