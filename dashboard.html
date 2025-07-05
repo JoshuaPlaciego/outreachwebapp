@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -31,6 +33,7 @@
                 <h1 class="text-3xl font-bold text-indigo-800">Leads Dashboard</h1>
                 <div class="flex space-x-4">
                     <button id="add-new-lead-modal-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Add New Lead</button>
+                    <button id="profile-settings-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Profile Settings</button>
                     <button id="logout-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400">Log Out</button>
                 </div>
             </div>
@@ -115,6 +118,45 @@
             </div>
         </div>
     </div>
+
+    <!-- Profile Settings Modal -->
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
+        <div id="profile-modal" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-all duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-indigo-800">Profile Settings</h2>
+                <button id="close-profile-modal-btn" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+                <p class="text-gray-700"><strong>Email:</strong> <span id="profile-email-display" class="font-medium"></span></p>
+
+                <!-- Re-authentication Section -->
+                <div id="reauth-section" class="p-4 border border-red-200 rounded-lg bg-red-50 hidden">
+                    <p class="text-red-700 text-sm mb-3">For security, please re-authenticate to update your password.</p>
+                    <div id="reauth-email-password-section" class="space-y-3 hidden">
+                        <input type="password" id="reauth-current-password" placeholder="Current Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        <button id="reauth-email-password-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Re-authenticate with Password</button>
+                    </div>
+                    <div id="reauth-google-section" class="space-y-3 hidden">
+                        <button id="reauth-google-btn" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fab fa-google mr-2"></i> Re-authenticate with Google
+                        </button>
+                    </div>
+                    <p id="reauth-error" class="text-red-700 text-xs mt-2 hidden"></p>
+                </div>
+
+                <!-- Set New Password Section -->
+                <div id="set-password-section" class="p-4 border border-indigo-200 rounded-lg bg-white space-y-4">
+                    <h3 class="text-lg font-semibold text-indigo-700">Set New Password</h3>
+                    <input type="password" id="new-password" placeholder="New Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <input type="password" id="confirm-new-password" placeholder="Confirm New Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <p id="profile-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    <button id="set-password-btn" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Set Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Custom Message Box -->
     <div id="custom-message-box-overlay" class="hidden" style="opacity: 0;">

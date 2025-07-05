@@ -59,14 +59,14 @@ const forgotPasswordLink = document.getElementById('forgot-password-link');
 const togglePasswordVisibility = document.getElementById('toggle-password-visibility'); // New
 const passwordStrengthIndicator = document.getElementById('password-strength'); // New
 const rememberMeCheckbox = document.getElementById('remember-me'); // New
-const googleSignInBtn = document.getElementById('google-signin-btn'); // New
+const googleAuthBtn = document.getElementById('google-auth-btn'); // Renamed to be generic for sign-up/in
 const emailError = document.getElementById('email-error'); // New
 const passwordError = document.getElementById('password-error'); // New
 // Removed: const recaptchaError = document.getElementById('recaptcha-error'); // Removed
 
 // Message Box Elements
 const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
-const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // Resend button inside message box
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
 
 // --- Utility Functions ---
@@ -92,10 +92,6 @@ function resetAuthForm() {
     passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset strength indicator
     passwordStrengthIndicator.style.width = '0%'; // Ensure width is reset
     passwordStrengthIndicator.style.backgroundColor = 'transparent'; // Ensure background is reset
-    // Removed: recaptchaError.classList.add('hidden'); // Hide recaptcha error
-    // Removed: if (typeof grecaptcha !== 'undefined') { // Reset reCAPTCHA if it exists
-    // Removed:     grecaptcha.reset();
-    // Removed: }
 }
 
 /**
@@ -193,20 +189,13 @@ function updatePasswordStrength(password) {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
-    // Removed: recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    // Removed: const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
 
     if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
         showMessage("Please correct the form errors.");
         return;
     }
-
-    // Removed: if (recaptchaResponse.length === 0) {
-    // Removed:     recaptchaError.classList.remove('hidden');
-    // Removed:     return;
-    // Removed: }
 
     setButtonLoading(signupBtn, true, 'Sign Up');
 
@@ -230,11 +219,10 @@ async function handleSignUp() {
         showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`, false);
 
     } catch (error) {
-        authErrorMessage.textContent = error.message;
-        authErrorDiv.classList.remove('hidden');
+        // Use showMessage for all signup errors for consistency
+        showMessage(`Sign up failed: ${error.message}`);
     } finally {
         setButtonLoading(signupBtn, false, 'Sign Up');
-        // Removed: if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
 
@@ -243,21 +231,14 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
-    // Removed: recaptchaError.classList.add('hidden'); // Hide reCAPTCHA error
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    // Removed: const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
     const rememberMe = rememberMeCheckbox.checked;
 
     if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
         showMessage("Please correct the form errors.");
         return;
     }
-
-    // Removed: if (recaptchaResponse.length === 0) {
-    // Removed:     recaptchaError.classList.remove('hidden');
-    // Removed:     return;
-    // Removed: }
 
     setButtonLoading(signinBtn, true, 'Sign In');
 
@@ -294,15 +275,15 @@ async function handleSignIn() {
         authErrorDiv.classList.remove('hidden');
     } finally {
         setButtonLoading(signinBtn, false, 'Sign In');
-        // Removed: if (typeof grecaptcha !== 'undefined') grecaptcha.reset(); // Reset reCAPTCHA
     }
 }
 
 /**
- * Handles social sign-in (Google).
+ * Handles Google Sign-up/Sign-in.
+ * This single function will handle both new user creation and existing user sign-in via Google.
  */
-async function handleGoogleSignIn() {
-    setButtonLoading(googleSignInBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+async function handleGoogleAuth() {
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
     try {
         const provider = new GoogleAuthProvider();
         await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
@@ -333,7 +314,7 @@ async function handleGoogleSignIn() {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     } finally {
-        setButtonLoading(googleSignInBtn, false, '<i class="fab fa-google mr-2"></i> Google');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
 
@@ -394,7 +375,7 @@ async function handleForgotPassword() {
 function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    googleSignInBtn.addEventListener('click', handleGoogleSignIn); // New
+    googleAuthBtn.addEventListener('click', handleGoogleAuth); // Now handles both sign-up and sign-in
 
     // Attach listener to the new message box resend button
     messageBoxResendBtn.addEventListener('click', (e) => {

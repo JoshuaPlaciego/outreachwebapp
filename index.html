@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
-    <!-- Removed: reCAPTCHA v2 API -->
 </head>
 <body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center justify-center">
 
@@ -67,10 +66,6 @@
                 </div>
             </div>
 
-            <!-- Removed: reCAPTCHA -->
-            <!-- <div class="g-recaptcha mt-6 flex justify-center" data-sitekey="6LdOHXgrAAAAAAZNtcji2Exw64ooYmbPxml5mpgj"></div>
-            <p id="recaptcha-error" class="text-red-500 text-xs mt-2 text-center hidden">Please complete the reCAPTCHA.</p> -->
-
             <div class="flex flex-col sm:flex-row justify-between gap-4 mt-6">
                 <button id="signup-btn" class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign Up</button>
                 <button id="signin-btn" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign In</button>
@@ -78,12 +73,11 @@
 
             <!-- Social Login Options -->
             <div class="mt-8 text-center">
-                <p class="text-gray-600 mb-4">Or sign in with:</p>
-                <div class="flex justify-center space-x-4">
-                    <button id="google-signin-btn" class="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <p class="text-gray-600 mb-4">Or sign up/in with:</p>
+                <div class="flex flex-col gap-3">
+                    <button id="google-auth-btn" class="flex items-center justify-center w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fab fa-google mr-2"></i> Google
                     </button>
-                    <!-- Removed Facebook Sign-in Button -->
                 </div>
             </div>
         </div>
