@@ -50,7 +50,6 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-// Removed: verificationMessageDiv, verificationEmailDisplay
 const inlineResendLink = document.getElementById('inline-resend-link');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
@@ -108,7 +107,7 @@ async function handleSignUp() {
 
         // Sign out the user immediately after signup to force verification login
         await signOut(auth);
-        showMessage(`Sign-up successful! A verification email has been sent to ${email}. Please check your inbox and then sign in.`);
+        // Removed: showMessage(`Sign-up successful! A verification email has been sent to ${email}. Please check your inbox and then sign in.`);
         resetAuthForm(); // Clear fields after successful signup and sign out
 
     } catch (error) {
@@ -147,7 +146,6 @@ async function handleSignIn() {
             // Redirect to dashboard, onAuthStateChanged will handle this
         } else {
             // If email is not verified, keep them on the auth page and show verification message via general message box
-            // DO NOT signOut(auth) here, so auth.currentUser is available for resendVerification
             showMessage(`Your email address (${user.email}) is not verified. Please check your inbox for a verification link. You can also click "Resend Verification Email" below.`);
             authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
             switchView('auth-view');
