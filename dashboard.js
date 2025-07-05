@@ -414,7 +414,7 @@ async function handleLinkGoogleAccount() {
         hideProfileModal(); // Close modal on success
     } catch (error) {
         let errorMessage = `Failed to link Google account: ${error.message}`;
-        if (error.code === 'auth/credential-already-in-use') {
+        if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/provider-already-linked') {
             errorMessage = "This Google account is already linked to another user or in use.";
         } else if (error.code === 'auth/email-already-in-use') {
              // This can happen if a Google account's email is already used by a *different* non-linked Firebase account
@@ -637,7 +637,7 @@ async function handleDeleteLead(id) {
             hideMessage();
             closeMessageBtn.onclick = originalCloseMessageBtnHandler; // Restore original handler
         }
-    };
+        };
 }
 
 /**
