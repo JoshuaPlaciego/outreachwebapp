@@ -7,25 +7,29 @@ import {
     signInWithEmailAndPassword,
     sendEmailVerification,
     signOut,
-    sendPasswordResetEmail,
-    setPersistence, // Import setPersistence
-    browserSessionPersistence, // For "Remember Me" (session)
-    browserLocalPersistence,   // For "Remember Me" (local)
-    GoogleAuthProvider,        // For Google Sign-in
-    signInWithPopup            // For social sign-in popups
+    signInWithCustomToken,
+    signInAnonymously,
+    GoogleAuthProvider,
+    signInWithPopup,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    deleteDoc,
     doc,
-    setDoc,
     updateDoc,
     serverTimestamp,
-    getDoc // Import getDoc for checking existing user documents
+    query,
+    where
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-
-// Import utility functions for messages
-import { showMessage, hideMessage } from './utils.js';
+// --- App State & Config ---
+let auth, db, userId, leadsUnsubscribe = null;
+let leads = [];
+let editingLeadId = null;
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -37,16 +41,13 @@ const firebaseConfig = {
     appId: "1:189767218255:web:dd2f5925fdcb15ed9ba63a"
 };
 
-// --- App State & Config ---
-let auth;
-let db;
-
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
 
 // --- DOM Element References ---
 const loadingIndicator = document.getElementById('loading-indicator');
 const authView = document.getElementById('auth-view');
+const appView = document.getElementById('app-view'); // This is not used in auth.js, but kept for consistency if it were a combined file
 
 // Auth View Elements
 const emailInput = document.getElementById('auth-email');
@@ -55,43 +56,71 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
+const verificationMessageDiv = document.getElementById('email-verification-message'); // This is not in the current index.html
+const verificationEmailDisplay = document.getElementById('verification-email-display'); // This is not in the current index.html
+const inlineResendLink = document.getElementById('inline-resend-link'); // This is not in the current index.html
+
+const togglePasswordVisibility = document.getElementById('toggle-password-visibility');
+const passwordError = document.getElementById('password-error');
+const passwordStrength = document.getElementById('password-strength');
+const passwordStrengthLabel = document.getElementById('password-strength-label'); // New: for strength text
+
+// Password Requirements Checklist
+const passwordRequirements = {
+    length: document.getElementById('req-length'),
+    uppercase: document.getElementById('req-uppercase'),
+    lowercase: document.getElementById('req-lowercase'),
+    number: document.getElementById('req-number'),
+    special: document.getElementById('req-special')
+};
+
+const googleAuthBtn = document.getElementById('google-auth-btn');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
-const togglePasswordVisibility = document.getElementById('toggle-password-visibility'); // New
-const passwordStrengthIndicator = document.getElementById('password-strength'); // New
-const rememberMeCheckbox = document.getElementById('remember-me'); // New
-const googleAuthBtn = document.getElementById('google-auth-btn'); // Renamed to be generic for sign-up/in
-const emailError = document.getElementById('email-error'); // New
-const passwordError = document.getElementById('password-error'); // New
-// Removed: const recaptchaError = document.getElementById('recaptcha-error'); // Removed
+
 
 // Message Box Elements
-const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
-const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
-const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
+const messageOverlay = document.getElementById('custom-message-box-overlay');
+const messageBox = document.getElementById('custom-message-box');
+const messageText = document.getElementById('message-text');
+const closeMessageBtn = document.getElementById('close-message-btn');
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
+
 
 // --- Utility Functions ---
 
 /**
+ * Displays a custom message to the user.
+ * @param {string} msg - The message to display.
+ * @param {boolean} showResendButton - Whether to show the resend verification email button.
+ */
+function showMessage(msg, showResendButton = false) {
+    messageText.textContent = msg;
+    messageBoxResendBtn.classList.toggle('hidden', !showResendButton);
+    messageOverlay.classList.remove('hidden');
+    setTimeout(() => {
+        messageOverlay.style.opacity = '1';
+        messageBox.style.transform = 'scale(1)';
+    }, 10);
+}
+
+/**
+ * Hides the custom message box.
+ */
+function hideMessage() {
+    messageOverlay.style.opacity = '0';
+    messageBox.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        messageOverlay.classList.add('hidden');
+    }, 300);
+}
+
+/**
  * Switches the main view of the application.
- * @param {string} viewId - The ID of the view to show ('auth-view', 'loading-indicator').
+ * @param {string} viewId - The ID of the view to show ('auth-view', 'app-view', 'loading-indicator').
  */
 function switchView(viewId) {
     document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
-}
-
-/**
- * Resets the authentication form fields.
- */
-function resetAuthForm() {
-    emailInput.value = '';
-    passwordInput.value = '';
-    authErrorDiv.classList.add('hidden'); // Also hide any auth errors
-    emailError.classList.add('hidden'); // Hide email specific error
-    passwordError.classList.add('hidden'); // Hide password specific error
-    passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset strength indicator
-    passwordStrengthIndicator.style.width = '0%'; // Ensure width is reset
-    passwordStrengthIndicator.style.backgroundColor = 'transparent'; // Ensure background is reset
 }
 
 /**
@@ -111,76 +140,67 @@ function setButtonLoading(button, isLoading, originalText) {
 }
 
 /**
- * Validates email input in real-time.
+ * Updates the password requirement checklist and strength indicator based on the input password.
  */
-function validateEmailInput() {
-    const email = emailInput.value.trim();
-    if (email === '') {
-        emailError.classList.add('hidden');
-        return true;
-    }
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!isValid) {
-        emailError.textContent = "Invalid email format.";
-        emailError.classList.remove('hidden');
-    } else {
-        emailError.classList.add('hidden');
-    }
-    return isValid;
-}
-
-/**
- * Validates password input in real-time and updates strength.
- */
-function validatePasswordInput() {
+function updatePasswordRequirements() {
     const password = passwordInput.value;
-    const minLength = 6;
-    let isValid = true;
+    const requirements = {
+        length: password.length >= 6,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password) // More comprehensive special characters
+    };
 
-    if (password.length < minLength && password.length > 0) {
-        passwordError.textContent = `Password must be at least ${minLength} characters.`;
-        passwordError.classList.remove('hidden');
-        isValid = false;
-    } else if (password.length === 0) {
-        passwordError.classList.add('hidden');
-        isValid = true; // No error if empty, but will be caught by overall validation
-    } else {
-        passwordError.classList.add('hidden');
+    let metCount = 0;
+    for (const key in requirements) {
+        const element = passwordRequirements[key];
+        if (requirements[key]) {
+            element.classList.remove('text-red-500');
+            element.classList.add('text-green-500');
+            element.querySelector('i').classList.remove('fa-times-circle');
+            element.querySelector('i').classList.add('fa-check-circle');
+            metCount++;
+        } else {
+            element.classList.remove('text-green-500');
+            element.classList.add('text-red-500');
+            element.querySelector('i').classList.remove('fa-check-circle');
+            element.querySelector('i').classList.add('fa-times-circle');
+        }
     }
 
-    updatePasswordStrength(password);
-    return isValid;
-}
+    // Update password strength label
+    let strengthText = '';
+    let strengthColor = '';
 
-/**
- * Updates the password strength indicator.
- * @param {string} password - The password string.
- */
-function updatePasswordStrength(password) {
-    let strength = 0;
-    if (password.length >= 6) strength += 1;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 1;
-    if (password.match(/\d/)) strength += 1;
-    if (password.match(/[^a-zA-Z\d]/)) strength += 1;
-
-    passwordStrengthIndicator.className = 'text-xs mt-1'; // Reset classes
     if (password.length === 0) {
-        passwordStrengthIndicator.style.width = '0%';
-        passwordStrengthIndicator.style.backgroundColor = 'transparent';
-    } else if (strength <= 2) {
-        passwordStrengthIndicator.classList.add('weak');
-        passwordStrengthIndicator.style.width = '33%';
-        passwordStrengthIndicator.style.backgroundColor = '#ef4444'; // red-500
-    } else if (strength === 3) {
-        passwordStrengthIndicator.classList.add('medium');
-        passwordStrengthIndicator.style.width = '66%';
-        passwordStrengthIndicator.style.backgroundColor = '#f59e0b'; // amber-500
+        strengthText = '';
+        strengthColor = '';
+    } else if (metCount === 5 && password.length >= 10) {
+        strengthText = 'Very Strong';
+        strengthColor = 'text-green-700';
+    } else if (metCount >= 4 && password.length >= 8) {
+        strengthText = 'Strong';
+        strengthColor = 'text-green-500';
+    } else if (metCount >= 3 && password.length >= 6) {
+        strengthText = 'Moderate';
+        strengthColor = 'text-yellow-600';
+    } else if (metCount >= 1) {
+        strengthText = 'Weak';
+        strengthColor = 'text-orange-500';
     } else {
-        passwordStrengthIndicator.classList.add('strong');
-        passwordStrengthIndicator.style.width = '100%';
-        passwordStrengthIndicator.style.backgroundColor = '#22c55e'; // green-500
+        strengthText = 'Very Weak';
+        strengthColor = 'text-red-600';
     }
+
+    passwordStrengthLabel.textContent = strengthText;
+    passwordStrengthLabel.className = `font-semibold ${strengthColor}`; // Apply color class
+
+    // Enable/disable signup button based on all requirements met
+    const allRequirementsMet = Object.values(requirements).every(Boolean);
+    signupBtn.disabled = !allRequirementsMet;
 }
+
 
 // --- Authentication Logic ---
 
@@ -192,37 +212,37 @@ async function handleSignUp() {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
-    if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
-        showMessage("Please correct the form errors.");
+    if (!email || !password) {
+        authErrorMessage.textContent = "Email and password cannot be empty.";
+        authErrorDiv.classList.remove('hidden');
+        return;
+    }
+
+    // Re-run password requirements check to ensure all are met before signup attempt
+    updatePasswordRequirements();
+    if (signupBtn.disabled) { // If button is disabled, it means requirements weren't met
+        authErrorMessage.textContent = "Please meet all password requirements.";
+        authErrorDiv.classList.remove('hidden');
         return;
     }
 
     setButtonLoading(signupBtn, true, 'Sign Up');
+    setButtonLoading(signinBtn, true, 'Sign In');
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        await sendEmailVerification(user);
-
-        // Create a user document in Firestore
-        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-        await setDoc(userDocRef, {
-            email: user.email,
-            emailVerified: user.emailVerified, // Will be false initially
-            createdAt: serverTimestamp()
-        });
-
-        // Sign out the user immediately after signup to force verification login
-        await signOut(auth);
-        resetAuthForm(); // Clear fields after successful signup and sign out
-        showMessage(`Sign up successful! Please check your inbox for a verification link sent to your ${email}.`, false);
-
+        await sendEmailVerification(userCredential.user);
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", true);
+        await signOut(auth); // Sign out to force user to verify first
     } catch (error) {
-        // Use showMessage for all signup errors for consistency
-        showMessage(`Sign up failed: ${error.message}`);
+        authErrorMessage.textContent = error.message;
+        authErrorDiv.classList.remove('hidden');
     } finally {
         setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
 
@@ -233,125 +253,77 @@ async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    const rememberMe = rememberMeCheckbox.checked;
 
-    if (!validateEmailInput() || !validatePasswordInput() || !email || !password) {
-        showMessage("Please correct the form errors.");
+    if (!email || !password) {
+        authErrorMessage.textContent = "Email and password cannot be empty.";
+        authErrorDiv.classList.remove('hidden');
         return;
     }
 
+    setButtonLoading(signupBtn, true, 'Sign Up');
     setButtonLoading(signinBtn, true, 'Sign In');
-
-    try {
-        // Set persistence based on "Remember Me" checkbox
-        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
-
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Reload user to get latest emailVerified status
-        await user.reload();
-
-        // Update Firestore user document's emailVerified status if it's now true
-        if (user.emailVerified) {
-            const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-            await updateDoc(userDocRef, {
-                emailVerified: true,
-                lastSignInTime: serverTimestamp()
-            });
-            // Redirect to dashboard, onAuthStateChanged will handle this
-        } else {
-            // If email is not verified, show verification message via general message box
-            // Pass true to showResendButton to display the "Resend Verification Email" button
-            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`, true);
-            authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
-            switchView('auth-view');
-            loadingIndicator.classList.add('hidden');
-            await signOut(auth); // Sign out if not verified to force re-login after verification
-        }
-
-    } catch (error) {
-        authErrorMessage.textContent = error.message;
-        authErrorDiv.classList.remove('hidden');
-    } finally {
-        setButtonLoading(signinBtn, false, 'Sign In');
-    }
-}
-
-/**
- * Handles Google Sign-up/Sign-in.
- * This single function will handle both new user creation and existing user sign-in via Google.
- */
-async function handleGoogleAuth() {
     setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
     try {
-        const provider = new GoogleAuthProvider();
-        await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-
-        // Check if user exists in Firestore, if not, create a basic record
-        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-            await setDoc(userDocRef, {
-                email: user.email,
-                displayName: user.displayName,
-                emailVerified: user.emailVerified,
-                providerId: result.providerId,
-                createdAt: serverTimestamp()
-            });
-        } else {
-            // Update existing user record if necessary (e.g., emailVerified status)
-            await updateDoc(userDocRef, {
-                emailVerified: user.emailVerified,
-                lastSignInTime: serverTimestamp()
-            });
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        if (!userCredential.user.emailVerified) {
+            showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+            await signOut(auth); // Sign out if not verified
         }
-        // onAuthStateChanged will handle redirect to dashboard
+        // The onAuthStateChanged observer will handle the redirect to dashboard.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
         setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
 
+/**
+ * Handles Google Sign-in/Sign-up.
+ */
+async function handleGoogleAuth() {
+    authErrorDiv.classList.add('hidden');
+    setButtonLoading(signupBtn, true, 'Sign Up');
+    setButtonLoading(signinBtn, true, 'Sign In');
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
+    try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged will handle the redirect
+    } catch (error) {
+        authErrorMessage.textContent = error.message;
+        authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
+    }
+}
 
 /**
  * Resends the verification email.
  */
 async function resendVerification() {
-    const user = auth.currentUser; // Get the currently signed-in user
-
-    if (!user) {
-        showMessage("Please sign in with the email you wish to verify, then try resending.");
-        return;
-    }
-
-    const emailToVerify = emailInput.value.trim();
-
-    if (!emailToVerify) {
-        showMessage("Please enter your email address in the email field to resend the verification link.");
-        return;
-    }
-
-    if (user.email !== emailToVerify) {
-        showMessage("The email in the input field does not match your signed-in account. Please ensure they match or sign in with the correct account.");
-        return;
-    }
-
-    try {
-        await sendEmailVerification(user); // send to the current user
-        showMessage("Verification email sent successfully. Please check your inbox.");
-    } catch (error) {
-        showMessage(`Resend failed: ${error.message}`);
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            showMessage("Verification email resent successfully. Please check your inbox.");
+        } catch (error) {
+            showMessage(`Failed to resend verification email: ${error.message}`);
+        }
+    } else {
+        // This case should ideally not be hit if the button is only shown when a user exists
+        showMessage("No active user session found to resend verification email.");
     }
 }
 
 /**
- * Handles the "Forgot Password" functionality.
+ * Handles password reset request.
  */
 async function handleForgotPassword() {
     const email = emailInput.value.trim();
@@ -359,13 +331,15 @@ async function handleForgotPassword() {
         showMessage("Please enter your email address to reset your password.");
         return;
     }
+
     try {
         await sendPasswordResetEmail(auth, email);
-        showMessage("Password reset email sent! Please check your inbox for instructions.");
+        showMessage(`Password reset email sent to ${email}. Please check your inbox.`);
     } catch (error) {
-        showMessage(`Password reset failed: ${error.message}`);
+        showMessage(`Failed to send password reset email: ${error.message}`);
     }
 }
+
 
 // --- Event Listeners ---
 
@@ -375,45 +349,33 @@ async function handleForgotPassword() {
 function attachEventListeners() {
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    googleAuthBtn.addEventListener('click', handleGoogleAuth); // Now handles both sign-up and sign-in
-
-    // Attach listener to the new message box resend button
-    messageBoxResendBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        resendVerification();
-    });
-
+    googleAuthBtn.addEventListener('click', handleGoogleAuth);
     forgotPasswordLink.addEventListener('click', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Prevent default link behavior
         handleForgotPassword();
     });
 
-    // Event listener for password visibility toggle
+    // Toggle password visibility
     togglePasswordVisibility.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        // Toggle eye icon
         togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye');
         togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye-slash');
     });
 
-    // Real-time input validation
-    emailInput.addEventListener('input', validateEmailInput);
-    passwordInput.addEventListener('input', validatePasswordInput);
+    // Dynamic password requirements check
+    passwordInput.addEventListener('input', updatePasswordRequirements);
 
-    // Message box close buttons
-    closeMessageBtn.addEventListener('click', () => {
-        hideMessage(); // This will also hide the resend button via utils.js
-    });
-    messageBoxCloseIcon.addEventListener('click', () => {
-        hideMessage(); // This will also hide the resend button via utils.js
-    });
+    // Message Box close button
+    closeMessageBtn.addEventListener('click', hideMessage);
+    messageBoxResendBtn.addEventListener('click', resendVerification);
+    document.getElementById('message-box-close-icon').addEventListener('click', hideMessage); // For the 'x' icon
 }
 
 // --- Initialization ---
 
 /**
- * Main function to initialize the authentication page.
+ * Main function to initialize the application.
  */
 async function main() {
     // Initialize Firebase
@@ -422,28 +384,28 @@ async function main() {
     db = getFirestore(app);
 
     attachEventListeners();
+    updatePasswordRequirements(); // Initial check for empty password field
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await user.reload(); // Get latest user state
             if (user.emailVerified) {
-                // User is signed in and email is verified, redirect to dashboard
+                // User is authenticated and verified, redirect to dashboard
                 window.location.href = 'dashboard.html';
             } else {
-                // User is signed in but email is not verified.
-                // We do NOT show the message here. It will only be shown if
-                // handleSignIn specifically detects an unverified user.
-                authErrorDiv.classList.add('hidden');
+                // User is signed in but email is not verified
+                // Display a message and keep them on the auth page
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
                 switchView('auth-view');
-                loadingIndicator.classList.add('hidden');
+                // Ensure email field is pre-filled for resend
+                emailInput.value = user.email;
             }
         } else {
-            // User is signed out, show auth view and clear form
+            // User is signed out or not logged in, show auth view
             switchView('auth-view');
-            resetAuthForm(); // Clear fields on sign out
-            loadingIndicator.classList.add('hidden');
         }
+        loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
     });
 }
 

@@ -8,7 +8,10 @@ import {
     sendEmailVerification,
     signOut,
     signInWithCustomToken,
-    signInAnonymously
+    signInAnonymously,
+    GoogleAuthProvider,
+    signInWithPopup,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -44,7 +47,7 @@ const appId = firebaseConfig.appId;
 // --- DOM Element References ---
 const loadingIndicator = document.getElementById('loading-indicator');
 const authView = document.getElementById('auth-view');
-const appView = document.getElementById('app-view');
+const appView = document.getElementById('app-view'); // This is not used in auth.js, but kept for consistency if it were a combined file
 
 // Auth View Elements
 const emailInput = document.getElementById('auth-email');
@@ -53,47 +56,46 @@ const signupBtn = document.getElementById('signup-btn');
 const signinBtn = document.getElementById('signin-btn');
 const authErrorDiv = document.getElementById('auth-error');
 const authErrorMessage = document.getElementById('auth-error-message');
-const verificationMessageDiv = document.getElementById('email-verification-message');
-const verificationEmailDisplay = document.getElementById('verification-email-display');
-const inlineResendLink = document.getElementById('inline-resend-link');
+const verificationMessageDiv = document.getElementById('email-verification-message'); // This is not in the current index.html
+const verificationEmailDisplay = document.getElementById('verification-email-display'); // This is not in the current index.html
+const inlineResendLink = document.getElementById('inline-resend-link'); // This is not in the current index.html
 
-// App View Elements
-const logoutBtn = document.getElementById('logout-btn');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const formTitle = document.getElementById('form-title');
-const validationErrorDiv = document.getElementById('validation-error');
-const errorMessageSpan = document.getElementById('error-message');
-const leadNameInput = document.getElementById('lead-name');
-const leadEmailInput = document.getElementById('lead-email');
-const callBookingLinkInput = document.getElementById('call-booking-link');
-const instagramLinkInput = document.getElementById('instagram-link');
-const youtubeLinkInput = document.getElementById('youtube-link');
-const tiktokLinkInput = document.getElementById('tiktok-link');
-const avgViewsInput = document.getElementById('avg-views');
-const nichesContainer = document.getElementById('niches-container');
-const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
-const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
-const leadNotesTextarea = document.getElementById('lead-notes');
-const addLeadBtn = document.getElementById('add-lead-btn');
-const updateLeadBtn = document.getElementById('update-lead-btn');
-const cancelEditBtn = document.getElementById('cancel-edit-btn');
-const leadsListDiv = document.getElementById('leads-list');
-const noLeadsMessage = document.getElementById('no-leads-message');
+const togglePasswordVisibility = document.getElementById('toggle-password-visibility');
+const passwordError = document.getElementById('password-error');
+const passwordStrength = document.getElementById('password-strength');
+const passwordStrengthLabel = document.getElementById('password-strength-label'); // New: for strength text
+
+// Password Requirements Checklist
+const passwordRequirements = {
+    length: document.getElementById('req-length'),
+    uppercase: document.getElementById('req-uppercase'),
+    lowercase: document.getElementById('req-lowercase'),
+    number: document.getElementById('req-number'),
+    special: document.getElementById('req-special')
+};
+
+const googleAuthBtn = document.getElementById('google-auth-btn');
+const forgotPasswordLink = document.getElementById('forgot-password-link');
+
 
 // Message Box Elements
 const messageOverlay = document.getElementById('custom-message-box-overlay');
 const messageBox = document.getElementById('custom-message-box');
 const messageText = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn');
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
+
 
 // --- Utility Functions ---
 
 /**
  * Displays a custom message to the user.
  * @param {string} msg - The message to display.
+ * @param {boolean} showResendButton - Whether to show the resend verification email button.
  */
-function showMessage(msg) {
+function showMessage(msg, showResendButton = false) {
     messageText.textContent = msg;
+    messageBoxResendBtn.classList.toggle('hidden', !showResendButton);
     messageOverlay.classList.remove('hidden');
     setTimeout(() => {
         messageOverlay.style.opacity = '1';
@@ -121,6 +123,85 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
 }
 
+/**
+ * Sets the loading state for a button.
+ * @param {HTMLElement} button - The button element.
+ * @param {boolean} isLoading - True to show loading state, false otherwise.
+ * @param {string} originalText - The original text of the button.
+ */
+function setButtonLoading(button, isLoading, originalText) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...'; // Add spinner icon
+    } else {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+/**
+ * Updates the password requirement checklist and strength indicator based on the input password.
+ */
+function updatePasswordRequirements() {
+    const password = passwordInput.value;
+    const requirements = {
+        length: password.length >= 6,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password) // More comprehensive special characters
+    };
+
+    let metCount = 0;
+    for (const key in requirements) {
+        const element = passwordRequirements[key];
+        if (requirements[key]) {
+            element.classList.remove('text-red-500');
+            element.classList.add('text-green-500');
+            element.querySelector('i').classList.remove('fa-times-circle');
+            element.querySelector('i').classList.add('fa-check-circle');
+            metCount++;
+        } else {
+            element.classList.remove('text-green-500');
+            element.classList.add('text-red-500');
+            element.querySelector('i').classList.remove('fa-check-circle');
+            element.querySelector('i').classList.add('fa-times-circle');
+        }
+    }
+
+    // Update password strength label
+    let strengthText = '';
+    let strengthColor = '';
+
+    if (password.length === 0) {
+        strengthText = '';
+        strengthColor = '';
+    } else if (metCount === 5 && password.length >= 10) {
+        strengthText = 'Very Strong';
+        strengthColor = 'text-green-700';
+    } else if (metCount >= 4 && password.length >= 8) {
+        strengthText = 'Strong';
+        strengthColor = 'text-green-500';
+    } else if (metCount >= 3 && password.length >= 6) {
+        strengthText = 'Moderate';
+        strengthColor = 'text-yellow-600';
+    } else if (metCount >= 1) {
+        strengthText = 'Weak';
+        strengthColor = 'text-orange-500';
+    } else {
+        strengthText = 'Very Weak';
+        strengthColor = 'text-red-600';
+    }
+
+    passwordStrengthLabel.textContent = strengthText;
+    passwordStrengthLabel.className = `font-semibold ${strengthColor}`; // Apply color class
+
+    // Enable/disable signup button based on all requirements met
+    const allRequirementsMet = Object.values(requirements).every(Boolean);
+    signupBtn.disabled = !allRequirementsMet;
+}
+
+
 // --- Authentication Logic ---
 
 /**
@@ -128,7 +209,6 @@ function switchView(viewId) {
  */
 async function handleSignUp() {
     authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -138,14 +218,31 @@ async function handleSignUp() {
         return;
     }
 
+    // Re-run password requirements check to ensure all are met before signup attempt
+    updatePasswordRequirements();
+    if (signupBtn.disabled) { // If button is disabled, it means requirements weren't met
+        authErrorMessage.textContent = "Please meet all password requirements.";
+        authErrorDiv.classList.remove('hidden');
+        return;
+    }
+
+    setButtonLoading(signupBtn, true, 'Sign Up');
+    setButtonLoading(signinBtn, true, 'Sign In');
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
+
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
-        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.");
+        showMessage("Sign-up successful! A verification email has been sent to your inbox. Please verify to sign in.", true);
         await signOut(auth); // Sign out to force user to verify first
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
 
@@ -154,7 +251,6 @@ async function handleSignUp() {
  */
 async function handleSignIn() {
     authErrorDiv.classList.add('hidden');
-    verificationMessageDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
@@ -164,12 +260,47 @@ async function handleSignIn() {
         return;
     }
 
+    setButtonLoading(signupBtn, true, 'Sign Up');
+    setButtonLoading(signinBtn, true, 'Sign In');
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
     try {
-        // The onAuthStateChanged observer will handle the redirect
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        if (!userCredential.user.emailVerified) {
+            showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+            await signOut(auth); // Sign out if not verified
+        }
+        // The onAuthStateChanged observer will handle the redirect to dashboard.
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
+    }
+}
+
+/**
+ * Handles Google Sign-in/Sign-up.
+ */
+async function handleGoogleAuth() {
+    authErrorDiv.classList.add('hidden');
+    setButtonLoading(signupBtn, true, 'Sign Up');
+    setButtonLoading(signinBtn, true, 'Sign In');
+    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+
+    try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged will handle the redirect
+    } catch (error) {
+        authErrorMessage.textContent = error.message;
+        authErrorDiv.classList.remove('hidden');
+    } finally {
+        setButtonLoading(signupBtn, false, 'Sign Up');
+        setButtonLoading(signinBtn, false, 'Sign In');
+        setButtonLoading(googleAuthBtn, false, '<i class="fab fa-google mr-2"></i> Google');
     }
 }
 
@@ -177,340 +308,68 @@ async function handleSignIn() {
  * Resends the verification email.
  */
 async function resendVerification() {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    if (!email || !password) {
-        showMessage("Please enter your email and password to resend the verification link.");
-        return;
-    }
-    try {
-        // We need to sign in the user temporarily to get the user object
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        if (userCredential.user && !userCredential.user.emailVerified) {
-            await sendEmailVerification(userCredential.user);
-            showMessage("Verification email resent successfully. Please check your inbox.");
-        } else if (userCredential.user.emailVerified) {
-            showMessage("Your email is already verified. You can now sign in.");
-        }
-        await signOut(auth); // Sign out again
-    } catch (error) {
-        showMessage(`Resend failed: ${error.message}`);
-    }
-}
-
-/**
- * Handles user sign-out.
- */
-async function handleSignOut() {
-    try {
-        await signOut(auth);
-        // The onAuthStateChanged observer will handle switching to the auth view.
-        if (leadsUnsubscribe) {
-            leadsUnsubscribe(); // Detach the Firestore listener
-            leadsUnsubscribe = null;
-        }
-        leads = [];
-        renderLeadsList();
-    } catch (error) {
-        showMessage(`Sign Out Failed: ${error.message}`);
-    }
-}
-
-// --- Lead Management Logic ---
-
-/**
- * Renders the niche checkboxes in the form.
- */
-function renderNiches() {
-    nichesContainer.innerHTML = '';
-    poppyAINiches.forEach(niche => {
-        const div = document.createElement('div');
-        div.className = 'mb-2';
-        const label = document.createElement('label');
-        label.className = 'inline-flex items-center';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'niches';
-        checkbox.value = niche.name;
-        checkbox.className = 'form-checkbox h-4 w-4 text-indigo-600 rounded';
-        label.appendChild(checkbox);
-        const span = document.createElement('span');
-        span.className = 'ml-2 text-gray-800 font-semibold';
-        span.textContent = niche.name;
-        label.appendChild(span);
-        div.appendChild(label);
-        nichesContainer.appendChild(div);
-    });
-    // Add event listener to the container for delegation
-    nichesContainer.addEventListener('change', handleNicheChange);
-}
-
-/**
- * Handles changes to niche checkboxes.
- */
-function handleNicheChange(e) {
-    if (e.target.type === 'checkbox' && e.target.value === 'Others') {
-        otherNicheNotesContainer.classList.toggle('hidden', !e.target.checked);
-    }
-}
-
-/**
- * Gathers form data into an object.
- * @returns {object} The lead data object.
- */
-function getFormData() {
-    const selectedNiches = [];
-    nichesContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        selectedNiches.push(cb.value);
-    });
-
-    const followerCountRadio = document.querySelector('input[name="followerCount"]:checked');
-
-    return {
-        name: leadNameInput.value.trim(),
-        email: leadEmailInput.value.trim(),
-        callBookingLink: callBookingLinkInput.value.trim(),
-        instagramLink: instagramLinkInput.value.trim(),
-        youtubeLink: youtubeLinkInput.value.trim(),
-        tiktokLink: tiktokLinkInput.value.trim(),
-        followerCount: followerCountRadio ? followerCountRadio.value : '',
-        avgViews: avgViewsInput.value.trim(),
-        niches: selectedNiches,
-        otherNicheNotes: otherNicheNotesTextarea.value.trim(),
-        notes: leadNotesTextarea.value.trim(),
-    };
-}
-
-/**
- * Validates the lead form data.
- * @param {object} data - The lead data object.
- * @returns {string|null} An error message string or null if valid.
- */
-function validateForm(data) {
-    if (!data.name) return 'Lead Name is required.';
-    const hasSocialLink = data.instagramLink || data.youtubeLink || data.tiktokLink;
-    if (!hasSocialLink) return 'At least one social media link is required.';
-    if (!data.followerCount) return 'Follower Count is required.';
-    if (data.niches.length === 0) return 'At least one Niche must be selected.';
-    if (data.niches.includes('Others') && !data.otherNicheNotes) return 'Please specify details for the "Others" niche.';
-    return null;
-}
-
-/**
- * Resets the lead form to its initial state.
- */
-function resetForm() {
-    document.querySelectorAll('#app-view input[type="text"], #app-view input[type="email"], #app-view input[type="url"], #app-view input[type="number"], #app-view textarea').forEach(input => input.value = '');
-    document.querySelectorAll('#app-view input[type="radio"], #app-view input[type="checkbox"]').forEach(input => input.checked = false);
-
-    editingLeadId = null;
-    validationErrorDiv.classList.add('hidden');
-    otherNicheNotesContainer.classList.add('hidden');
-
-    formTitle.textContent = 'Add New Lead';
-    addLeadBtn.classList.remove('hidden');
-    updateLeadBtn.classList.add('hidden');
-    cancelEditBtn.classList.add('hidden');
-}
-
-/**
- * Adds a new lead to Firestore.
- */
-async function handleAddLead() {
-    const leadData = getFormData();
-    const errorMessage = validateForm(leadData);
-    if (errorMessage) {
-        errorMessageSpan.textContent = errorMessage;
-        validationErrorDiv.classList.remove('hidden');
-        return;
-    }
-    validationErrorDiv.classList.add('hidden');
-
-    try {
-        const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), {
-            ...leadData,
-            createdBy: userId,
-            createdAt: serverTimestamp(),
-        });
-        showMessage("Lead added successfully!");
-        resetForm();
-    } catch (e) {
-        console.error("Error adding document: ", e);
-        showMessage(`Error adding lead: ${e.message}`);
-    }
-}
-
-/**
- * Populates the form for editing a lead.
- * @param {string} id - The ID of the lead to edit.
- */
-function populateFormForEdit(id) {
-    const lead = leads.find(l => l.id === id);
-    if (!lead) return;
-
-    editingLeadId = id;
-
-    leadNameInput.value = lead.name || '';
-    leadEmailInput.value = lead.email || '';
-    callBookingLinkInput.value = lead.callBookingLink || '';
-    instagramLinkInput.value = lead.instagramLink || '';
-    youtubeLinkInput.value = lead.youtubeLink || '';
-    tiktokLinkInput.value = lead.tiktokLink || '';
-    avgViewsInput.value = lead.avgViews || '';
-    leadNotesTextarea.value = lead.notes || '';
-    otherNicheNotesTextarea.value = lead.otherNicheNotes || '';
-
-    const followerRadio = document.querySelector(`input[name="followerCount"][value="${lead.followerCount}"]`);
-    if (followerRadio) followerRadio.checked = true;
-
-    nichesContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.checked = lead.niches.includes(cb.value);
-    });
-
-    otherNicheNotesContainer.classList.toggle('hidden', !lead.niches.includes('Others'));
-
-    formTitle.textContent = 'Edit Lead';
-    addLeadBtn.classList.add('hidden');
-    updateLeadBtn.classList.remove('hidden');
-    cancelEditBtn.classList.remove('hidden');
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/**
- * Updates an existing lead in Firestore.
- */
-async function handleUpdateLead() {
-    if (!editingLeadId) return;
-
-    const leadData = getFormData();
-    const errorMessage = validateForm(leadData);
-    if (errorMessage) {
-        errorMessageSpan.textContent = errorMessage;
-        validationErrorDiv.classList.remove('hidden');
-        return;
-    }
-    validationErrorDiv.classList.add('hidden');
-
-    try {
-        const leadRef = doc(db, `artifacts/${appId}/public/data/leads`, editingLeadId);
-        await updateDoc(leadRef, {
-            ...leadData,
-            updatedAt: serverTimestamp()
-        });
-        showMessage("Lead updated successfully!");
-        resetForm();
-    } catch (e) {
-        console.error("Error updating document: ", e);
-        showMessage(`Error updating lead: ${e.message}`);
-    }
-}
-
-/**
- * Deletes a lead from Firestore.
- * @param {string} id - The ID of the lead to delete.
- */
-async function handleDeleteLead(id) {
-    // A simple confirmation before deleting
-    // Using a custom message box instead of confirm()
-    showMessage("Are you sure you want to delete this lead? This action cannot be undone. \n\n (Click 'Got It!' to confirm deletion)");
-    // Temporarily re-purpose the 'Got It!' button for confirmation
-    const originalCloseMessageBtnHandler = closeMessageBtn.onclick; // Store original handler
-    closeMessageBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (user) {
         try {
-            await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, id));
-            showMessage("Lead deleted successfully.");
-        } catch (e) {
-            console.error("Error removing document: ", e);
-            showMessage(`Error deleting lead: ${e.message}`);
-        } finally {
-            hideMessage();
-            closeMessageBtn.onclick = originalCloseMessageBtnHandler; // Restore original handler
+            await sendEmailVerification(user);
+            showMessage("Verification email resent successfully. Please check your inbox.");
+        } catch (error) {
+            showMessage(`Failed to resend verification email: ${error.message}`);
         }
-    };
+    } else {
+        // This case should ideally not be hit if the button is only shown when a user exists
+        showMessage("No active user session found to resend verification email.");
+    }
 }
 
 /**
- * Renders the list of leads.
+ * Handles password reset request.
  */
-function renderLeadsList() {
-    leadsListDiv.innerHTML = '';
-    if (leads.length === 0) {
-        leadsListDiv.appendChild(noLeadsMessage);
-        noLeadsMessage.classList.remove('hidden');
-    } else {
-        noLeadsMessage.classList.add('hidden');
-        leads.forEach(lead => {
-            const leadDiv = document.createElement('div');
-            leadDiv.className = 'bg-white p-5 rounded-lg shadow-md border border-indigo-100 flex flex-col';
-            leadDiv.innerHTML = `
-                <div class="flex-grow">
-                    <h3 class="text-xl font-bold text-gray-900">${lead.name || 'No Name'}</h3>
-                    <div class="mt-2 space-y-1 text-sm">
-                        ${lead.email ? `<p class="text-gray-600"><strong>Email:</strong> <a href="mailto:${lead.email}" class="text-indigo-500 hover:underline">${lead.email}</a></p>` : ''}
-                        ${lead.callBookingLink ? `<p class="text-gray-600"><strong>Booking:</strong> <a href="${lead.callBookingLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline truncate inline-block max-w-full">${lead.callBookingLink}</a></p>` : ''}
-                        <div class="flex flex-wrap gap-x-4">
-                        ${lead.instagramLink ? `<p class="text-gray-600"><strong>IG:</strong> <a href="${lead.instagramLink}" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline">Profile</a></p>` : ''}
-                        ${lead.youtubeLink ? `<p class="text-gray-600"><strong>YT:</strong> <a href="${lead.youtubeLink}" target="_blank" rel="noopener noreferrer" class="text-red-600 hover:underline">Channel</a></p>` : ''}
-                        ${lead.tiktokLink ? `<p class="text-gray-600"><strong>TikTok:</strong> <a href="${lead.tiktokLink}" target="_blank" rel="noopener noreferrer" class="text-gray-800 hover:underline">Profile</a></p>` : ''}
-                        </div>
-                        ${lead.followerCount ? `<p class="text-gray-700"><strong>Followers:</strong> <span class="font-medium">${lead.followerCount}</span></p>` : ''}
-                        ${lead.avgViews ? `<p class="text-gray-700"><strong>Avg. Views:</strong> <span class="font-medium">${lead.avgViews}</span></p>` : ''}
-                    </div>
-                    <div class="mt-3">
-                        ${lead.niches && lead.niches.length > 0 ? `<p class="text-gray-700 text-sm"><strong>Niches:</strong> <span class="font-medium">${lead.niches.join(', ')}</span></p>` : ''}
-                        ${lead.otherNicheNotes ? `<p class="text-gray-700 text-sm mt-1 italic"><strong>Other Niche:</strong> ${lead.otherNicheNotes}</p>` : ''}
-                        ${lead.notes ? `<p class="text-gray-800 text-sm mt-2 italic bg-gray-50 p-2 rounded"><strong>Notes:</strong> ${lead.notes}</p>` : ''}
-                    </div>
-                </div>
-                <div class="border-t mt-4 pt-3 flex justify-between items-center">
-                     <p class="text-gray-400 text-xs">ID: ${lead.id.substring(0, 8)}...</p>
-                     <div class="flex space-x-2">
-                        <button data-id="${lead.id}" class="edit-btn px-4 py-2 bg-yellow-500 text-white rounded-lg shadow-sm hover:bg-yellow-600 transition text-sm">Edit</button>
-                        <button data-id="${lead.id}" class="delete-btn px-4 py-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition text-sm">Delete</button>
-                    </div>
-                </div>
-            `;
-            leadsListDiv.appendChild(leadDiv);
-        });
+async function handleForgotPassword() {
+    const email = emailInput.value.trim();
+    if (!email) {
+        showMessage("Please enter your email address to reset your password.");
+        return;
+    }
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        showMessage(`Password reset email sent to ${email}. Please check your inbox.`);
+    } catch (error) {
+        showMessage(`Failed to send password reset email: ${error.message}`);
     }
 }
+
 
 // --- Event Listeners ---
 
 /**
- * Attaches all primary event listeners for the app.
+ * Attaches all primary event listeners for the authentication page.
  */
 function attachEventListeners() {
-    // Auth
     signupBtn.addEventListener('click', handleSignUp);
     signinBtn.addEventListener('click', handleSignIn);
-    inlineResendLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        resendVerification();
-    });
-    logoutBtn.addEventListener('click', handleSignOut);
-
-    // Lead Form
-    addLeadBtn.addEventListener('click', handleAddLead);
-    updateLeadBtn.addEventListener('click', handleUpdateLead);
-    cancelEditBtn.addEventListener('click', resetForm);
-
-    // Leads List (Event Delegation)
-    leadsListDiv.addEventListener('click', (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
-
-        const id = target.dataset.id;
-        if (target.classList.contains('edit-btn')) {
-            populateFormForEdit(id);
-        } else if (target.classList.contains('delete-btn')) {
-            handleDeleteLead(id);
-        }
+    googleAuthBtn.addEventListener('click', handleGoogleAuth);
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default link behavior
+        handleForgotPassword();
     });
 
-    // Message Box
+    // Toggle password visibility
+    togglePasswordVisibility.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye');
+        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+
+    // Dynamic password requirements check
+    passwordInput.addEventListener('input', updatePasswordRequirements);
+
+    // Message Box close button
     closeMessageBtn.addEventListener('click', hideMessage);
+    messageBoxResendBtn.addEventListener('click', resendVerification);
+    document.getElementById('message-box-close-icon').addEventListener('click', hideMessage); // For the 'x' icon
 }
 
 // --- Initialization ---
@@ -519,74 +378,35 @@ function attachEventListeners() {
  * Main function to initialize the application.
  */
 async function main() {
-    // These variables are now hardcoded directly from your Firebase project's config.
-    // const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = null; // Set to null as it's not provided by GitHub Pages directly
-
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
 
     attachEventListeners();
-    renderNiches();
+    updatePasswordRequirements(); // Initial check for empty password field
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await user.reload(); // Get latest user state
             if (user.emailVerified) {
-                userId = user.uid;
-                currentUserIdSpan.textContent = userId;
-                switchView('app-view');
-
-                // Start Firestore listener if it's not already running
-                if (!leadsUnsubscribe) {
-                    const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
-                    // Query to get leads created by the current user
-                    const q = query(leadsCollectionRef, where("createdBy", "==", userId));
-
-                    leadsUnsubscribe = onSnapshot(q, (snapshot) => {
-                        leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        // Sort in memory (newest first)
-                        leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-                        renderLeadsList();
-                    }, (error) => {
-                        console.error("Error fetching leads:", error);
-                        showMessage(`Error fetching leads: ${error.message}.`);
-                    });
-                }
+                // User is authenticated and verified, redirect to dashboard
+                window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is not verified
-                verificationEmailDisplay.textContent = user.email;
-                verificationMessageDiv.classList.remove('hidden');
-                authErrorDiv.classList.add('hidden');
+                // Display a message and keep them on the auth page
+                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
                 switchView('auth-view');
+                // Ensure email field is pre-filled for resend
+                emailInput.value = user.email;
             }
         } else {
-            // User is signed out
-            userId = null;
+            // User is signed out or not logged in, show auth view
             switchView('auth-view');
-            verificationMessageDiv.classList.add('hidden');
-            authErrorDiv.classList.add('hidden');
-            resetForm();
         }
+        loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
     });
-
-    // Attempt to sign in with the provided token (if any, though null in this setup)
-    try {
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-            // If no token, the onAuthStateChanged will correctly show the login page.
-            // For GitHub Pages, you'll rely on direct email/password sign-in.
-            switchView('auth-view'); // Ensure auth view is shown if no user/token
-        }
-    } catch (error) {
-        console.error("Error signing in with custom token:", error);
-        switchView('auth-view');
-        showMessage("Session validation failed. Please sign in again.");
-    }
 }
 
 // Run the app
