@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poppy.AI - Login</title>
+    <title>Poppy.AI Lead Generation</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for icons (e.g., eye icon, social icons) -->
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center justify-center">
+<body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center justify-center font-inter">
 
     <!-- Loading Indicator -->
     <div id="loading-indicator" class="view active">
@@ -27,10 +27,10 @@
     </div>
 
     <!-- Auth View -->
-    <div id="auth-view" class="view w-full max-w-md">
-        <div class="bg-white rounded-xl shadow-lg p-8">
-            <h2 class="text-3xl font-bold text-indigo-800 mb-2 text-center">Welcome to Poppy.AI</h2>
-            <p class="text-center text-gray-600 mb-8">Sign in or create an account to manage your leads.</p>
+    <div id="auth-view" class="view w-full max-w-md mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+            <h2 class="text-2xl sm:text-3xl font-bold text-indigo-800 mb-2 text-center">Welcome to Poppy.AI</h2>
+            <p class="text-center text-gray-600 text-sm sm:text-base mb-6 sm:mb-8">Sign in or create an account to manage your leads.</p>
 
             <!-- Auth Error Message (General) -->
             <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
@@ -56,26 +56,26 @@
                     </div>
                     <p id="password-error" class="text-red-500 text-xs mt-1 hidden">Password must be at least 6 characters.</p>
                     <div id="password-strength" class="text-xs mt-1"></div>
-                    <div class="flex justify-between items-center mt-2">
-                        <label class="inline-flex items-center">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mt-2 text-sm">
+                        <label class="inline-flex items-center mb-2 sm:mb-0">
                             <input type="checkbox" id="remember-me" class="form-checkbox h-4 w-4 text-indigo-600 rounded">
-                            <span class="ml-2 text-gray-700 text-sm">Remember Me</span>
+                            <span class="ml-2 text-gray-700">Remember Me</span>
                         </label>
-                        <a href="#" id="forgot-password-link" class="block text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                        <a href="#" id="forgot-password-link" class="block text-indigo-600 hover:underline">Forgot Password?</a>
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-between gap-4 mt-6">
-                <button id="signup-btn" class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign Up</button>
-                <button id="signin-btn" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign In</button>
+            <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 mt-6">
+                <button id="signup-btn" class="flex-1 px-5 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign Up</button>
+                <button id="signin-btn" class="flex-1 px-5 py-3 text-base bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">Sign In</button>
             </div>
 
             <!-- Social Login Options -->
             <div class="mt-8 text-center">
-                <p class="text-gray-600 mb-4">Or sign up/in with:</p>
+                <p class="text-gray-600 text-sm sm:text-base mb-4">Or sign up/in with:</p>
                 <div class="flex flex-col gap-3">
-                    <button id="google-auth-btn" class="flex items-center justify-center w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="google-auth-btn" class="flex items-center justify-center w-full px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-base">
                         <i class="fab fa-google mr-2"></i> Google
                     </button>
                 </div>
@@ -84,15 +84,15 @@
     </div>
 
     <!-- Custom Message Box -->
-    <div id="custom-message-box-overlay" class="hidden" style="opacity: 0;">
-        <div id="custom-message-box" style="transform: scale(0.95);">
-            <button id="message-box-close-icon" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
-            <p id="message-text" class="text-lg text-gray-800 mb-6"></p>
+    <div id="custom-message-box-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
+        <div id="custom-message-box" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-11/12 max-w-sm transform scale-95 transition-all duration-300">
+            <button id="message-box-close-icon" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
+            <p id="message-text" class="text-base sm:text-lg text-gray-800 mb-6 text-center"></p>
             <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
                 <!-- "Got It!" button - shown for general messages -->
-                <button id="close-message-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
+                <button id="close-message-btn" class="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
                 <!-- "Resend Verification Email" button - shown specifically for unverified email message -->
-                <button id="message-box-resend-btn" class="px-6 py-3 bg-yellow-500 text-white rounded-lg shadow-md hover:bg-yellow-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 hidden">Resend Verification Email</button>
+                <button id="message-box-resend-btn" class="px-6 py-3 text-base bg-yellow-500 text-white rounded-lg shadow-md hover:bg-yellow-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 hidden">Resend Verification Email</button>
             </div>
         </div>
     </div>
