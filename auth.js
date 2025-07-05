@@ -17,7 +17,7 @@ import {
 import {
     getFirestore,
     doc,
-    setDoc,
+    setDoc, // Keep setDoc just in case it's used elsewhere, but remove for user profile creation
     updateDoc,
     serverTimestamp,
     getDoc // Import getDoc for checking existing user documents
@@ -296,22 +296,22 @@ async function handleSignUp() {
         const user = userCredential.user;
         console.log("User created in Firebase Authentication:", user.uid, user.email);
 
-        // --- Create User Profile Document in Firestore ---
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-        await setDoc(userProfileRef, {
-            email: user.email,
-            createdAt: serverTimestamp(),
-        });
-        console.log("User profile document created in Firestore for UID:", user.uid);
-        // --- End Create User Profile Document ---
+        // Removed: User profile document creation in Firestore as requested
+        // const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
+        // await setDoc(userProfileRef, {
+        //     email: user.email,
+        //     createdAt: serverTimestamp(),
+        // });
+        // console.log("User profile document creation in Firestore skipped as requested.");
 
         await sendEmailVerification(user);
         
+        // Show success message WITHOUT resend button *before* signing out
+        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
+
         // Sign out immediately after successful signup and sending verification email
         await signOut(auth);
         
-        // Show success message WITHOUT resend button
-        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
     } catch (error) {
@@ -354,12 +354,12 @@ async function handleSignIn() {
         await user.reload();
 
         if (user.emailVerified) {
-            // Update Firestore user document's emailVerified status if it's now true
-            const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-            await updateDoc(userDocRef, {
-                emailVerified: true,
-                lastSignInTime: serverTimestamp()
-            });
+            // Update Firestore user document's emailVerified status if it's now true (if it were being used)
+            // const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
+            // await updateDoc(userDocRef, {
+            //     emailVerified: true,
+            //     lastSignInTime: serverTimestamp()
+            // });
             resetAuthForm(); // Clear fields on successful sign-in
             // onAuthStateChanged will handle redirect to dashboard
         } else {
@@ -399,27 +399,28 @@ async function handleGoogleAuth() {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if user exists in Firestore, if not, create a basic record
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-        const userProfileSnap = await getDoc(userProfileRef);
+        // Check if user exists in Firestore, if not, create a basic record (logic removed as requested)
+        // const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
+        // const userProfileSnap = await getDoc(userProfileRef);
 
-        if (!userProfileSnap.exists()) {
-            await setDoc(userProfileRef, {
-                email: user.email,
-                displayName: user.displayName || null,
-                photoURL: user.photoURL || null,
-                emailVerified: user.emailVerified, // Google typically provides verified email
-                createdAt: serverTimestamp()
-            });
-            console.log("New Google user profile document created in Firestore for UID:", user.uid);
-        } else {
-            // Update existing user record if necessary (e.g., emailVerified status, last login)
-            await updateDoc(userProfileRef, {
-                emailVerified: user.emailVerified,
-                lastSignInTime: serverTimestamp()
-            });
-            console.log("Existing Google user profile found and updated in Firestore for UID:", user.uid);
-        }
+        // if (!userProfileSnap.exists()) {
+        //     await setDoc(userProfileRef, {
+        //         email: user.email,
+        //         displayName: user.displayName || null,
+        //         photoURL: user.photoURL || null,
+        //         emailVerified: user.emailVerified, // Google typically provides verified email
+        //         createdAt: serverTimestamp()
+        //     });
+        //     console.log("New Google user profile document created in Firestore for UID:", user.uid);
+        // } else {
+        //     // Update existing user record if necessary (e.g., emailVerified status, last login)
+        //     await updateDoc(userProfileRef, {
+        //         emailVerified: user.emailVerified,
+        //         lastSignInTime: serverTimestamp()
+        //     });
+        //     console.log("Existing Google user profile found and updated in Firestore for UID:", user.uid);
+        // }
+        console.log("Google sign-in/up successful. Firestore user profile logic skipped as requested.");
         resetAuthForm(); // Clear fields after successful Google Auth
         // onAuthStateChanged will handle redirect to dashboard
     } catch (error) {
