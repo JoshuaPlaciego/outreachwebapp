@@ -306,9 +306,8 @@ async function handleSignUp() {
         // Set a flag in session storage to indicate a fresh signup
         sessionStorage.setItem('justSignedUp', 'true');
         
-        // After successful signup and email verification sent,
-        // show a tailored message on the auth page and keep the user here.
-        showMessage(`Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
+        // DO NOT showMessage here. Let onAuthStateChanged handle the message.
+        // showMessage(`Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
