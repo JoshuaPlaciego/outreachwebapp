@@ -1,3 +1,6 @@
+// auth.js
+console.log("auth.js script started."); // Debugging log
+
 // --- Firebase SDK Imports ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
@@ -77,6 +80,7 @@ const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); /
  * @param {string} viewId - The ID of the view to show ('auth-view', 'loading-indicator').
  */
 function switchView(viewId) {
+    console.log(`Switching view to: ${viewId}`); // Debugging log
     document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
 }
@@ -497,6 +501,7 @@ function attachEventListeners() {
  * Main function to initialize the authentication page.
  */
 async function main() {
+    console.log("main() function started."); // Debugging log
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -507,15 +512,18 @@ async function main() {
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
+        console.log("onAuthStateChanged triggered. User:", user ? user.email : "null"); // Debugging log
         if (user) {
             await user.reload(); // Get latest user state
 
             if (user.emailVerified) {
                 // User is authenticated AND verified, redirect to dashboard
+                console.log("User is verified. Redirecting to dashboard."); // Debugging log
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is NOT verified.
                 // Keep them on the auth page and show the verification message.
+                console.log("User is unverified. Staying on auth page and showing message."); // Debugging log
                 switchView('auth-view');
                 showMessage(`Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
                 // Pre-fill email for convenience if they want to try logging in again
@@ -523,13 +531,17 @@ async function main() {
             }
         } else {
             // User is signed out or not logged in, show auth view
+            console.log("User is signed out/not logged in. Showing auth view."); // Debugging log
             switchView('auth-view');
             // Ensure fields are clear when signed out
             resetAuthForm();
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
+        console.log("Loading indicator hidden."); // Debugging log
     });
+    console.log("onAuthStateChanged listener attached."); // Debugging log
 }
 
 // Run the app
 main();
+console.log("main() function called."); // Debugging log
