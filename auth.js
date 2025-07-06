@@ -103,7 +103,7 @@ function resetAuthForm() {
         uppercase: document.getElementById('req-uppercase'),
         lowercase: document.getElementById('req-lowercase'),
         number: document.getElementById('req-number'),
-        special: document.getElementById('req-special') // Corrected: This should be the DOM element
+        special: document.getElementById('req-special') 
     };
     for (const key in passwordRequirements) {
         const element = passwordRequirements[key];
@@ -199,7 +199,7 @@ function updatePasswordStrength(password) {
         uppercase: document.getElementById('req-uppercase'),
         lowercase: document.getElementById('req-lowercase'),
         number: document.getElementById('req-number'),
-        special: document.getElementById('req-special') // Corrected: Get the DOM element
+        special: document.getElementById('req-special') 
     };
 
     const requirements = {
@@ -207,13 +207,13 @@ function updatePasswordStrength(password) {
         uppercase: /[A-Z]/.test(password),
         lowercase: /[a-z]/.test(password),
         number: /[0-9]/.test(password),
-        special: /[!@#$%^&*()_+{}\[\]:;<>,.?\\/-]/.test(password) // Added backslash for literal hyphen, removed `~` as it's not always considered special
+        special: /[!@#$%^&*()_+{}\[\]:;<>,.?\\/-]/.test(password) 
     };
 
     let metCount = 0;
     for (const key in requirements) {
         const element = passwordRequirementsElements[key];
-        if (element) { // Ensure element exists before trying to modify its classes
+        if (element) { 
             if (requirements[key]) {
                 element.classList.remove('text-red-500');
                 element.classList.add('text-green-500');
@@ -299,10 +299,11 @@ async function handleSignUp() {
         await sendEmailVerification(user);
         
         // Show success message WITHOUT resend button *before* signing out
-        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
+        showMessage(`Sign up successful! A verification email has been sent to ${email}. You will be redirected to the dashboard.`, false);
 
-        // Sign out immediately after successful signup and sending verification email
-        await signOut(auth);
+        // Do NOT sign out immediately after successful signup.
+        // Let onAuthStateChanged handle the redirection to dashboard.html.
+        // The dashboard.js will then display the verification message and disable content.
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
@@ -345,19 +346,10 @@ async function handleSignIn() {
         // Reload user to get latest emailVerified status
         await user.reload();
 
-        if (user.emailVerified) {
-            resetAuthForm(); // Clear fields on successful sign-in
-            // onAuthStateChanged will handle redirect to dashboard
-        } else {
-            // If email is not verified, show verification message via general message box
-            // Pass true to showResendButton to display the "Resend Verification Email" button
-            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`, true);
-            authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
-            switchView('auth-view');
-            loadingIndicator.classList.add('hidden');
-            await signOut(auth); // Sign out if not verified to force re-login after verification
-            resetAuthForm(); // Clear fields after sign out
-        }
+        // On successful sign-in (verified or unverified), onAuthStateChanged will handle redirection
+        resetAuthForm(); // Clear fields on successful sign-in
+        // The dashboard.js will then display appropriate content and handle verification status
+        
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
@@ -404,18 +396,16 @@ async function handleGoogleAuth() {
  */
 async function resendVerification() {
     // We need the email from the input field as the user might be signed out
-    const emailToVerify = emailInput.value.trim();
+    const user = auth.currentUser; // Get the current user directly from auth
 
-    if (!emailToVerify) {
-        showMessage("Please enter your email address in the email field to resend the verification link.");
+    if (!user) {
+        showMessage("No user logged in to resend verification email. Please sign in.", false);
         return;
     }
 
     try {
-        // To resend verification, the user needs to be authenticated.
-        // Since the current flow signs out unverified users, we'll prompt them to sign in again.
-        // A new verification link will be sent automatically if their email is still unverified upon sign-in.
-        showMessage("To resend the verification email, please sign in again with your email and password. A new verification link will be sent automatically if your email is still unverified.", false);
+        await sendEmailVerification(user);
+        showMessage("Verification email resent. Please check your inbox.", false);
         
     } catch (error) {
         showMessage(`Failed to resend verification email: ${error.message}`);
@@ -501,21 +491,8 @@ async function main() {
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            await user.reload(); // Get latest user state
-            if (user.emailVerified) {
-                // User is authenticated and verified, redirect to dashboard
-                window.location.href = 'dashboard.html';
-            } else {
-                // User is signed in but email is not verified.
-                // This state is reached if they just signed up, or if they refresh the page while unverified.
-                // Display the verification message and sign them out to force verification.
-                console.log("Unverified user detected by onAuthStateChanged. Displaying message and signing out.");
-                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
-                switchView('auth-view'); // Stay on auth view
-                emailInput.value = user.email; // Pre-fill email for convenience
-                await signOut(auth); // Sign out to keep them in the "trap"
-                resetAuthForm(); // Clear password field after sign out
-            }
+            // User is authenticated (verified or not), redirect to dashboard
+            window.location.href = 'dashboard.html';
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
