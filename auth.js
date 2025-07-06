@@ -298,9 +298,9 @@ async function handleSignUp() {
 
         await sendEmailVerification(user);
         
-        // Redirect to dashboard with a success flag for new sign-ups
-        // Ensure the parameter is correctly appended
-        window.location.href = 'dashboard.html?signupSuccess=true';
+        // After successful signup and email verification sent,
+        // show a tailored message on the auth page and keep the user here.
+        showMessage(`Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
@@ -343,9 +343,8 @@ async function handleSignIn() {
         // Reload user to get latest emailVerified status
         await user.reload();
 
-        // On successful sign-in (verified or unverified), onAuthStateChanged will handle redirection
+        // onAuthStateChanged will handle redirection based on verification status
         resetAuthForm(); // Clear fields on successful sign-in
-        // The dashboard.js will then display appropriate content and handle verification status
         
 
     } catch (error) {
@@ -402,10 +401,10 @@ async function resendVerification() {
 
     try {
         await sendEmailVerification(user);
-        showMessage("Verification email sent! Please check your inbox.", false);
+        showMessage("Verification email sent! Please check your inbox.", true, true); // Show resend and logout options
         
     } catch (error) {
-        showMessage(`Failed to resend verification email: ${error.message}`);
+        showMessage(`Failed to resend verification email: ${error.message}`, true, true); // Show resend and logout options
     }
 }
 
@@ -488,8 +487,19 @@ async function main() {
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // User is authenticated (verified or not), redirect to dashboard
-            window.location.href = 'dashboard.html';
+            await user.reload(); // Get latest user state
+
+            if (user.emailVerified) {
+                // User is authenticated AND verified, redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                // User is signed in but email is NOT verified.
+                // Keep them on the auth page and show the verification message.
+                switchView('auth-view');
+                showMessage(`Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
+                // Pre-fill email for convenience if they want to try logging in again
+                emailInput.value = user.email; 
+            }
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');
