@@ -494,13 +494,15 @@ messageBoxResendBtn.addEventListener('click', async () => {
     if (user) {
         try {
             await sendEmailVerification(user);
-            showMessage("Verification email resent. Please check your inbox.", false, false); // No logout button after resend
+            // After resending, re-show the message with resend and logout buttons
+            showMessage("Verification email resent. Please check your inbox.", true, true);
         } catch (error) {
             console.error("Error resending verification email:", error);
-            showMessage(`Failed to resend verification email: ${error.message}`, false, false); // No logout button after resend
+            showMessage(`Failed to resend verification email: ${error.message}`, true, true); // Still show options on failure
         }
     } else {
-        showMessage("No user logged in to resend verification email. Please sign in.", false, false); // No logout button if not logged in
+        // If somehow no user, just show a general message
+        showMessage("No user logged in to resend verification email. Please sign in.", false, false);
     }
 });
 
@@ -527,6 +529,7 @@ function attachEventListeners() {
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
 
     // Message box close buttons
+    // The 'X' icon's visibility is now controlled by showMessage based on verification status
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
     if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage);
     // Add event listener for the new logout button in the message box
@@ -538,11 +541,9 @@ function attachEventListeners() {
         mainDashboardContent.addEventListener('click', (event) => {
             const user = auth.currentUser;
             // Check if the user is unverified AND the message box is currently hidden
-            if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden')) {
-                // Prevent clicks on the message box itself from re-triggering this
-                if (!customMessageBoxOverlay.contains(event.target)) {
-                    showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); // Pass true for showLogoutButton
-                }
+            // Also ensure the click wasn't on the message box overlay itself, to prevent double-triggering
+            if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden') && !customMessageBoxOverlay.contains(event.target)) {
+                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); // Pass true for showLogoutButton
             }
         });
     }

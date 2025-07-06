@@ -5,6 +5,7 @@ const messageText = document.getElementById('message-text');
 const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
 const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: "Logout" button
+const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // The 'X' close icon
 
 /**
  * Displays a custom message to the user.
@@ -13,7 +14,7 @@ const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); /
  * @param {boolean} [showLogoutButton=false] - Whether to show the logout button.
  */
 export function showMessage(msg, showResendButton = false, showLogoutButton = false) {
-    if (messageText && messageOverlay && messageBox && closeMessageBtn && messageBoxResendBtn && messageBoxLogoutBtn) {
+    if (messageText && messageOverlay && messageBox && closeMessageBtn && messageBoxResendBtn && messageBoxLogoutBtn && messageBoxCloseIcon) {
         messageText.textContent = msg;
         messageOverlay.classList.remove('hidden');
         messageOverlay.classList.add('modal-active-overlay'); // Apply flex for centering
@@ -21,8 +22,10 @@ export function showMessage(msg, showResendButton = false, showLogoutButton = fa
         // Toggle button visibility based on parameters
         if (showResendButton) {
             messageBoxResendBtn.classList.remove('hidden');
+            messageBoxCloseIcon.classList.add('hidden'); // Hide 'X' icon if resend button is shown (i.e., for verification message)
         } else {
             messageBoxResendBtn.classList.add('hidden');
+            messageBoxCloseIcon.classList.remove('hidden'); // Show 'X' icon for general messages
         }
 
         if (showLogoutButton) {
@@ -60,7 +63,8 @@ export function hideMessage() {
             // Ensure all buttons are hidden when closing the message box
             if (closeMessageBtn) closeMessageBtn.classList.add('hidden');
             if (messageBoxResendBtn) messageBoxResendBtn.classList.add('hidden');
-            if (messageBoxLogoutBtn) messageBoxLogoutBtn.classList.add('hidden'); // New: Hide logout button
+            if (messageBoxLogoutBtn) messageBoxLogoutBtn.classList.add('hidden');
+            if (messageBoxCloseIcon) messageBoxCloseIcon.classList.add('hidden'); // Ensure 'X' icon is hidden
         }, 300);
     } else {
         console.error("Message box elements not found. Cannot hide message.");
