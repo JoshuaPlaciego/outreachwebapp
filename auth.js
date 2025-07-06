@@ -303,6 +303,9 @@ async function handleSignUp() {
 
         await sendEmailVerification(user);
         
+        // Set a flag in session storage to indicate a fresh signup
+        sessionStorage.setItem('justSignedUp', 'true');
+        
         // After successful signup and email verification sent,
         // show a tailored message on the auth page and keep the user here.
         showMessage(`Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
@@ -400,6 +403,7 @@ async function handleLogout() {
         await signOut(auth);
         // After logout, clear any messages and redirect to the auth page
         hideMessage(); // Ensure message box is hidden
+        sessionStorage.removeItem('justSignedUp'); // Clear the signup flag on logout
         window.location.href = 'index.html';
     } catch (error) {
         console.error("Logout error:", error);
@@ -519,13 +523,23 @@ async function main() {
             if (user.emailVerified) {
                 // User is authenticated AND verified, redirect to dashboard
                 console.log("User is verified. Redirecting to dashboard."); // Debugging log
+                sessionStorage.removeItem('justSignedUp'); // Clear the signup flag once verified
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is NOT verified.
                 // Keep them on the auth page and show the verification message.
                 console.log("User is unverified. Staying on auth page and showing message."); // Debugging log
                 switchView('auth-view');
-                showMessage(`Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
+
+                let messageToDisplay = `Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`;
+
+                // Check if the user just signed up
+                if (sessionStorage.getItem('justSignedUp') === 'true') {
+                    messageToDisplay = `Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`;
+                    sessionStorage.removeItem('justSignedUp'); // Clear the flag after displaying
+                }
+                
+                showMessage(messageToDisplay, true, true);
                 // Pre-fill email for convenience if they want to try logging in again
                 emailInput.value = user.email; 
             }
@@ -535,6 +549,7 @@ async function main() {
             switchView('auth-view');
             // Ensure fields are clear when signed out
             resetAuthForm();
+            sessionStorage.removeItem('justSignedUp'); // Clear the flag if user signs out
         }
         loadingIndicator.classList.add('hidden'); // Hide loading indicator once auth state is determined
         console.log("Loading indicator hidden."); // Debugging log
