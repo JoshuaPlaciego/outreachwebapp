@@ -3,18 +3,18 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/*
-   Removed custom .view and .view.active styles.
-   The visibility of views (loading-indicator, auth-view)
-   is now controlled by Tailwind's 'hidden' class and
-   the 'active' class added/removed by JavaScript.
+/* --- View Switching Classes (IMPORTANT for index.html views) --- */
+/* All views are hidden by default */
+.view {
+    display: none;
+}
 
-   The 'active' class should simply override 'display: none'
-   to make the element visible.
-*/
+/* The active view becomes visible. Use 'block' to allow its natural flow
+   within the body's flex container for centering the form. */
 .view.active {
-    display: flex; /* Assuming your views are flex containers for their content */
-    /* You might need to adjust this to 'block' if the content inside expects block layout */
+    display: block;
+    /* Remove any absolute positioning or full height/width here to let
+       the body's flexbox and the element's own Tailwind classes control layout. */
 }
 
 
