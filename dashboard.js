@@ -86,6 +86,8 @@ const noLeadsMessage = document.getElementById('no-leads-message');
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 const closeMessageBtn = document.getElementById('close-message-btn');
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon');
+const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay'); // Reference to the overlay
+const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: Reference to the logout button in message box
 
 
 // --- Niche Definitions ---
@@ -527,6 +529,23 @@ function attachEventListeners() {
     // Message box close buttons
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
     if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage);
+    // New: Add event listener for the new logout button in the message box
+    if (messageBoxLogoutBtn) messageBoxLogoutBtn.addEventListener('click', handleLogout);
+
+
+    // Add a click listener to the main dashboard content to re-show verification message
+    if (mainDashboardContent) {
+        mainDashboardContent.addEventListener('click', (event) => {
+            const user = auth.currentUser;
+            // Check if the user is unverified AND the message box is currently hidden
+            if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden')) {
+                // Prevent clicks on the message box itself from re-triggering this
+                if (!customMessageBoxOverlay.contains(event.target)) {
+                    showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); // Pass true for showLogoutButton
+                }
+            }
+        });
+    }
 }
 
 
@@ -605,7 +624,8 @@ async function main() {
                 mainDashboardContent.classList.remove('hidden'); // Still show the dimmed content
                 loadingIndicator.classList.add('hidden'); // Hide loading indicator
 
-                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true); // Show message with resend button
+                // Show message with resend button AND logout button
+                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); 
 
                 // Display user info even if unverified
                 if (userIdDisplay) userIdDisplay.textContent = userId;
