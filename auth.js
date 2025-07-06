@@ -531,14 +531,11 @@ async function main() {
                 console.log("User is unverified. Staying on auth page and showing message."); // Debugging log
                 switchView('auth-view');
 
-                let messageToDisplay = `Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`;
-
-                // Check if the user just signed up
-                if (sessionStorage.getItem('justSignedUp') === 'true') {
-                    // Modified message as per your request
-                    messageToDisplay = `Your email (${user.email}) is already signed up successfully but needs to be email verified. Please check your inbox for a verification link to grant full access.`;
-                    sessionStorage.removeItem('justSignedUp'); // Clear the flag after displaying
-                }
+                // Always use the universal message for unverified users
+                const messageToDisplay = `Your email (${user.email}) is already signed up successfully but needs to be email verified. Please check your inbox for a verification link to grant full access.`;
+                
+                // Clear the 'justSignedUp' flag after displaying the message, regardless of its initial state
+                sessionStorage.removeItem('justSignedUp'); 
                 
                 // Changed showMessage to not include a logout button
                 showMessage(messageToDisplay, true, false); 
