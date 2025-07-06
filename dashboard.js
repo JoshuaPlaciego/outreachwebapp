@@ -1,3 +1,6 @@
+// dashboard.js
+console.log("dashboard.js script started."); // Debugging log
+
 // --- Firebase SDK Imports ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
@@ -331,8 +334,10 @@ function fillFormForEdit(leadId) {
  */
 async function handleAddLead(event) {
     event.preventDefault(); // Prevent default form submission
+    console.log("handleAddLead called."); // Debugging log
 
     if (!validateForm()) {
+        console.log("Form validation failed."); // Debugging log
         return;
     }
 
@@ -343,9 +348,11 @@ async function handleAddLead(event) {
             createdAt: serverTimestamp(),
             createdBy: userId // Store the UID of the user who created this lead
         };
+        console.log("Attempting to add lead to Firestore:", leadData); // Debugging log
         await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), leadData);
         showMessage("Lead added successfully!");
         resetForm();
+        console.log("Lead added and form reset."); // Debugging log
     } catch (error) {
         console.error("Error adding lead:", error);
         showMessage(`Error adding lead: ${error.message}`);
@@ -356,12 +363,14 @@ async function handleAddLead(event) {
  * Handles updating an existing lead in Firestore.
  */
 async function handleUpdateLead() {
+    console.log("handleUpdateLead called."); // Debugging log
     if (!editingLeadId) {
         showMessage("No lead selected for update.");
         return;
     }
 
     if (!validateForm()) {
+        console.log("Form validation failed for update."); // Debugging log
         return;
     }
 
@@ -372,9 +381,11 @@ async function handleUpdateLead() {
         delete updatedLeadData.id; // Remove ID as it's not part of the document data
         delete updatedLeadData.createdBy; // Ensure createdBy is not accidentally updated
 
+        console.log("Attempting to update lead in Firestore:", editingLeadId, updatedLeadData); // Debugging log
         await updateDoc(leadRef, updatedLeadData);
         showMessage("Lead updated successfully!");
         resetForm();
+        console.log("Lead updated and form reset."); // Debugging log
     } catch (error) {
         console.error("Error updating lead:", error);
         showMessage(`Error updating lead: ${error.message}`);
@@ -386,6 +397,7 @@ async function handleUpdateLead() {
  * @param {Event} event - The click event from the delete button.
  */
 async function handleDeleteLead(event) {
+    console.log("handleDeleteLead called."); // Debugging log
     const leadIdToDelete = event.currentTarget.dataset.id;
     if (!leadIdToDelete) {
         showMessage("No lead ID found for deletion.");
@@ -397,6 +409,7 @@ async function handleDeleteLead(event) {
 
     // Temporarily store the delete action and attach listener to the 'Got It!' button
     const confirmDelete = async () => {
+        console.log("Delete confirmed for lead ID:", leadIdToDelete); // Debugging log
         try {
             await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, leadIdToDelete));
             showMessage("Lead deleted successfully!");
@@ -420,6 +433,7 @@ async function handleDeleteLead(event) {
  * @param {Event} event - The click event.
  */
 function handleEditLead(event) {
+    console.log("handleEditLead called."); // Debugging log
     const leadIdToEdit = event.currentTarget.dataset.id;
     fillFormForEdit(leadIdToEdit);
 }
@@ -428,12 +442,15 @@ function handleEditLead(event) {
  * Handles user logout.
  */
 async function handleLogout() {
+    console.log("handleLogout called."); // Debugging log
     try {
         if (leadsUnsubscribe) {
             leadsUnsubscribe(); // Unsubscribe from Firestore listener
             leadsUnsubscribe = null;
+            console.log("Firestore listener unsubscribed."); // Debugging log
         }
         await signOut(auth);
+        console.log("User signed out. Redirecting to index.html."); // Debugging log
         window.location.href = 'index.html'; // Redirect to login page
     } catch (error) {
         console.error("Logout error:", error);
@@ -445,6 +462,7 @@ async function handleLogout() {
  * Handles linking Google account to existing user.
  */
 async function handleLinkGoogle() {
+    console.log("handleLinkGoogle called."); // Debugging log
     linkGoogleBtn.disabled = true;
     linkGoogleBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Linking...';
     linkGoogleError.classList.add('hidden');
@@ -455,6 +473,7 @@ async function handleLinkGoogle() {
 
         if (!user) {
             showMessage("No user logged in to link Google account.");
+            console.log("No user logged in for Google link."); // Debugging log
             return;
         }
 
@@ -466,6 +485,7 @@ async function handleLinkGoogle() {
         if (isGoogleLinked) {
             showMessage("Google account is already linked to this user.", false);
             googleLinkSection.classList.add('hidden'); // Hide section if already linked
+            console.log("Google account already linked."); // Debugging log
             return;
         }
 
@@ -473,6 +493,7 @@ async function handleLinkGoogle() {
         showMessage("Google account linked successfully!");
         googleLinkSection.classList.add('hidden'); // Hide the section after successful linking
         profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No'; // Update status
+        console.log("Google account linked successfully."); // Debugging log
     } catch (error) {
         console.error("Error linking Google account:", error);
         linkGoogleError.textContent = error.message;
@@ -488,6 +509,7 @@ async function handleLinkGoogle() {
  * Resends the verification email.
  */
 messageBoxResendBtn.addEventListener('click', async () => {
+    console.log("messageBoxResendBtn clicked."); // Debugging log
     hideMessage(); // Hide the message box first
     const user = auth.currentUser;
     if (user) {
@@ -495,6 +517,7 @@ messageBoxResendBtn.addEventListener('click', async () => {
             await sendEmailVerification(user);
             // After resending, re-show the message with resend and logout buttons
             showMessage("Verification email sent. Please check your inbox.", true, true);
+            console.log("Verification email sent."); // Debugging log
         } catch (error) {
             console.error("Error resending verification email:", error);
             showMessage(`Failed to resend verification email: ${error.message}`, true, true); // Still show options on failure
@@ -502,12 +525,14 @@ messageBoxResendBtn.addEventListener('click', async () => {
     } else {
         // If somehow no user, just show a general message
         showMessage("No user logged in to resend verification email. Please sign in.", false, false);
+        console.log("No user for resend verification."); // Debugging log
     }
 });
 
 
 // --- Event Listeners ---
 function attachEventListeners() {
+    console.log("attachEventListeners called."); // Debugging log
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     if (linkGoogleBtn) linkGoogleBtn.addEventListener('click', handleLinkGoogle);
 
@@ -531,6 +556,7 @@ function attachEventListeners() {
     // The 'X' icon's visibility is now controlled by showMessage based on verification status
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
     if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage); // Ensure close icon works
+    console.log("All event listeners attached."); // Debugging log
 }
 
 // --- Initialization ---
@@ -539,6 +565,7 @@ function attachEventListeners() {
  * Main function to initialize the dashboard page.
  */
 async function main() {
+    console.log("main() function started."); // Debugging log
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -547,30 +574,41 @@ async function main() {
     // Initial state: show loading indicator, hide main content
     loadingIndicator.classList.remove('hidden');
     mainDashboardContent.classList.add('hidden'); // Ensure main content is hidden initially
+    console.log("Initial UI state set (loading)."); // Debugging log
 
     // Render niches immediately
     renderNiches();
+    console.log("Niches rendered."); // Debugging log
 
     // Attach event listeners
     attachEventListeners();
+    console.log("Event listeners attached in main."); // Debugging log
+
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
+        console.log("onAuthStateChanged triggered. User:", user ? user.email : "null", "Email Verified:", user ? user.emailVerified : "N/A"); // Debugging log
         if (user) {
             await user.reload(); // Get latest user state
             userId = user.uid; // Set global userId
+            console.log("User reloaded. Current userId:", userId); // Debugging log
 
             if (user.emailVerified) {
                 // User is authenticated AND verified, show dashboard
+                console.log("User is verified. Showing dashboard content."); // Debugging log
                 hideMessage(); // Ensure message box is hidden
                 mainDashboardContent.classList.remove('disabled-overlay'); // Enable content
                 mainDashboardContent.classList.remove('hidden'); // Show main content
                 loadingIndicator.classList.add('hidden'); // Hide loading indicator
+                console.log("Dashboard content displayed, loading indicator hidden."); // Debugging log
+
 
                 // Display user info
                 if (userIdDisplay) userIdDisplay.textContent = userId;
                 if (profileEmail) profileEmail.textContent = user.email;
                 if (profileEmailVerified) profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
+                console.log("User info displayed."); // Debugging log
+
 
                 // Check if Google provider is linked and hide section if it is
                 const isGoogleLinked = user.providerData.some(
@@ -579,23 +617,27 @@ async function main() {
                 if (googleLinkSection) {
                     if (isGoogleLinked) {
                         googleLinkSection.classList.add('hidden');
+                        console.log("Google link section hidden (already linked)."); // Debugging log
                     } else {
                         googleLinkSection.classList.remove('hidden');
+                        console.log("Google link section shown (not linked)."); // Debugging log
                     }
                 }
 
                 // Start Firestore listener for leads if not already running
                 if (!leadsUnsubscribe) {
+                    console.log("Starting Firestore listener for leads."); // Debugging log
                     const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
                     // Query to get leads created by the current user
-                    // FIX: Changed "===" to "==" for Firestore query operator
                     const q = query(leadsCollectionRef, where("createdBy", "==", userId)); 
 
                     leadsUnsubscribe = onSnapshot(q, (snapshot) => {
+                        console.log("Firestore snapshot received."); // Debugging log
                         leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         // Sort in memory (newest first)
                         leads.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
                         renderLeadsList();
+                        console.log("Leads rendered."); // Debugging log
                     }, (error) => {
                         console.error("Error fetching leads:", error);
                         showMessage(`Error fetching leads: ${error.message}.`);
@@ -604,15 +646,19 @@ async function main() {
 
             } else {
                 // User is signed in but email is not verified, redirect to login page
+                console.log("User is unverified. Redirecting to index.html."); // Debugging log
                 // The auth.js will handle showing the verification message on index.html
                 window.location.href = 'index.html';
             }
         } else {
             // User is signed out, redirect to login
+            console.log("User is signed out. Redirecting to index.html."); // Debugging log
             window.location.href = 'index.html';
         }
     });
+    console.log("onAuthStateChanged listener attached in main."); // Debugging log
 }
 
 // Run the app
 main();
+console.log("main() function called."); // Debugging log
