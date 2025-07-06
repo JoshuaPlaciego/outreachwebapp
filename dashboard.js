@@ -494,13 +494,13 @@ messageBoxResendBtn.addEventListener('click', async () => {
     if (user) {
         try {
             await sendEmailVerification(user);
-            showMessage("Verification email resent. Please check your inbox.", false);
+            showMessage("Verification email resent. Please check your inbox.", false, false); // No logout button after resend
         } catch (error) {
             console.error("Error resending verification email:", error);
-            showMessage(`Failed to resend verification email: ${error.message}`, false);
+            showMessage(`Failed to resend verification email: ${error.message}`, false, false); // No logout button after resend
         }
     } else {
-        showMessage("No user logged in to resend verification email. Please sign in.", false);
+        showMessage("No user logged in to resend verification email. Please sign in.", false, false); // No logout button if not logged in
     }
 });
 
@@ -529,7 +529,7 @@ function attachEventListeners() {
     // Message box close buttons
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
     if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage);
-    // New: Add event listener for the new logout button in the message box
+    // Add event listener for the new logout button in the message box
     if (messageBoxLogoutBtn) messageBoxLogoutBtn.addEventListener('click', handleLogout);
 
 
