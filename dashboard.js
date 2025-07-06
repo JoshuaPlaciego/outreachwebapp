@@ -7,7 +7,7 @@ import {
     EmailAuthProvider, // For re-authentication with email/password
     GoogleAuthProvider, // For re-authentication with Google
     reauthenticateWithCredential, // For re-authentication
-    signInWithPopup, // For re-authentication with Google popup
+    signInWithPopup, // For social sign-in popups
     updatePassword, // To update the user's password
     linkWithCredential, // For linking new providers
     sendEmailVerification // Import sendEmailVerification
@@ -559,6 +559,9 @@ function getVerificationMessage(userEmail) {
     const urlParams = new URLSearchParams(window.location.search);
     const isSignupSuccess = urlParams.get('signupSuccess');
 
+    console.log('URL Search Params:', window.location.search); // Debugging log
+    console.log('isSignupSuccess value:', isSignupSuccess); // Debugging log
+
     let message = "Your email is not verified. Please check your inbox for a verification link to grant full access.";
 
     if (isSignupSuccess === 'true') {
@@ -567,6 +570,9 @@ function getVerificationMessage(userEmail) {
         urlParams.delete('signupSuccess');
         const newUrl = window.location.origin + window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
         window.history.replaceState({}, document.title, newUrl);
+        console.log('Tailored signup message generated and URL cleaned.'); // Debugging log
+    } else {
+        console.log('Default verification message generated.'); // Debugging log
     }
     return message;
 }
