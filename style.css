@@ -3,29 +3,18 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* --- View Switching Classes (IMPORTANT for index.html views) --- */
-.view {
-    display: none; /* All views are hidden by default */
-}
+/*
+   Removed custom .view and .view.active styles.
+   The visibility of views (loading-indicator, auth-view)
+   is now controlled by Tailwind's 'hidden' class and
+   the 'active' class added/removed by JavaScript.
 
+   The 'active' class should simply override 'display: none'
+   to make the element visible.
+*/
 .view.active {
-    display: flex; /* Or block, depending on layout. Flex for centering. */
-    flex-direction: column; /* Ensure content stacks vertically within the view */
-    align-items: center; /* Center content horizontally */
-    justify-content: center; /* Center content vertically */
-    width: 100%; /* Take full width */
-    height: 100%; /* Take full height */
-    position: absolute; /* Position absolutely to cover the screen */
-    top: 0;
-    left: 0;
-}
-
-/* Specific adjustments for auth-view to match its max-width and centering */
-#auth-view.active {
-    position: relative; /* Override absolute for auth-view to allow normal flow within body flex */
-    height: auto; /* Let content define height */
-    max-width: 400px; /* Keep the max-width as defined in HTML */
-    justify-content: flex-start; /* Align content to the start vertically within its own bounds */
+    display: flex; /* Assuming your views are flex containers for their content */
+    /* You might need to adjust this to 'block' if the content inside expects block layout */
 }
 
 
