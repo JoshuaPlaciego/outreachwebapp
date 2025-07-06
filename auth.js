@@ -67,6 +67,7 @@ const passwordError = document.getElementById('password-error');
 const closeMessageBtn = document.getElementById('close-message-btn');
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
+const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: Reference to the logout button in message box
 
 
 // --- Utility Functions (Local functions that don't need to be in utils.js) ---
@@ -388,6 +389,21 @@ async function handleGoogleAuth() {
 
 
 /**
+ * Handles user logout.
+ */
+async function handleLogout() {
+    try {
+        await signOut(auth);
+        // After logout, clear any messages and redirect to the auth page
+        hideMessage(); // Ensure message box is hidden
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error("Logout error:", error);
+        showMessage(`Logout failed: ${error.message}`);
+    }
+}
+
+/**
  * Resends the verification email.
  */
 async function resendVerification() {
@@ -442,6 +458,11 @@ function attachEventListeners() {
         e.preventDefault();
         resendVerification();
     });
+
+    // Attach listener for the logout button in the message box
+    if (messageBoxLogoutBtn) { // Ensure element exists before attaching listener
+        messageBoxLogoutBtn.addEventListener('click', handleLogout);
+    }
 
     forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
