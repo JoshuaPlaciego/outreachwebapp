@@ -537,45 +537,38 @@ function attachEventListeners() {
     if (messageBoxLogoutBtn) messageBoxLogoutBtn.addEventListener('click', handleLogout);
 
 
-    // Add a click listener to the main dashboard content to re-show verification message
-    if (mainDashboardContent) {
-        mainDashboardContent.addEventListener('click', (event) => {
-            const user = auth.currentUser;
-            // Check if the user is unverified AND the message box is currently hidden
-            // Also ensure the click wasn't on the message box overlay itself, to prevent double-triggering
-            if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden') && !customMessageBoxOverlay.contains(event.target)) {
-                showMessage(getVerificationMessage(user.email), true, true); // Pass true for showLogoutButton
-            }
-        });
-    }
+    // Removed the click listener on mainDashboardContent as it's no longer needed here
+    // if (mainDashboardContent) {
+    //     mainDashboardContent.addEventListener('click', (event) => {
+    //         const user = auth.currentUser;
+    //         if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden') && !customMessageBoxOverlay.contains(event.target)) {
+    //             showMessage(getVerificationMessage(user.email), true, true);
+    //         }
+    //     });
+    // }
 }
 
-/**
- * Determines the appropriate verification message based on URL parameter.
- * @param {string} userEmail - The email of the unverified user.
- * @returns {string} The verification message to display.
- */
-function getVerificationMessage(userEmail) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isSignupSuccess = urlParams.get('signupSuccess');
+// Removed the getVerificationMessage function as it's no longer needed in dashboard.js
+// function getVerificationMessage(userEmail) {
+//     const urlParams = new URLSearchParams(window.location.search);
+//     const isSignupSuccess = urlParams.get('signupSuccess');
 
-    console.log('URL Search Params:', window.location.search); // Debugging log
-    console.log('isSignupSuccess value:', isSignupSuccess); // Debugging log
+//     console.log('URL Search Params:', window.location.search);
+//     console.log('isSignupSuccess value:', isSignupSuccess);
 
-    let message = "Your email is not verified. Please check your inbox for a verification link to grant full access.";
+//     let message = "Your email is not verified. Please check your inbox for a verification link to grant full access.";
 
-    if (isSignupSuccess === 'true') {
-        message = `Sign up successful! Your email (${userEmail}) is not verified. Please check your inbox for a verification link to grant full access.`;
-        // Remove the parameter after showing the message to prevent it from reappearing on refresh
-        urlParams.delete('signupSuccess');
-        const newUrl = window.location.origin + window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-        window.history.replaceState({}, document.title, newUrl);
-        console.log('Tailored signup message generated and URL cleaned.'); // Debugging log
-    } else {
-        console.log('Default verification message generated.'); // Debugging log
-    }
-    return message;
-}
+//     if (isSignupSuccess === 'true') {
+//         message = `Sign up successful! Your email (${userEmail}) is not verified. Please check your inbox for a verification link to grant full access.`;
+//         urlParams.delete('signupSuccess');
+//         const newUrl = window.location.origin + window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+//         window.history.replaceState({}, document.title, newUrl);
+//         console.log('Tailored signup message generated and URL cleaned.');
+//     } else {
+//         console.log('Default verification message generated.');
+//     }
+//     return message;
+// }
 
 
 // --- Initialization ---
@@ -647,19 +640,9 @@ async function main() {
                 }
 
             } else {
-                // User is signed in but email is not verified.
-                // Hide dashboard content completely
-                mainDashboardContent.classList.add('hidden'); // Hide main content
-                loadingIndicator.classList.add('hidden'); // Hide loading indicator
-
-                // Show message with resend button AND logout button
-                showMessage(getVerificationMessage(user.email), true, true); 
-
-                // Display user info even if unverified (this will be on the message box or a separate small area if desired)
-                if (userIdDisplay) userIdDisplay.textContent = userId;
-                if (profileEmail) profileEmail.textContent = user.email;
-                if (profileEmailVerified) profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
-                if (googleLinkSection) googleLinkSection.classList.add('hidden'); // Hide Google link section for unverified users
+                // User is signed in but email is not verified, redirect to login page
+                // The auth.js will handle showing the verification message on index.html
+                window.location.href = 'index.html';
             }
         } else {
             // User is signed out, redirect to login
