@@ -298,12 +298,8 @@ async function handleSignUp() {
 
         await sendEmailVerification(user);
         
-        // Show success message WITHOUT resend button *before* signing out
-        showMessage(`Sign up successful! A verification email has been sent to ${email}. You will be redirected to the dashboard.`, false);
-
-        // Do NOT sign out immediately after successful signup.
-        // Let onAuthStateChanged handle the redirection to dashboard.html.
-        // The dashboard.js will then display the verification message and disable content.
+        // Redirect to dashboard with a success flag for new sign-ups
+        window.location.href = 'dashboard.html?signupSuccess=true';
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
@@ -405,7 +401,7 @@ async function resendVerification() {
 
     try {
         await sendEmailVerification(user);
-        showMessage("Verification email resent. Please check your inbox.", false);
+        showMessage("Verification email sent. Please check your inbox.", false);
         
     } catch (error) {
         showMessage(`Failed to resend verification email: ${error.message}`);
