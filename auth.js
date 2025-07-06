@@ -282,6 +282,7 @@ function updatePasswordStrength(password) {
  * Handles user sign-up.
  */
 async function handleSignUp() {
+    console.log("handleSignUp called."); // Debugging log
     authErrorDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
@@ -324,6 +325,7 @@ async function handleSignUp() {
  * Handles user sign-in.
  */
 async function handleSignIn() {
+    console.log("handleSignIn called."); // Debugging log
     authErrorDiv.classList.add('hidden');
     const email = emailInput.value.trim();
     const password = passwordInput.value;
@@ -348,6 +350,7 @@ async function handleSignIn() {
 
         // Reload user to get latest emailVerified status
         await user.reload();
+        console.log("User signed in. Email verified status after reload:", user.emailVerified); // Debugging log
 
         // onAuthStateChanged will handle redirection based on verification status
         resetAuthForm(); // Clear fields on successful sign-in
@@ -368,6 +371,7 @@ async function handleSignIn() {
  * This single function will handle both new user creation and existing user sign-in via Google.
  */
 async function handleGoogleAuth() {
+    console.log("handleGoogleAuth called."); // Debugging log
     authErrorDiv.classList.add('hidden');
     setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
     setButtonLoading(signupBtn, true, 'Sign Up');
@@ -413,6 +417,7 @@ async function handleLogout() {
  * Resends the verification email.
  */
 async function resendVerification() {
+    console.log("resendVerification called."); // Debugging log
     // We need the email from the input field as the user might be signed out
     const user = auth.currentUser; // Get the current user directly from auth
 
@@ -436,6 +441,7 @@ async function resendVerification() {
  * Handles the "Forgot Password" functionality.
  */
 async function handleForgotPassword() {
+    console.log("handleForgotPassword called."); // Debugging log
     const email = emailInput.value.trim();
     if (!email) {
         showMessage("Please enter your email address to reset your password.");
@@ -457,12 +463,14 @@ async function handleForgotPassword() {
  * Attaches all primary event listeners for the authentication page.
  */
 function attachEventListeners() {
-    signupBtn.addEventListener('click', handleSignUp);
-    signinBtn.addEventListener('click', handleSignIn);
-    googleAuthBtn.addEventListener('click', handleGoogleAuth);
+    console.log("attachEventListeners called."); // Debugging log
+    // Ensure buttons exist before attaching listeners
+    if (signupBtn) signupBtn.addEventListener('click', handleSignUp);
+    if (signinBtn) signinBtn.addEventListener('click', handleSignIn);
+    if (googleAuthBtn) googleAuthBtn.addEventListener('click', handleGoogleAuth);
 
     // Attach listener to the new message box resend button
-    messageBoxResendBtn.addEventListener('click', (e) => {
+    if (messageBoxResendBtn) messageBoxResendBtn.addEventListener('click', (e) => {
         e.preventDefault();
         resendVerification();
     });
@@ -472,13 +480,13 @@ function attachEventListeners() {
     //     messageBoxLogoutBtn.addEventListener('click', handleLogout);
     // }
 
-    forgotPasswordLink.addEventListener('click', (e) => {
+    if (forgotPasswordLink) forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
         handleForgotPassword();
     });
 
     // Event listener for password visibility toggle
-    togglePasswordVisibility.addEventListener('click', () => {
+    if (togglePasswordVisibility) togglePasswordVisibility.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
         // Toggle eye icon
@@ -487,16 +495,17 @@ function attachEventListeners() {
     });
 
     // Real-time input validation
-    emailInput.addEventListener('input', validateEmailInput);
-    passwordInput.addEventListener('input', validatePasswordInput);
+    if (emailInput) emailInput.addEventListener('input', validateEmailInput);
+    if (passwordInput) passwordInput.addEventListener('input', validatePasswordInput);
 
     // Message box close buttons
-    closeMessageBtn.addEventListener('click', () => {
+    if (closeMessageBtn) closeMessageBtn.addEventListener('click', () => {
         hideMessage();
     });
-    messageBoxCloseIcon.addEventListener('click', () => {
+    if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', () => {
         hideMessage();
     });
+    console.log("Event listeners attached."); // Debugging log
 }
 
 // --- Initialization ---
