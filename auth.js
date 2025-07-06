@@ -70,7 +70,7 @@ const passwordError = document.getElementById('password-error');
 const closeMessageBtn = document.getElementById('close-message-btn');
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // Close icon
-const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: Reference to the logout button in message box
+// Removed reference to messageBoxLogoutBtn as it will be removed from HTML
 
 
 // --- Utility Functions (Local functions that don't need to be in utils.js) ---
@@ -307,7 +307,6 @@ async function handleSignUp() {
         sessionStorage.setItem('justSignedUp', 'true');
         
         // DO NOT showMessage here. Let onAuthStateChanged handle the message.
-        // showMessage(`Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`, true, true);
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
         
@@ -424,10 +423,12 @@ async function resendVerification() {
 
     try {
         await sendEmailVerification(user);
-        showMessage("Verification email sent! Please check your inbox.", true, true); // Show resend and logout options
+        // Changed showMessage to not include a logout button
+        showMessage("Verification email sent! Please check your inbox.", true, false); 
         
     } catch (error) {
-        showMessage(`Failed to resend verification email: ${error.message}`, true, true); // Show resend and logout options
+        // Changed showMessage to not include a logout button
+        showMessage(`Failed to resend verification email: ${error.message}`, true, false); 
     }
 }
 
@@ -466,10 +467,10 @@ function attachEventListeners() {
         resendVerification();
     });
 
-    // Attach listener for the logout button in the message box
-    if (messageBoxLogoutBtn) { // Ensure element exists before attaching listener
-        messageBoxLogoutBtn.addEventListener('click', handleLogout);
-    }
+    // Removed attachment for messageBoxLogoutBtn as it will be removed from HTML
+    // if (messageBoxLogoutBtn) { 
+    //     messageBoxLogoutBtn.addEventListener('click', handleLogout);
+    // }
 
     forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
@@ -534,11 +535,13 @@ async function main() {
 
                 // Check if the user just signed up
                 if (sessionStorage.getItem('justSignedUp') === 'true') {
-                    messageToDisplay = `Sign up successful! Your email (${user.email}) is not verified. Please check your inbox for a verification link to grant full access.`;
+                    // Modified message as per your request
+                    messageToDisplay = `Your email (${user.email}) is already signed up successfully but needs to be email verified. Please check your inbox for a verification link to grant full access.`;
                     sessionStorage.removeItem('justSignedUp'); // Clear the flag after displaying
                 }
                 
-                showMessage(messageToDisplay, true, true);
+                // Changed showMessage to not include a logout button
+                showMessage(messageToDisplay, true, false); 
                 // Pre-fill email for convenience if they want to try logging in again
                 emailInput.value = user.email; 
             }
