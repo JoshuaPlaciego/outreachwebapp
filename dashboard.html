@@ -20,189 +20,172 @@
         <div class="flex flex-col items-center justify-center space-y-4">
             <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="text-gray-600">Loading Dashboard...</p>
+            <p class="text-indigo-600 text-lg font-semibold">Loading Poppy.AI Dashboard...</p>
         </div>
     </div>
-
-    <!-- App View (Dashboard) -->
-    <div id="app-view" class="view w-full max-w-4xl mx-auto">
-        <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                <h1 class="text-2xl sm:text-3xl font-bold text-indigo-800 text-center sm:text-left">Leads Dashboard</h1>
-                <div class="flex flex-wrap justify-center gap-3 sm:space-x-4">
-                    <button id="add-new-lead-modal-btn" class="px-4 py-2 text-sm sm:text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Add New Lead</button>
-                    <button id="profile-settings-btn" class="px-4 py-2 text-sm sm:text-base bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Change Password</button>
-                    <button id="logout-btn" class="px-4 py-2 text-sm sm:text-base bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400">Log Out</button>
-                </div>
-            </div>
-            <div id="user-id-display" class="mb-6 text-sm text-gray-600 text-center">
-                User ID: <span class="font-mono bg-gray-200 px-2 py-1 rounded-md text-xs sm:text-sm" id="current-user-id"></span>
-            </div>
-
-            <!-- Leads List -->
-            <div>
-                <h2 class="text-xl sm:text-2xl font-semibold text-indigo-800 mb-4">Your Leads</h2>
-                <div id="leads-list" class="grid grid-cols-1 gap-4">
-                    <p id="no-leads-message" class="text-gray-600 text-center p-4 bg-gray-50 rounded-lg">No leads added yet. Click "Add New Lead" to get started!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit Lead Modal -->
-    <div id="lead-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 hidden" style="opacity: 0;">
-        <div id="lead-modal" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-2xl transform scale-95 transition-all duration-300">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="form-title" class="text-xl sm:text-2xl font-semibold text-indigo-800">Add New Lead</h2>
-                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
-            </div>
-
-            <div id="validation-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 hidden text-sm" role="alert">
-                <strong class="font-bold">Error: </strong>
-                <span id="error-message" class="block sm:inline"></span>
-            </div>
-
-            <!-- Form Sections -->
-            <div class="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                <!-- Basic Info -->
-                <div class="p-4 border border-indigo-200 rounded-lg bg-white">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-3">Basic Information <span class="text-red-500">*</span></h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="lead-name" placeholder="Lead Name" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm" required />
-                        <input type="email" id="lead-email" placeholder="Email" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm" />
-                        <input type="url" id="call-booking-link" placeholder="Call Booking Link (e.g., Calendly)" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 col-span-full text-sm" />
-                    </div>
-                </div>
-                <!-- Social Media -->
-                <div class="p-4 border border-indigo-200 rounded-lg bg-white">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-3">Social Media Links <span class="text-red-500">*</span></h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="url" id="instagram-link" placeholder="Instagram Profile URL" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
-                        <input type="url" id="youtube-link" placeholder="YouTube Channel URL" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm" />
-                        <input type="url" id="tiktok-link" placeholder="TikTok Profile URL" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm" />
-                    </div>
-                </div>
-                <!-- Metrics & Niches -->
-                <div class="p-4 border border-indigo-200 rounded-lg bg-white">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-3">Metrics & Niche <span class="text-red-500">*</span></h3>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Follower Count:</label>
-                        <div class="flex flex-wrap gap-4 mb-3">
-                            <label class="inline-flex items-center text-sm"><input type="radio" name="followerCount" value="10K up" id="follower-10k-up" class="form-radio h-4 w-4 text-indigo-600" required /><span class="ml-2 text-gray-700">10K+</span></label>
-                            <label class="inline-flex items-center text-sm"><input type="radio" name="followerCount" value="Less 10k" id="follower-less-10k" class="form-radio h-4 w-4 text-indigo-600" required /><span class="ml-2 text-gray-700">&lt; 10k</span></label>
-                        </div>
-                    </div>
-                    <input type="number" id="avg-views" placeholder="Average Views" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-4 text-sm" />
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Niches (Select all that apply):</label>
-                        <div id="niches-container" class="border border-indigo-200 rounded-lg p-3 max-h-40 overflow-y-auto custom-scrollbar text-sm"></div>
-                    </div>
-                    <div id="other-niche-notes-container" class="mt-4 hidden">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Specify Other Niche(s):</label>
-                        <textarea id="other-niche-notes" placeholder="e.g., Quantum Computing, Sustainable Fashion" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"></textarea>
-                    </div>
-                </div>
-                <!-- Notes -->
-                <div class="p-4 border border-indigo-200 rounded-lg bg-white">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-3">Notes</h3>
-                    <textarea id="lead-notes" placeholder="e.g., specific interests, last contact date" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"></textarea>
-                </div>
-            </div>
-            <!-- Form Buttons -->
-            <div class="flex justify-end space-x-2 mt-6">
-                <button id="update-lead-btn" class="px-5 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 hidden">Update Lead</button>
-                <button id="cancel-edit-btn" class="px-5 py-2 text-sm sm:text-base bg-gray-500 text-white rounded-lg shadow-md hover:bg-gray-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-400 hidden">Cancel</button>
-                <button id="add-lead-btn" class="px-5 py-2 text-sm sm:text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Add Lead</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Re-authentication Modal (NEW) -->
-    <div id="reauth-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 hidden" style="opacity: 0;">
-        <div id="reauth-modal" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-md transform scale-95 transition-all duration-300">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl sm:text-2xl font-semibold text-indigo-800">Change Password - Re-authentication</h2>
-                <button id="close-reauth-modal-btn" class="text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
-            </div>
-
-            <div class="p-5 border border-red-300 rounded-lg bg-red-50 shadow-sm">
-                <h3 class="text-lg font-semibold text-red-700 mb-3 flex items-center">
-                    <i class="fas fa-exclamation-triangle mr-2"></i> Security Check
-                </h3>
-                <p class="text-red-700 text-sm mb-4">Please re-authenticate to securely access and modify your password.</p>
-                
-                <div id="reauth-email-password-section" class="space-y-3 hidden">
-                    <label for="reauth-current-password" class="block text-gray-700 text-sm font-bold mb-1">Current Password:</label>
-                    <input type="password" id="reauth-current-password" placeholder="Enter your current password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm" />
-                    <button id="reauth-email-password-btn" class="w-full px-4 py-2 text-sm sm:text-base bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Re-authenticate with Password</button>
-                </div>
-                
-                <div id="reauth-google-section" class="space-y-3 mt-4 hidden">
-                    <p class="text-gray-700 text-sm text-center">OR</p>
-                    <button id="reauth-google-btn" class="w-full px-4 py-2 text-sm sm:text-base bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                        <i class="fab fa-google mr-2"></i> Re-authenticate with Google
-                    </button>
-                </div>
-                <p id="reauth-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Settings Modal (Now only for password update) -->
-    <div id="profile-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 hidden" style="opacity: 0;">
-        <div id="profile-modal" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-md transform scale-95 transition-all duration-300">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl sm:text-2xl font-semibold text-indigo-800">Change Password</h2>
-                <button id="close-profile-modal-btn" class="text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
-            </div>
-
-            <p class="text-gray-700 text-base sm:text-lg mb-6"><strong>Email:</strong> <span id="profile-email-display" class="font-medium text-indigo-700"></span></p>
-
-            <div class="p-5 border border-indigo-300 rounded-lg bg-white shadow-sm">
-                <h3 class="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
-                    <i class="fas fa-lock mr-2"></i> Set/Update Your Password
-                </h3>
-                <p class="text-gray-600 text-sm mb-4">Enter a new password for your account. Minimum 6 characters.</p>
-                <div class="space-y-4">
-                    <div>
-                        <label for="new-password" class="block text-gray-700 text-sm font-bold mb-1">New Password:</label>
-                        <input type="password" id="new-password" placeholder="Minimum 6 characters" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm" />
-                    </div>
-                    <div>
-                        <label for="confirm-new-password" class="block text-gray-700 text-sm font-bold mb-1">Confirm New Password:</label>
-                        <input type="password" id="confirm-new-password" placeholder="Confirm your new password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm" />
-                    </div>
-                    <p id="profile-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
-                    <button id="set-password-btn" class="w-full px-6 py-3 text-sm sm:text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">Update Password</button>
-                </div>
-            </div>
-
-            <!-- New: Link Google Account Section -->
-            <div id="link-google-section" class="p-5 border border-green-300 rounded-lg bg-green-50 shadow-sm mt-6 hidden">
-                <h3 class="text-lg font-semibold text-green-700 mb-3 flex items-center">
-                    <i class="fab fa-google mr-2"></i> Link Google Account
-                </h3>
-                <p class="text-gray-600 text-sm mb-4">Link your Google account to sign in with Google in the future.</p>
-                <button id="link-google-btn" class="w-full px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                    <i class="fab fa-google mr-2"></i> Link with Google
-                </button>
-                <p id="link-google-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
-            </div>
-        </div>
-    </div>
-
 
     <!-- Custom Message Box -->
     <div id="custom-message-box-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
         <div id="custom-message-box" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-11/12 max-w-sm transform scale-95 transition-all duration-300">
+            <button id="message-box-close-icon" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
             <p id="message-text" class="text-base sm:text-lg text-gray-800 mb-6 text-center"></p>
-            <button id="close-message-btn" class="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
+            <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
+                <!-- "Got It!" button - shown for general messages -->
+                <button id="close-message-btn" class="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
+                <!-- "Resend Verification Email" button - shown specifically for unverified email message -->
+                <button id="message-box-resend-btn" class="px-6 py-3 text-base bg-yellow-500 text-white rounded-lg shadow-md hover:bg-yellow-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 hidden">Resend Verification Email</button>
+            </div>
         </div>
     </div>
 
-    <!-- Dashboard Logic -->
+    <!-- Main Dashboard Content (Initially hidden, shown after auth check) -->
+    <div id="main-dashboard-content" class="view hidden w-full max-w-4xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-indigo-800 mb-4 sm:mb-0">Poppy.AI Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <span id="user-id-display" class="text-gray-700 text-sm sm:text-base">User ID: <span id="current-user-id" class="font-semibold text-indigo-600"></span></span>
+                <button id="logout-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400">
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Add New Lead Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Add New Lead</h2>
+            <form id="lead-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="lead-name" class="block text-sm font-medium text-gray-700">Lead Name</label>
+                        <input type="text" id="lead-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., John Doe" required>
+                    </div>
+                    <div>
+                        <label for="lead-email" class="block text-sm font-medium text-gray-700">Lead Email</label>
+                        <input type="email" id="lead-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., john.doe@example.com">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="call-booking-link" class="block text-sm font-medium text-gray-700">Call Booking Link</label>
+                    <input type="url" id="call-booking-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://calendly.com/johndoe">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="instagram-link" class="block text-sm font-medium text-gray-700">Instagram Link</label>
+                        <input type="url" id="instagram-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://instagram.com/johndoe">
+                    </div>
+                    <div>
+                        <label for="youtube-link" class="block text-sm font-medium text-gray-700">YouTube Link</label>
+                        <input type="url" id="youtube-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://youtube.com/johndoe">
+                    </div>
+                    <div>
+                        <label for="tiktok-link" class="block text-sm font-medium text-gray-700">TikTok Link</label>
+                        <input type="url" id="tiktok-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://tiktok.com/@johndoe">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Follower Count</label>
+                        <div class="mt-1 flex items-center space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="follower-count" value="10k+" id="follower-10k-up" class="form-radio text-indigo-600">
+                                <span class="ml-2 text-gray-700">10K+</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="follower-count" value="<10k" id="follower-less-10k" class="form-radio text-indigo-600">
+                                <span class="ml-2 text-gray-700">&lt;10K</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="avg-views" class="block text-sm font-medium text-gray-700">Average Views (if applicable)</label>
+                        <input type="number" id="avg-views" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 5000">
+                    </div>
+                </div>
+
+                <!-- Niches Section -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Niches</label>
+                    <div id="niches-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <!-- Niches will be dynamically rendered here by JavaScript -->
+                    </div>
+                    <div id="other-niche-notes-container" class="mt-4 hidden">
+                        <label for="other-niche-notes" class="block text-sm font-medium text-gray-700">Other Niche Notes</label>
+                        <textarea id="other-niche-notes" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Specializes in sustainable fashion for Gen Z"></textarea>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="lead-notes" class="block text-sm font-medium text-gray-700">Lead Notes</label>
+                    <textarea id="lead-notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Any additional notes about the lead..."></textarea>
+                </div>
+
+                <p id="validation-error" class="text-red-600 text-sm hidden"></p>
+
+                <div class="flex justify-end space-x-3">
+                    <button
+                        type="button"
+                        id="update-lead-btn"
+                        class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 hidden"
+                    >
+                        Update Lead
+                    </button>
+                    <button
+                        type="button"
+                        id="cancel-edit-btn"
+                        class="px-6 py-3 bg-gray-500 text-white rounded-lg shadow-md hover:bg-gray-600 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 hidden"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        id="add-lead-btn"
+                        class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        Add Lead
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Leads List -->
+        <div>
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Your Leads</h2>
+            <div id="leads-list" class="grid grid-cols-1 gap-4">
+                <!-- Leads will be dynamically rendered here by JavaScript -->
+                <p id="no-leads-message" class="text-gray-600 text-center p-4 bg-gray-50 rounded-lg">No leads added yet. Start by adding a new lead above!</p>
+            </div>
+        </div>
+
+        <!-- User Profile Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mt-6">
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">User Profile</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email:</label>
+                    <p id="profile-email" class="mt-1 text-gray-900 font-semibold"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email Verified:</label>
+                    <p id="profile-email-verified" class="mt-1 text-gray-900 font-semibold"></p>
+                </div>
+                <div id="google-link-section">
+                    <p class="text-gray-600 text-sm mb-4">Link your Google account to sign in with Google in the future.</p>
+                    <button id="link-google-btn" class="w-full px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <i class="fab fa-google mr-2"></i> Link with Google
+                    </button>
+                    <p id="link-google-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase and main script -->
     <script type="module" src="dashboard.js"></script>
 </body>
 </html>
