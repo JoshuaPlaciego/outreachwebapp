@@ -1,11 +1,4 @@
-// --- DOM Element References (assuming these exist in index.html and dashboard.html) ---
-const messageOverlay = document.getElementById('custom-message-box-overlay');
-const messageBox = document.getElementById('custom-message-box');
-const messageText = document.getElementById('message-text');
-const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
-const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
-const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: "Logout" button
-const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); // The 'X' close icon
+// utils.js
 
 /**
  * Displays a custom message to the user.
@@ -14,32 +7,30 @@ const messageBoxCloseIcon = document.getElementById('message-box-close-icon'); /
  * @param {boolean} [showLogoutButton=false] - Whether to show the logout button.
  */
 export function showMessage(msg, showResendButton = false, showLogoutButton = false) {
-    if (messageText && messageOverlay && messageBox && closeMessageBtn && messageBoxResendBtn && messageBoxLogoutBtn && messageBoxCloseIcon) {
+    // Get element references dynamically when the function is called
+    const messageOverlay = document.getElementById('custom-message-box-overlay');
+    const messageBox = document.getElementById('custom-message-box');
+    const messageText = document.getElementById('message-text');
+    const closeMessageBtn = document.getElementById('close-message-btn'); // "Got It!" button
+    const messageBoxResendBtn = document.getElementById('message-box-resend-btn'); // "Resend Verification Email" button
+    // Note: messageBoxLogoutBtn is removed from HTML and not referenced here.
+
+    if (messageText && messageOverlay && messageBox && closeMessageBtn && messageBoxResendBtn) {
         messageText.textContent = msg;
         messageOverlay.classList.remove('hidden');
         messageOverlay.classList.add('modal-active-overlay'); // Apply flex for centering
 
-        // Toggle button visibility based on parameters
+        // Toggle button visibility based on showResendButton
         if (showResendButton) {
             messageBoxResendBtn.classList.remove('hidden');
-            messageBoxCloseIcon.classList.add('hidden'); // Hide 'X' icon if resend button is shown (i.e., for verification message)
+            closeMessageBtn.classList.add('hidden'); // Hide "Got It!" button
         } else {
             messageBoxResendBtn.classList.add('hidden');
-            messageBoxCloseIcon.classList.remove('hidden'); // Show 'X' icon for general messages
+            closeMessageBtn.classList.remove('hidden'); // Show "Got It!" button
         }
 
-        if (showLogoutButton) {
-            messageBoxLogoutBtn.classList.remove('hidden');
-        } else {
-            messageBoxLogoutBtn.classList.add('hidden');
-        }
-
-        // The "Got It!" button is shown only if neither resend nor logout buttons are shown
-        if (!showResendButton && !showLogoutButton) {
-            closeMessageBtn.classList.remove('hidden');
-        } else {
-            closeMessageBtn.classList.add('hidden');
-        }
+        // The logout button is now completely removed from HTML, so no need to manage its visibility here.
+        // If it were still in HTML but conditionally visible, you'd manage it here.
 
         setTimeout(() => {
             messageOverlay.style.opacity = '1';
@@ -54,17 +45,23 @@ export function showMessage(msg, showResendButton = false, showLogoutButton = fa
  * Hides the custom message box.
  */
 export function hideMessage() {
+    // Get element references dynamically when the function is called
+    const messageOverlay = document.getElementById('custom-message-box-overlay');
+    const messageBox = document.getElementById('custom-message-box');
+    const closeMessageBtn = document.getElementById('close-message-btn');
+    const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
+    // Note: messageBoxLogoutBtn is removed from HTML and not referenced here.
+
     if (messageOverlay && messageBox) {
         messageOverlay.style.opacity = '0';
         messageBox.style.transform = 'scale(0.95)';
         setTimeout(() => {
             messageOverlay.classList.add('hidden'); // Hide it (display: none)
             messageOverlay.classList.remove('modal-active-overlay'); // Remove flex properties
-            // Ensure all buttons are hidden when closing the message box
+            // Ensure both buttons are hidden when closing the message box
             if (closeMessageBtn) closeMessageBtn.classList.add('hidden');
             if (messageBoxResendBtn) messageBoxResendBtn.classList.add('hidden');
-            if (messageBoxLogoutBtn) messageBoxLogoutBtn.classList.add('hidden');
-            if (messageBoxCloseIcon) messageBoxCloseIcon.classList.add('hidden'); // Ensure 'X' icon is hidden
+            // No need to hide messageBoxLogoutBtn as it's removed from HTML
         }, 300);
     } else {
         console.error("Message box elements not found. Cannot hide message.");
