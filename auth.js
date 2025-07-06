@@ -299,6 +299,7 @@ async function handleSignUp() {
         await sendEmailVerification(user);
         
         // Redirect to dashboard with a success flag for new sign-ups
+        // Ensure the parameter is correctly appended
         window.location.href = 'dashboard.html?signupSuccess=true';
         
         resetAuthForm(); // Clear fields and reset strength after successful signup
@@ -401,7 +402,7 @@ async function resendVerification() {
 
     try {
         await sendEmailVerification(user);
-        showMessage("Verification email sent. Please check your inbox.", false);
+        showMessage("Verification email sent! Please check your inbox.", false);
         
     } catch (error) {
         showMessage(`Failed to resend verification email: ${error.message}`);
