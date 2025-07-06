@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poppy.AI - Leads Dashboard</title>
+    <title>Poppy.AI Dashboard</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -13,10 +13,10 @@
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen bg-gray-100 p-4 flex flex-col items-center justify-center font-inter">
+<body class="min-h-screen bg-gray-100 flex flex-col font-inter">
 
     <!-- Loading Indicator -->
-    <div id="loading-indicator" class="view active">
+    <div id="loading-indicator" class="view active fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
         <div class="flex flex-col items-center justify-center space-y-4">
             <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -26,56 +26,60 @@
         </div>
     </div>
 
-    <!-- Custom Message Box -->
-    <div id="custom-message-box-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
-        <div id="custom-message-box" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-11/12 max-w-sm transform scale-95 transition-all duration-300">
-            <button id="message-box-close-icon" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
-            <p id="message-text" class="text-base sm:text-lg text-gray-800 mb-6 text-center"></p>
-            <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
-                <!-- "Got It!" button - shown for general messages -->
-                <button id="close-message-btn" class="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
-                <!-- "Resend Verification Email" button - shown specifically for unverified email message -->
-                <button id="message-box-resend-btn" class="px-6 py-3 text-base bg-yellow-500 text-white rounded-lg shadow-md hover:bg-yellow-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 hidden">Resend Verification Email</button>
-                <!-- New: Logout button for verification message -->
-                <button id="message-box-logout-btn" class="px-6 py-3 text-base bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400 hidden">Logout</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Dashboard Content (Initially hidden, shown after auth check) -->
-    <div id="main-dashboard-content" class="view hidden w-full max-w-4xl mx-auto space-y-6">
+    <!-- Main Dashboard Content -->
+    <div id="main-dashboard-content" class="view flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
         <!-- Header -->
-        <header class="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-indigo-800 mb-4 sm:mb-0">Poppy.AI Dashboard</h1>
+        <header class="bg-white shadow-md rounded-lg p-4 mb-6 flex flex-col sm:flex-row justify-between items-center">
+            <h1 class="text-3xl font-bold text-indigo-800 mb-2 sm:mb-0">Poppy.AI Dashboard</h1>
             <div class="flex items-center space-x-4">
-                <span id="user-id-display" class="text-gray-700 text-sm sm:text-base">User ID: <span id="current-user-id" class="font-semibold text-indigo-600"></span></span>
-                <button id="logout-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-400">
+                <span class="text-gray-700 text-sm">User ID: <span id="current-user-id" class="font-semibold text-indigo-600">Loading...</span></span>
+                <button id="logout-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-red-500">
                     Logout
                 </button>
             </div>
         </header>
 
-        <!-- Add New Lead Section -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Add New Lead</h2>
-            <form id="lead-form" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Main Content Area -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- User Profile Section -->
+            <section class="lg:col-span-1 bg-white rounded-lg shadow-md p-6 h-fit">
+                <h2 class="text-2xl font-semibold text-indigo-700 mb-4">User Profile</h2>
+                <div class="space-y-3">
+                    <p class="text-gray-700"><strong class="font-medium">Email:</strong> <span id="profile-email">Loading...</span></p>
+                    <p class="text-gray-700"><strong class="font-medium">Email Verified:</strong> <span id="profile-email-verified">Loading...</span></p>
+                </div>
+
+                <!-- Google Link Section -->
+                <div id="google-link-section" class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 class="text-lg font-semibold text-blue-700 mb-3">Link Google Account</h3>
+                    <p class="text-sm text-gray-600 mb-4">Link your Google account for easier sign-in and enhanced security.</p>
+                    <button id="link-google-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center">
+                        <i class="fab fa-google mr-2"></i> Link with Google
+                    </button>
+                    <p id="link-google-error" class="text-red-500 text-sm mt-2 hidden"></p>
+                </div>
+            </section>
+
+            <!-- Lead Management Section -->
+            <section class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Manage Leads</h2>
+
+                <!-- Lead Form -->
+                <form id="lead-form" class="space-y-4 mb-8">
+                    <div id="validation-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative hidden" role="alert"></div>
+
                     <div>
                         <label for="lead-name" class="block text-sm font-medium text-gray-700">Lead Name</label>
-                        <input type="text" id="lead-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., John Doe" required>
+                        <input type="text" id="lead-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., John Doe">
                     </div>
                     <div>
                         <label for="lead-email" class="block text-sm font-medium text-gray-700">Lead Email</label>
                         <input type="email" id="lead-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., john.doe@example.com">
                     </div>
-                </div>
-
-                <div>
-                    <label for="call-booking-link" class="block text-sm font-medium text-gray-700">Call Booking Link</label>
-                    <input type="url" id="call-booking-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://calendly.com/johndoe">
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="call-booking-link" class="block text-sm font-medium text-gray-700">Call Booking Link</label>
+                        <input type="url" id="call-booking-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://calendly.com/johndoe">
+                    </div>
                     <div>
                         <label for="instagram-link" class="block text-sm font-medium text-gray-700">Instagram Link</label>
                         <input type="url" id="instagram-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://instagram.com/johndoe">
@@ -88,106 +92,87 @@
                         <label for="tiktok-link" class="block text-sm font-medium text-gray-700">TikTok Link</label>
                         <input type="url" id="tiktok-link" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://tiktok.com/@johndoe">
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Follower Count Radio Buttons -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Follower Count</label>
-                        <div class="mt-1 flex items-center space-x-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="follower-count" value="10k+" id="follower-10k-up" class="form-radio text-indigo-600">
-                                <span class="ml-2 text-gray-700">10K+</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="follower-count" value="<10k" id="follower-less-10k" class="form-radio text-indigo-600">
-                                <span class="ml-2 text-gray-700">&lt;10K</span>
-                            </label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Follower Count</label>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <input id="follower-10k-up" name="follower-count" type="radio" value="10k+" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                                <label for="follower-10k-up" class="ml-2 block text-sm text-gray-900">10K+</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="follower-less-10k" name="follower-count" type="radio" value="<10k" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                                <label for="follower-less-10k" class="ml-2 block text-sm text-gray-900">&lt;10K</label>
+                            </div>
                         </div>
                     </div>
+
                     <div>
-                        <label for="avg-views" class="block text-sm font-medium text-gray-700">Average Views (if applicable)</label>
-                        <input type="number" id="avg-views" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 5000">
+                        <label for="avg-views" class="block text-sm font-medium text-gray-700">Average Views</label>
+                        <input type="text" id="avg-views" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 5000">
                     </div>
-                </div>
 
-                <!-- Niches Section -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Niches</label>
-                    <div id="niches-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                        <!-- Niches will be dynamically rendered here by JavaScript -->
+                    <!-- Niches Checkboxes -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Niches</label>
+                        <div id="niches-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <!-- Niches will be rendered here by JavaScript -->
+                        </div>
                     </div>
-                    <div id="other-niche-notes-container" class="mt-4 hidden">
+
+                    <!-- Other Niche Notes (conditionally visible) -->
+                    <div id="other-niche-notes-container" class="hidden">
                         <label for="other-niche-notes" class="block text-sm font-medium text-gray-700">Other Niche Notes</label>
-                        <textarea id="other-niche-notes" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Specializes in sustainable fashion for Gen Z"></textarea>
+                        <textarea id="other-niche-notes" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Specific sub-niche details"></textarea>
                     </div>
-                </div>
 
-                <div>
-                    <label for="lead-notes" class="block text-sm font-medium text-gray-700">Lead Notes</label>
-                    <textarea id="lead-notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Any additional notes about the lead..."></textarea>
-                </div>
+                    <div>
+                        <label for="lead-notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                        <textarea id="lead-notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Any additional notes about the lead"></textarea>
+                    </div>
 
-                <p id="validation-error" class="text-red-600 text-sm hidden"></p>
+                    <div class="flex space-x-3">
+                        <button type="submit" id="add-lead-btn" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            Add Lead
+                        </button>
+                        <button type="button" id="update-lead-btn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 hidden">
+                            Update Lead
+                        </button>
+                        <button type="button" id="cancel-edit-btn" class="flex-1 px-4 py-2 bg-gray-400 text-gray-800 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-400 hidden">
+                            Cancel Edit
+                        </button>
+                    </div>
+                </form>
 
-                <div class="flex justify-end space-x-3">
-                    <button
-                        type="button"
-                        id="update-lead-btn"
-                        class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 hidden"
-                    >
-                        Update Lead
-                    </button>
-                    <button
-                        type="button"
-                        id="cancel-edit-btn"
-                        class="px-6 py-3 bg-gray-500 text-white rounded-lg shadow-md hover:bg-gray-600 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 hidden"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        id="add-lead-btn"
-                        class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                        Add Lead
-                    </button>
+                <!-- Leads List -->
+                <h3 class="text-xl font-semibold text-indigo-700 mb-4">Your Leads</h3>
+                <div id="no-leads-message" class="text-center text-gray-500 py-8 hidden">
+                    <p>No leads added yet. Use the form above to add your first lead!</p>
                 </div>
-            </form>
-        </div>
+                <div id="leads-list" class="space-y-4">
+                    <!-- Leads will be rendered here by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
 
-        <!-- Leads List -->
-        <div>
-            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Your Leads</h2>
-            <div id="leads-list" class="grid grid-cols-1 gap-4">
-                <!-- Leads will be dynamically rendered here by JavaScript -->
-                <p id="no-leads-message" class="text-gray-600 text-center p-4 bg-gray-50 rounded-lg">No leads added yet. Start by adding a new lead above!</p>
-            </div>
-        </div>
-
-        <!-- User Profile Section -->
-        <div class="bg-white rounded-xl shadow-md p-6 mt-6">
-            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">User Profile</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Email:</label>
-                    <p id="profile-email" class="mt-1 text-gray-900 font-semibold"></p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Email Verified:</label>
-                    <p id="profile-email-verified" class="mt-1 text-gray-900 font-semibold"></p>
-                </div>
-                <div id="google-link-section">
-                    <p class="text-gray-600 text-sm mb-4">Link your Google account to sign in with Google in the future.</p>
-                    <button id="link-google-btn" class="w-full px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                        <i class="fab fa-google mr-2"></i> Link with Google
-                    </button>
-                    <p id="link-google-error" class="text-red-700 text-xs mt-3 hidden text-center"></p>
-                </div>
+    <!-- Custom Message Box Overlay (from index.html, duplicated for consistency) -->
+    <div id="custom-message-box-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden" style="opacity: 0;">
+        <div id="custom-message-box" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-11/12 max-w-sm transform scale-95 transition-all duration-300 relative">
+            <button id="message-box-close-icon" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">&times;</button>
+            <p id="message-text" class="text-base sm:text-lg text-gray-800 mb-6 text-center"></p>
+            <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
+                <!-- "Got It!" button - shown for general messages -->
+                <button id="close-message-btn" class="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">Got It!</button>
+                <!-- "Resend Verification Email" button - shown specifically for unverified email message -->
+                <button id="message-box-resend-btn" class="px-6 py-3 text-base bg-yellow-500 text-white rounded-lg shadow-md hover:bg-yellow-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400">Resend Verification Email</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase and main script -->
+    <!-- Firebase and main JavaScript -->
     <script type="module" src="dashboard.js"></script>
+    <script type="module" src="utils.js"></script>
 </body>
 </html>

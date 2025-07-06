@@ -572,8 +572,9 @@ async function main() {
     db = getFirestore(app);
 
     // Initial state: show loading indicator, hide main content
-    loadingIndicator.classList.remove('hidden');
-    mainDashboardContent.classList.add('hidden'); // Ensure main content is hidden initially
+    // We will manage the 'active' class for views, as defined in style.css
+    loadingIndicator.classList.add('active'); // Ensure loading is visible initially
+    mainDashboardContent.classList.remove('active'); // Ensure main content is hidden initially
     console.log("Initial UI state set (loading)."); // Debugging log
 
     // Render niches immediately
@@ -597,9 +598,10 @@ async function main() {
                 // User is authenticated AND verified, show dashboard
                 console.log("User is verified. Showing dashboard content."); // Debugging log
                 hideMessage(); // Ensure message box is hidden
-                mainDashboardContent.classList.remove('disabled-overlay'); // Enable content
-                mainDashboardContent.classList.remove('hidden'); // Show main content
-                loadingIndicator.classList.add('hidden'); // Hide loading indicator
+                
+                // Correctly switch views by managing the 'active' class
+                loadingIndicator.classList.remove('active'); // Hide loading indicator
+                mainDashboardContent.classList.add('active'); // Show main content
                 console.log("Dashboard content displayed, loading indicator hidden."); // Debugging log
 
 
