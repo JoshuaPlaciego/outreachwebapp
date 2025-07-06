@@ -531,7 +531,8 @@ function attachEventListeners() {
     // Message box close buttons
     // The 'X' icon's visibility is now controlled by showMessage based on verification status
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
-    if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage);
+    // Removed the direct event listener for messageBoxCloseIcon here
+    // if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage); 
     // Add event listener for the new logout button in the message box
     if (messageBoxLogoutBtn) messageBoxLogoutBtn.addEventListener('click', handleLogout);
 
@@ -620,15 +621,14 @@ async function main() {
 
             } else {
                 // User is signed in but email is not verified.
-                // Disable dashboard content and show verification message.
-                mainDashboardContent.classList.add('disabled-overlay'); // Disable content
-                mainDashboardContent.classList.remove('hidden'); // Still show the dimmed content
+                // Hide dashboard content completely
+                mainDashboardContent.classList.add('hidden'); // Hide main content
                 loadingIndicator.classList.add('hidden'); // Hide loading indicator
 
                 // Show message with resend button AND logout button
                 showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); 
 
-                // Display user info even if unverified
+                // Display user info even if unverified (this will be on the message box or a separate small area if desired)
                 if (userIdDisplay) userIdDisplay.textContent = userId;
                 if (profileEmail) profileEmail.textContent = user.email;
                 if (profileEmailVerified) profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
