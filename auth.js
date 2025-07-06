@@ -348,13 +348,23 @@ async function handleSignIn() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Reload user to get latest emailVerified status
-        await user.reload();
+        await user.reload(); // Get latest emailVerified status
         console.log("User signed in. Email verified status after reload:", user.emailVerified); // Debugging log
 
-        // onAuthStateChanged will handle redirection based on verification status
         resetAuthForm(); // Clear fields on successful sign-in
-        
+
+        // Explicit redirection for verified users after successful sign-in
+        if (user.emailVerified) {
+            console.log("handleSignIn: User is verified. Redirecting to dashboard.html");
+            sessionStorage.removeItem('justSignedUp'); // Clear the signup flag once verified
+            window.location.href = 'dashboard.html';
+        } else {
+            // If user is not verified, stay on auth page and show message
+            console.log("handleSignIn: User is NOT verified. Showing verification message.");
+            const messageToDisplay = `Your email (${user.email}) is already signed up successfully but needs to be email verified. Please check your inbox for a verification link to grant full access.`;
+            sessionStorage.removeItem('justSignedUp'); // Clear the flag after displaying
+            showMessage(messageToDisplay, true, false);
+        }
 
     } catch (error) {
         authErrorMessage.textContent = error.message;
@@ -385,7 +395,7 @@ async function handleGoogleAuth() {
 
         console.log("Google sign-in/up successful. Firestore user profile logic skipped as requested.");
         resetAuthForm(); // Clear fields after successful Google Auth
-        // onAuthStateChanged will handle redirect to dashboard
+        // The onAuthStateChanged listener will handle redirection or message display
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -406,7 +416,7 @@ async function handleLogout() {
         // After logout, clear any messages and redirect to the auth page
         hideMessage(); // Ensure message box is hidden
         sessionStorage.removeItem('justSignedUp'); // Clear the signup flag on logout
-        window.location.href = 'index.html';
+        window.location.href = 'index.html'; // Redirect to login page
     } catch (error) {
         console.error("Logout error:", error);
         showMessage(`Logout failed: ${error.message}`);
@@ -525,19 +535,21 @@ async function main() {
 
     // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
-        console.log("onAuthStateChanged triggered. User:", user ? user.email : "null"); // Debugging log
+        console.log("onAuthStateChanged triggered. User:", user ? user.email : "null", "Email Verified:", user ? user.emailVerified : "N/A"); // Debugging log
         if (user) {
             await user.reload(); // Get latest user state
+            // userId is not needed here as it's for dashboard context, but keeping for consistency if other logic relies on it.
+            // userId = user.uid; 
 
             if (user.emailVerified) {
                 // User is authenticated AND verified, redirect to dashboard
-                console.log("User is verified. Redirecting to dashboard."); // Debugging log
+                console.log("onAuthStateChanged: User is verified. Redirecting to dashboard."); // Debugging log
                 sessionStorage.removeItem('justSignedUp'); // Clear the signup flag once verified
                 window.location.href = 'dashboard.html';
             } else {
                 // User is signed in but email is NOT verified.
                 // Keep them on the auth page and show the verification message.
-                console.log("User is unverified. Staying on auth page and showing message."); // Debugging log
+                console.log("onAuthStateChanged: User is unverified. Staying on auth page and showing message."); // Debugging log
                 switchView('auth-view');
 
                 // Always use the universal message for unverified users
@@ -553,7 +565,7 @@ async function main() {
             }
         } else {
             // User is signed out or not logged in, show auth view
-            console.log("User is signed out/not logged in. Showing auth view."); // Debugging log
+            console.log("onAuthStateChanged: User is signed out/not logged in. Showing auth view."); // Debugging log
             switchView('auth-view');
             // Ensure fields are clear when signed out
             resetAuthForm();
