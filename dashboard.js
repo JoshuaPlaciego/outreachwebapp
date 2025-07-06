@@ -242,8 +242,8 @@ function renderLeadsList() {
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Email:</strong> ${lead.email || 'N/A'}</p>
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Call Booking:</strong> <a href="${lead.callBookingLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.callBookingLink || 'N/A'}</a></p>
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Instagram:</strong> <a href="${lead.instagramLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.instagramLink || 'N/A'}</a></p>
-            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">YouTube:</strong> <a href="${lead.youtubeLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.youtubeLink || 'N/A'}</a></p>
-            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">TikTok:</strong> <a href="${lead.tiktokLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.tiktokLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">YouTube:</b> <a href="${lead.youtubeLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.youtubeLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">TikTok:</b> <a href="${lead.tiktokLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.tiktokLink || 'N/A'}</a></p>
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Followers:</strong> ${lead.followerCount || 'N/A'}</p>
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Avg. Views:</strong> ${lead.avgViews || 'N/A'}</p>
             <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Niches:</strong> ${lead.niches && lead.niches.length > 0 ? lead.niches.join(', ') : 'N/A'}</p>
@@ -321,7 +321,7 @@ function fillFormForEdit(leadId) {
 
     addLeadBtn.classList.add('hidden');
     updateLeadBtn.classList.remove('hidden');
-    cancelEditBtn.classList.remove('hidden');
+    cancelEditBtn.classList.add('hidden');
     validationErrorDiv.classList.add('hidden'); // Clear any previous validation errors
 }
 
@@ -495,7 +495,7 @@ messageBoxResendBtn.addEventListener('click', async () => {
         try {
             await sendEmailVerification(user);
             // After resending, re-show the message with resend and logout buttons
-            showMessage("Verification email resent. Please check your inbox.", true, true);
+            showMessage("Verification email sent. Please check your inbox.", true, true);
         } catch (error) {
             console.error("Error resending verification email:", error);
             showMessage(`Failed to resend verification email: ${error.message}`, true, true); // Still show options on failure
@@ -544,10 +544,31 @@ function attachEventListeners() {
             // Check if the user is unverified AND the message box is currently hidden
             // Also ensure the click wasn't on the message box overlay itself, to prevent double-triggering
             if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden') && !customMessageBoxOverlay.contains(event.target)) {
-                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); // Pass true for showLogoutButton
+                showMessage(getVerificationMessage(user.email), true, true); // Pass true for showLogoutButton
             }
         });
     }
+}
+
+/**
+ * Determines the appropriate verification message based on URL parameter.
+ * @param {string} userEmail - The email of the unverified user.
+ * @returns {string} The verification message to display.
+ */
+function getVerificationMessage(userEmail) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSignupSuccess = urlParams.get('signupSuccess');
+
+    let message = "Your email is not verified. Please check your inbox for a verification link to grant full access.";
+
+    if (isSignupSuccess === 'true') {
+        message = `Sign up successful! Your email (${userEmail}) is not verified. Please check your inbox for a verification link to grant full access.`;
+        // Remove the parameter after showing the message to prevent it from reappearing on refresh
+        urlParams.delete('signupSuccess');
+        const newUrl = window.location.origin + window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, document.title, newUrl);
+    }
+    return message;
 }
 
 
@@ -626,7 +647,7 @@ async function main() {
                 loadingIndicator.classList.add('hidden'); // Hide loading indicator
 
                 // Show message with resend button AND logout button
-                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true, true); 
+                showMessage(getVerificationMessage(user.email), true, true); 
 
                 // Display user info even if unverified (this will be on the message box or a separate small area if desired)
                 if (userIdDisplay) userIdDisplay.textContent = userId;
