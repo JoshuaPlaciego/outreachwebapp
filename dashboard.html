@@ -16,7 +16,9 @@
 <body class="min-h-screen bg-gray-100 flex flex-col font-inter">
 
     <!-- Loading Indicator -->
-    <div id="loading-indicator" class="view active fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
+    <!-- Removed 'active' class here. It will be hidden by default by .view { display: none; }
+         and explicitly shown/hidden by dashboard.js using 'hidden' class. -->
+    <div id="loading-indicator" class="view fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
         <div class="flex flex-col items-center justify-center space-y-4">
             <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -27,7 +29,9 @@
     </div>
 
     <!-- Main Dashboard Content -->
-    <div id="main-dashboard-content" class="view flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
+    <!-- Added 'hidden' class here to ensure it's hidden initially,
+         and explicitly shown/hidden by dashboard.js. -->
+    <div id="main-dashboard-content" class="view hidden flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
         <!-- Header -->
         <header class="bg-white shadow-md rounded-lg p-4 mb-6 flex flex-col sm:flex-row justify-between items-center">
             <h1 class="text-3xl font-bold text-indigo-800 mb-2 sm:mb-0">Poppy.AI Dashboard</h1>

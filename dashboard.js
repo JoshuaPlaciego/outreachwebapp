@@ -76,7 +76,7 @@ const followerLess10KRadio = document.getElementById('follower-less-10k');
 const avgViewsInput = document.getElementById('avg-views');
 const nichesContainer = document.getElementById('niches-container');
 const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
-const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
+const otherNicheNotesTextarea = document = document.getElementById('other-niche-notes');
 const leadNotesTextarea = document.getElementById('lead-notes');
 const validationErrorDiv = document.getElementById('validation-error');
 const addLeadBtn = document.getElementById('add-lead-btn');
@@ -572,9 +572,9 @@ async function main() {
     db = getFirestore(app);
 
     // Initial state: show loading indicator, hide main content
-    // We will manage the 'active' class for views, as defined in style.css
-    loadingIndicator.classList.add('active'); // Ensure loading is visible initially
-    mainDashboardContent.classList.remove('active'); // Ensure main content is hidden initially
+    // We will manage visibility using Tailwind's 'hidden' class directly.
+    loadingIndicator.classList.remove('hidden'); // Ensure loading is visible initially
+    mainDashboardContent.classList.add('hidden'); // Ensure main content is hidden initially
     console.log("Initial UI state set (loading)."); // Debugging log
 
     // Render niches immediately
@@ -599,9 +599,9 @@ async function main() {
                 console.log("User is verified. Showing dashboard content."); // Debugging log
                 hideMessage(); // Ensure message box is hidden
                 
-                // Correctly switch views by managing the 'active' class
-                loadingIndicator.classList.remove('active'); // Hide loading indicator
-                mainDashboardContent.classList.add('active'); // Show main content
+                // Correctly switch views by managing the 'hidden' class
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator
+                mainDashboardContent.classList.remove('hidden'); // Show main content
                 console.log("Dashboard content displayed, loading indicator hidden."); // Debugging log
 
 

@@ -1,94 +1,74 @@
-/* --- Custom Styles --- */
+/* General Body and Font Styles */
 body {
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- View Switching Classes (IMPORTANT for index.html views) --- */
-/* All views are hidden by default */
+/* Base View Hiding (Managed by JS and Tailwind's 'hidden' class) */
+/*
+   IMPORTANT: These rules were removed to resolve conflicts with Tailwind's 'hidden' class.
+   The visibility of .view elements is now controlled solely by adding/removing the 'hidden' class
+   via JavaScript (e.g., element.classList.add('hidden') or element.classList.remove('hidden')).
 .view {
     display: none;
 }
 
-/* The active view becomes visible. Use 'block' to allow its natural flow
-   within the body's flex container for centering the form. */
 .view.active {
     display: block;
-    /* Remove any absolute positioning or full height/width here to let
-       the body's flexbox and the element's own Tailwind classes control layout. */
+}
+*/
+
+/* Modal Overlay Styles for custom-message-box-overlay */
+.modal-active-overlay {
+    display: flex; /* Ensure flex is applied when active for centering */
 }
 
-
-/* --- Custom Message Box --- */
+/* Transitions for the message box */
 #custom-message-box-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    transition: opacity 0.3s ease;
-    /* The 'hidden' class will control display: none / block */
+    transition: opacity 0.3s ease-in-out;
 }
-
-/* New class to apply display: flex when the modal is active */
-#custom-message-box-overlay.modal-active-overlay {
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-}
-
 
 #custom-message-box {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    max-width: 90%;
-    width: 400px;
-    text-align: center;
-    transform: scale(0.95);
-    transition: transform 0.3s ease;
-    position: relative; /* Needed for absolute positioning of the close icon */
+    transition: transform 0.3s ease-in-out;
 }
 
-#message-box-close-icon {
-    position: absolute;
-    top: 0.75rem; /* Adjust as needed for padding */
-    right: 0.75rem; /* Adjust as needed for padding */
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 2rem; /* Larger 'x' */
-    line-height: 1; /* To center the 'x' vertically */
-    padding: 0;
+/* Custom form styles for better appearance */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="url"],
+textarea {
+    @apply transition duration-150 ease-in-out;
 }
 
-/* Password Strength Indicator Styles */
-#password-strength {
-    height: 0.5rem;
-    border-radius: 0.25rem;
-    width: 100%;
-    background-color: #e2e8f0; /* Tailwind gray-200 */
-    margin-top: 0.5rem;
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="text"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+    @apply ring-2 ring-indigo-500 border-indigo-500;
 }
 
-#password-strength.weak {
-    background-color: #ef4444; /* Tailwind red-500 */
-    width: 33%;
+/* Custom checkbox/radio button styles */
+.form-checkbox {
+    /* Tailwind classes for styling */
+    @apply h-4 w-4 text-indigo-600 rounded-md border-gray-300 focus:ring-indigo-500;
 }
 
-#password-strength.medium {
-    background-color: #f59e0b; /* Tailwind amber-500 */
-    width: 66%;
+/* Button hover and focus effects */
+button {
+    @apply transition duration-300 ease-in-out;
 }
 
-#password-strength.strong {
-    background-color: #22c55e; /* Tailwind green-500 */
-    width: 100%;
+button:hover {
+    @apply shadow-lg;
 }
 
-#password-strength.very-strong {
-    background-color: #15803d; /* Tailwind green-700 */
-    width: 100%;
+button:focus {
+    @apply outline-none ring-2 ring-offset-2;
 }
+
+/* Specific button colors are handled by Tailwind classes directly in HTML */
+/* e.g., bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 */
+/* e.g., bg-red-600 hover:bg-red-700 focus:ring-red-500 */
