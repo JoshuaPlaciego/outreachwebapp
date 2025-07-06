@@ -7,7 +7,7 @@ import {
     EmailAuthProvider, // For re-authentication with email/password
     GoogleAuthProvider, // For re-authentication with Google
     reauthenticateWithCredential, // For re-authentication
-    signInWithPopup, // For social sign-in popups
+    signInWithPopup, // For re-authentication with Google popup
     updatePassword, // To update the user's password
     linkWithCredential, // For linking new providers
     sendEmailVerification // Import sendEmailVerification
@@ -15,14 +15,14 @@ import {
 import {
     getFirestore,
     collection,
-    addDoc,
     onSnapshot,
     deleteDoc,
     doc,
     updateDoc,
     serverTimestamp,
     query,
-    where
+    where,
+    addDoc // Ensure addDoc is imported if used
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Import utility functions for messages
@@ -86,8 +86,7 @@ const noLeadsMessage = document.getElementById('no-leads-message');
 const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 const closeMessageBtn = document.getElementById('close-message-btn');
 const messageBoxCloseIcon = document.getElementById('message-box-close-icon');
-const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay'); // Reference to the overlay
-const messageBoxLogoutBtn = document.getElementById('message-box-logout-btn'); // New: Reference to the logout button in message box
+const customMessageBoxOverlay = document.getElementById('custom-message-box-overlay');
 
 
 // --- Niche Definitions ---
@@ -531,45 +530,8 @@ function attachEventListeners() {
     // Message box close buttons
     // The 'X' icon's visibility is now controlled by showMessage based on verification status
     if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
-    // Removed the direct event listener for messageBoxCloseIcon here
-    // if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage); 
-    // Add event listener for the new logout button in the message box
-    if (messageBoxLogoutBtn) messageBoxLogoutBtn.addEventListener('click', handleLogout);
-
-
-    // Removed the click listener on mainDashboardContent as it's no longer needed here
-    // if (mainDashboardContent) {
-    //     mainDashboardContent.addEventListener('click', (event) => {
-    //         const user = auth.currentUser;
-    //         if (user && !user.emailVerified && customMessageBoxOverlay.classList.contains('hidden') && !customMessageBoxOverlay.contains(event.target)) {
-    //             showMessage(getVerificationMessage(user.email), true, true);
-    //         }
-    //     });
-    // }
+    if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage); // Ensure close icon works
 }
-
-// Removed the getVerificationMessage function as it's no longer needed in dashboard.js
-// function getVerificationMessage(userEmail) {
-//     const urlParams = new URLSearchParams(window.location.search);
-//     const isSignupSuccess = urlParams.get('signupSuccess');
-
-//     console.log('URL Search Params:', window.location.search);
-//     console.log('isSignupSuccess value:', isSignupSuccess);
-
-//     let message = "Your email is not verified. Please check your inbox for a verification link to grant full access.";
-
-//     if (isSignupSuccess === 'true') {
-//         message = `Sign up successful! Your email (${userEmail}) is not verified. Please check your inbox for a verification link to grant full access.`;
-//         urlParams.delete('signupSuccess');
-//         const newUrl = window.location.origin + window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-//         window.history.replaceState({}, document.title, newUrl);
-//         console.log('Tailored signup message generated and URL cleaned.');
-//     } else {
-//         console.log('Default verification message generated.');
-//     }
-//     return message;
-// }
-
 
 // --- Initialization ---
 
@@ -599,7 +561,7 @@ async function main() {
             userId = user.uid; // Set global userId
 
             if (user.emailVerified) {
-                // User is authenticated and verified, show dashboard
+                // User is authenticated AND verified, show dashboard
                 hideMessage(); // Ensure message box is hidden
                 mainDashboardContent.classList.remove('disabled-overlay'); // Enable content
                 mainDashboardContent.classList.remove('hidden'); // Show main content
@@ -626,7 +588,8 @@ async function main() {
                 if (!leadsUnsubscribe) {
                     const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
                     // Query to get leads created by the current user
-                    const q = query(leadsCollectionRef, where("createdBy", "===", userId));
+                    // FIX: Changed "===" to "==" for Firestore query operator
+                    const q = query(leadsCollectionRef, where("createdBy", "==", userId)); 
 
                     leadsUnsubscribe = onSnapshot(q, (snapshot) => {
                         leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
