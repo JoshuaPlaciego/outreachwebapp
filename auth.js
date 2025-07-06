@@ -199,7 +199,7 @@ function updatePasswordStrength(password) {
         uppercase: document.getElementById('req-uppercase'),
         lowercase: document.getElementById('req-lowercase'),
         number: document.getElementById('req-number'),
-        special: document.getElementById('req-special')
+        special: /[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password)
     };
 
     const requirements = {
@@ -269,10 +269,7 @@ function updatePasswordStrength(password) {
         passwordStrengthBar.style.backgroundColor = barColor;
     }
 }
-
-
 // --- Authentication Logic ---
-
 /**
  * Handles user sign-up.
  */
@@ -296,24 +293,12 @@ async function handleSignUp() {
         const user = userCredential.user;
         console.log("User created in Firebase Authentication:", user.uid, user.email);
 
-        // Removed: User profile document creation in Firestore as requested
-        // const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-        // await setDoc(userProfileRef, {
-        //     email: user.email,
-        //     createdAt: serverTimestamp(),
-        // });
-        // console.log("User profile document creation in Firestore skipped as requested.");
-
         await sendEmailVerification(user);
-        
-        // Show success message WITHOUT resend button *before* signing out
-        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify to sign in.`, false);
 
-        // Sign out immediately after successful signup and sending verification email
-        await signOut(auth);
-        
+        // Show success message and let onAuthStateChanged handle the redirection
+        showMessage(`Sign up successful! A verification email has been sent to ${email}. Please verify your email.`, false);
         resetAuthForm(); // Clear fields and reset strength after successful signup
-        
+
     } catch (error) {
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
@@ -354,23 +339,15 @@ async function handleSignIn() {
         await user.reload();
 
         if (user.emailVerified) {
-            // Update Firestore user document's emailVerified status if it's now true (if it were being used)
-            // const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-            // await updateDoc(userDocRef, {
-            //     emailVerified: true,
-            //     lastSignInTime: serverTimestamp()
-            // });
-            resetAuthForm(); // Clear fields on successful sign-in
-            // onAuthStateChanged will handle redirect to dashboard
+            // User is authenticated and verified, onAuthStateChanged will handle redirection
+            // The dashboard.js will then display appropriate content
+            resetAuthForm(); // Clear fields on successful login
         } else {
-            // If email is not verified, show verification message via general message box
-            // Pass true to showResendButton to display the "Resend Verification Email" button
-            showMessage(`Your email address ${user.email} is not verified. Please check your inbox for a verification link or click resend.`, true);
-            authErrorDiv.classList.add('hidden'); // Hide auth error if verification is the issue
-            switchView('auth-view');
-            loadingIndicator.classList.add('hidden');
-            await signOut(auth); // Sign out if not verified to force re-login after verification
-            resetAuthForm(); // Clear fields after sign out
+            // User is signed in but email is not verified.
+            // Do not sign out immediately. Let them proceed to dashboard with a warning.
+            showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
+            resetAuthForm(); // Clear password field after sign in attempt
+            // The onAuthStateChanged listener will now redirect to dashboard.html, where a message will be displayed.
         }
 
     } catch (error) {
@@ -384,46 +361,29 @@ async function handleSignIn() {
 }
 
 /**
- * Handles Google Sign-up/Sign-in.
- * This single function will handle both new user creation and existing user sign-in via Google.
+ * Handles Google Sign-in/Sign-up.
  */
 async function handleGoogleAuth() {
     authErrorDiv.classList.add('hidden');
-    setButtonLoading(googleAuthBtn, true, '<i class="fab fa-google mr-2"></i> Google');
+    const rememberMe = rememberMeCheckbox.checked;
+
+    setButtonLoading(googleAuthBtn, true, '<i class="fas fa-spinner fa-spin mr-2"></i> Google');
     setButtonLoading(signupBtn, true, 'Sign Up');
     setButtonLoading(signinBtn, true, 'Sign In');
 
     try {
+        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
         const provider = new GoogleAuthProvider();
-        await setPersistence(auth, rememberMeCheckbox.checked ? browserLocalPersistence : browserSessionPersistence);
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+        const userCredential = await signInWithPopup(auth, provider);
+        const user = userCredential.user;
+        console.log("Google user authenticated:", user.uid, user.email);
 
-        // Check if user exists in Firestore, if not, create a basic record (logic removed as requested)
-        // const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, user.uid);
-        // const userProfileSnap = await getDoc(userProfileRef);
+        // Google accounts are typically already email verified, but we can re-check if needed.
+        // The onAuthStateChanged listener will handle redirection to dashboard.html.
 
-        // if (!userProfileSnap.exists()) {
-        //     await setDoc(userProfileRef, {
-        //         email: user.email,
-        //         displayName: user.displayName || null,
-        //         photoURL: user.photoURL || null,
-        //         emailVerified: user.emailVerified, // Google typically provides verified email
-        //         createdAt: serverTimestamp()
-        //     });
-        //     console.log("New Google user profile document created in Firestore for UID:", user.uid);
-        // } else {
-        //     // Update existing user record if necessary (e.g., emailVerified status, last login)
-        //     await updateDoc(userProfileRef, {
-        //         emailVerified: user.emailVerified,
-        //         lastSignInTime: serverTimestamp()
-        //     });
-        //     console.log("Existing Google user profile found and updated in Firestore for UID:", user.uid);
-        // }
-        console.log("Google sign-in/up successful. Firestore user profile logic skipped as requested.");
-        resetAuthForm(); // Clear fields after successful Google Auth
-        // onAuthStateChanged will handle redirect to dashboard
+        resetAuthForm(); // Clear form after successful Google Auth
     } catch (error) {
+        console.error("Google Auth error:", error);
         authErrorMessage.textContent = error.message;
         authErrorDiv.classList.remove('hidden');
     } finally {
@@ -433,124 +393,93 @@ async function handleGoogleAuth() {
     }
 }
 
-
 /**
- * Resends the verification email.
+ * Handles resending the verification email.
+ * This is triggered by the button in the custom message box.
  */
-async function resendVerification() {
-    // We need the email from the input field as the user might be signed out
-    const emailToVerify = emailInput.value.trim();
-
-    if (!emailToVerify) {
-        showMessage("Please enter your email address in the email field to resend the verification link.");
-        return;
+messageBoxResendBtn.addEventListener('click', async () => {
+    hideMessage(); // Hide the message box first
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            showMessage("Verification email resent. Please check your inbox.", false);
+        } catch (error) {
+            console.error("Error resending verification email:", error);
+            showMessage(`Failed to resend verification email: ${error.message}`, false);
+        }
+    } else {
+        showMessage("No user logged in to resend verification email. Please sign in.", false);
     }
+});
 
-    try {
-        // To resend verification, the user needs to be authenticated.
-        // Since the current flow signs out unverified users, we'll prompt them to sign in again.
-        // A new verification link will be sent automatically if their email is still unverified upon sign-in.
-        showMessage("To resend the verification email, please sign in again with your email and password. A new verification link will be sent automatically if your email is still unverified.", false);
-        
-    } catch (error) {
-        showMessage(`Failed to resend verification email: ${error.message}`);
-    }
-}
 
 /**
- * Handles the "Forgot Password" functionality.
+ * Handles forgot password request.
  */
 async function handleForgotPassword() {
+    hideMessage(); // Hide any existing message box
+
     const email = emailInput.value.trim();
+
     if (!email) {
-        showMessage("Please enter your email address to reset your password.");
+        showMessage("Please enter your email address to reset your password.", false);
         return;
     }
+    if (!validateEmailInput()) {
+        showMessage("Please enter a valid email address.", false);
+        return;
+    }
+
     try {
         await sendPasswordResetEmail(auth, email);
-        showMessage("Password reset email sent! Please check your inbox for instructions.");
-        emailInput.value = ''; // Clear email field after sending reset email
+        showMessage(`A password reset link has been sent to ${email}. Please check your inbox.`, false);
+        resetAuthForm();
     } catch (error) {
-        authErrorMessage.textContent = error.message; // Display error on the form
-        authErrorDiv.classList.remove('hidden');
+        console.error("Forgot password error:", error);
+        showMessage(`Failed to send password reset email: ${error.message}`, false);
     }
 }
 
+
 // --- Event Listeners ---
+signupBtn.addEventListener('click', handleSignUp);
+signinBtn.addEventListener('click', handleSignIn);
+googleAuthBtn.addEventListener('click', handleGoogleAuth);
+forgotPasswordLink.addEventListener('click', handleForgotPassword);
+closeMessageBtn.addEventListener('click', hideMessage); // For 'Got It!' button
+messageBoxCloseIcon.addEventListener('click', hideMessage); // For 'X' icon
 
-/**
- * Attaches all primary event listeners for the authentication page.
- */
-function attachEventListeners() {
-    signupBtn.addEventListener('click', handleSignUp);
-    signinBtn.addEventListener('click', handleSignIn);
-    googleAuthBtn.addEventListener('click', handleGoogleAuth);
+// Real-time validation
+emailInput.addEventListener('input', validateEmailInput);
+passwordInput.addEventListener('input', validatePasswordInput);
 
-    // Attach listener to the new message box resend button
-    messageBoxResendBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        resendVerification();
-    });
 
-    forgotPasswordLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        handleForgotPassword();
-    });
+togglePasswordVisibility.addEventListener('click', () => {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    // Toggle the eye icon
+    togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye');
+    togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye-slash');
+});
 
-    // Event listener for password visibility toggle
-    togglePasswordVisibility.addEventListener('click', () => {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
-        // Toggle eye icon
-        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye');
-        togglePasswordVisibility.querySelector('i').classList.toggle('fa-eye-slash');
-    });
 
-    // Real-time input validation
-    emailInput.addEventListener('input', validateEmailInput);
-    passwordInput.addEventListener('input', validatePasswordInput);
-
-    // Message box close buttons
-    closeMessageBtn.addEventListener('click', () => {
-        hideMessage();
-    });
-    messageBoxCloseIcon.addEventListener('click', () => {
-        hideMessage();
-    });
-}
-
-// --- Initialization ---
-
-/**
- * Main function to initialize the authentication page.
- */
-async function main() {
+// --- Main Application Initialization ---
+function main() {
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
 
-    attachEventListeners();
-    resetAuthForm(); // Initial reset of form fields and strength indicator
+    // Initial state: show loading indicator
+    loadingIndicator.classList.remove('hidden'); // Ensure it's visible initially
 
-    // Handle authentication state
+    // Listen for authentication state changes
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await user.reload(); // Get latest user state
-            if (user.emailVerified) {
-                // User is authenticated and verified, redirect to dashboard
-                window.location.href = 'dashboard.html';
-            } else {
-                // User is signed in but email is not verified.
-                // This state is reached if they just signed up, or if they refresh the page while unverified.
-                // Display the verification message and sign them out to force verification.
-                console.log("Unverified user detected by onAuthStateChanged. Displaying message and signing out.");
-                showMessage("Your email is not verified. Please check your inbox for a verification link.", true);
-                switchView('auth-view'); // Stay on auth view
-                emailInput.value = user.email; // Pre-fill email for convenience
-                await signOut(auth); // Sign out to keep them in the "trap"
-                resetAuthForm(); // Clear password field after sign out
-            }
+            // If user is logged in (verified or unverified), redirect to dashboard
+            window.location.href = 'dashboard.html';
         } else {
             // User is signed out or not logged in, show auth view
             switchView('auth-view');

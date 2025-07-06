@@ -9,7 +9,8 @@ import {
     reauthenticateWithCredential, // For re-authentication
     signInWithPopup, // For re-authentication with Google popup
     updatePassword, // To update the user's password
-    linkWithCredential // For linking new providers
+    linkWithCredential, // For linking new providers
+    sendEmailVerification // Import sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -38,743 +39,496 @@ const firebaseConfig = {
 };
 
 // --- App State & Config ---
-let auth, db, userId, leadsUnsubscribe = null;
-let leads = [];
-let editingLeadId = null;
-let reauthenticated = false; // Flag to track re-authentication status
+let auth;
+let db;
+let userId = null; // Current authenticated user's UID
+let leads = []; // Array to store leads
+let leadsUnsubscribe = null; // To store the unsubscribe function for Firestore listener
+let editingLeadId = null; // Stores the ID of the lead being edited
 
 // The appId is now derived directly from the firebaseConfig
 const appId = firebaseConfig.appId;
 
-const poppyAINiches = [
-    { name: 'AI Educator', subNiches: ['AI for Beginners', 'Advanced AI Concepts', 'AI Ethics & Society', 'AI Tools & Applications'] },
-    { name: 'Content Creator', subNiches: ['Video Production', 'Podcasting', 'Blogging & Writing', 'Short-form Video'] },
-    { name: 'Marketer', subNiches: ['Digital Marketing', 'Social Media Marketing', 'SEO', 'Content Marketing'] },
-    { name: 'Founder', subNiches: ['Startup Strategy', 'Fundraising', 'Product Development', 'Scaling & Growth'] },
-    { name: 'Personal Brand Coach', subNiches: ['Brand Strategy', 'Online Presence', 'Thought Leadership', 'Monetization'] },
-    { name: 'Others', subNiches: ['Specify custom niche(s) in the field below.'] }
-];
-
 // --- DOM Element References ---
 const loadingIndicator = document.getElementById('loading-indicator');
-const appView = document.getElementById('app-view');
-
-// App View Elements
+const mainDashboardContent = document.getElementById('main-dashboard-content'); // New reference for the main content wrapper
 const logoutBtn = document.getElementById('logout-btn');
-const currentUserIdSpan = document.getElementById('current-user-id');
-const addLeadModalBtn = document.getElementById('add-new-lead-modal-btn'); // Button to open modal
-const profileSettingsBtn = document.getElementById('profile-settings-btn'); // New: Profile Settings button
+const userIdDisplay = document.getElementById('current-user-id');
+const profileEmail = document.getElementById('profile-email');
+const profileEmailVerified = document.getElementById('profile-email-verified');
+const linkGoogleBtn = document.getElementById('link-google-btn');
+const linkGoogleError = document.getElementById('link-google-error');
+const googleLinkSection = document.getElementById('google-link-section');
 
-const formTitle = document.getElementById('form-title');
-const validationErrorDiv = document.getElementById('validation-error'); // Still needed for specific form validation
-const errorMessageSpan = document.getElementById('error-message'); // Still needed for specific form validation
+// Lead Form Elements
+const leadForm = document.getElementById('lead-form');
 const leadNameInput = document.getElementById('lead-name');
 const leadEmailInput = document.getElementById('lead-email');
 const callBookingLinkInput = document.getElementById('call-booking-link');
 const instagramLinkInput = document.getElementById('instagram-link');
 const youtubeLinkInput = document.getElementById('youtube-link');
 const tiktokLinkInput = document.getElementById('tiktok-link');
+const follower10KUpRadio = document.getElementById('follower-10k-up');
+const followerLess10KRadio = document.getElementById('follower-less-10k');
 const avgViewsInput = document.getElementById('avg-views');
 const nichesContainer = document.getElementById('niches-container');
 const otherNicheNotesContainer = document.getElementById('other-niche-notes-container');
 const otherNicheNotesTextarea = document.getElementById('other-niche-notes');
 const leadNotesTextarea = document.getElementById('lead-notes');
+const validationErrorDiv = document.getElementById('validation-error');
 const addLeadBtn = document.getElementById('add-lead-btn');
 const updateLeadBtn = document.getElementById('update-lead-btn');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const leadsListDiv = document.getElementById('leads-list');
 const noLeadsMessage = document.getElementById('no-leads-message');
 
-// Lead Modal Elements
-const leadModalOverlay = document.getElementById('lead-modal-overlay');
-const leadModal = document.getElementById('lead-modal');
-const closeModalBtn = document.getElementById('close-modal-btn');
-
-// Profile Settings Modals (NEW)
-const reauthModalOverlay = document.getElementById('reauth-modal-overlay'); // New reauth modal overlay
-const reauthModal = document.getElementById('reauth-modal'); // New reauth modal
-const closeReauthModalBtn = document.getElementById('close-reauth-modal-btn'); // New close button for reauth modal
-
-const profileModalOverlay = document.getElementById('profile-modal-overlay'); // Existing profile modal overlay (now for password)
-const profileModal = document.getElementById('profile-modal'); // Existing profile modal (now for password)
-const closeProfileModalBtn = document.getElementById('close-profile-modal-btn'); // Existing close button for profile modal
-
-const profileEmailDisplay = document.getElementById('profile-email-display');
-const reauthSection = document.getElementById('reauth-section'); // This is inside reauth-modal, not profile-modal anymore
-const reauthEmailPasswordSection = document.getElementById('reauth-email-password-section');
-const reauthCurrentPasswordInput = document.getElementById('reauth-current-password');
-const reauthEmailPasswordBtn = document.getElementById('reauth-email-password-btn');
-const reauthGoogleSection = document.getElementById('reauth-google-section');
-const reauthGoogleBtn = document.getElementById('reauth-google-btn');
-const reauthError = document.getElementById('reauth-error');
-const setPasswordSection = document.getElementById('set-password-section'); // This is inside profile-modal
-const newPasswordInput = document.getElementById('new-password');
-const confirmNewPasswordInput = document.getElementById('confirm-new-password');
-const profilePasswordError = document.getElementById('profile-password-error');
-const setPasswordBtn = document.getElementById('set-password-btn');
-
-// New: Link Google Account Elements
-const linkGoogleSection = document.getElementById('link-google-section');
-const linkGoogleBtn = document.getElementById('link-google-btn');
-const linkGoogleError = document.getElementById('link-google-error');
-
-
-// Message Box Elements (These are now handled by utils.js, but the close button still needs an event listener)
+// Message Box Elements (from utils.js, but need local refs for event listeners if any)
+const messageBoxResendBtn = document.getElementById('message-box-resend-btn');
 const closeMessageBtn = document.getElementById('close-message-btn');
+const messageBoxCloseIcon = document.getElementById('message-box-close-icon');
 
 
-// --- Utility Functions (for Modals and Loading States) ---
+// --- Niche Definitions ---
+const poppyAINiches = [
+    "Fitness & Health", "Beauty & Skincare", "Fashion & Apparel",
+    "Food & Cooking", "Travel & Adventure", "Gaming",
+    "Tech & Gadgets", "Finance & Investing", "Education & Learning",
+    "DIY & Home Improvement", "Parenting & Family", "Pets",
+    "Art & Design", "Photography", "Music",
+    "Books & Literature", "Environmental & Sustainability", "Comedy",
+    "Motivation & Self-Help", "Business & Entrepreneurship", "Real Estate",
+    "Automotive", "Sports", "Outdoor & Nature", "Other"
+];
 
-/**
- * Switches the main view of the application.
- * @param {string} viewId - The ID of the view to show ('app-view', 'loading-indicator').
- */
-function switchView(viewId) {
-    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-}
-
-/**
- * Shows the lead add/edit modal.
- */
-function showLeadModal() {
-    leadModalOverlay.classList.remove('hidden');
-    setTimeout(() => {
-        leadModalOverlay.style.opacity = '1';
-        leadModal.style.transform = 'scale(1)';
-    }, 10);
-}
+// --- Utility Functions ---
 
 /**
- * Hides the lead add/edit modal.
- */
-function hideLeadModal() {
-    leadModalOverlay.style.opacity = '0';
-    leadModal.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-        leadModalOverlay.classList.add('hidden');
-        resetForm(); // Reset form when modal is closed
-    }, 300);
-}
-
-/**
- * Shows the re-authentication modal.
- */
-function showReauthModal() {
-    reauthModalOverlay.classList.remove('hidden');
-    setTimeout(() => {
-        reauthModalOverlay.style.opacity = '1';
-        reauthModal.style.transform = 'scale(1)';
-    }, 10);
-
-    // Reset re-authentication state
-    reauthenticated = false;
-    reauthCurrentPasswordInput.value = '';
-    reauthError.classList.add('hidden');
-    
-    // Determine which re-auth options to show
-    const user = auth.currentUser;
-    if (user) {
-        const providers = user.providerData.map(p => p.providerId);
-        reauthEmailPasswordSection.classList.toggle('hidden', !providers.includes(EmailAuthProvider.PROVIDER_ID));
-        reauthGoogleSection.classList.toggle('hidden', !providers.includes(GoogleAuthProvider.PROVIDER_ID));
-    } else {
-        // Should not happen if this modal is only opened when user is logged in, but as fallback
-        reauthEmailPasswordSection.classList.add('hidden');
-        reauthGoogleSection.classList.add('hidden');
-        reauthError.textContent = "No active user session found. Please log in.";
-        reauthError.classList.remove('hidden');
-    }
-}
-
-/**
- * Hides the re-authentication modal.
- */
-function hideReauthModal() {
-    reauthModalOverlay.style.opacity = '0';
-    reauthModal.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-        reauthModalOverlay.classList.add('hidden');
-    }, 300);
-}
-
-/**
- * Shows the profile settings modal (for password update and linking).
- */
-function showProfileModal() {
-    profileModalOverlay.classList.remove('hidden');
-    setTimeout(() => {
-        profileModalOverlay.style.opacity = '1';
-        profileModal.style.transform = 'scale(1)';
-    }, 10);
-    // Populate email display
-    const user = auth.currentUser;
-    if (user) {
-        profileEmailDisplay.textContent = user.email;
-        
-        // Log provider data for debugging
-        console.log("Current user providerData:", user.providerData.map(p => p.providerId));
-
-        // Check if Google provider is already linked and show/hide the link section
-        const providers = user.providerData.map(p => p.providerId);
-        if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
-            linkGoogleSection.classList.add('hidden'); // Hide if already linked
-        } else {
-            linkGoogleSection.classList.remove('hidden'); // Show if not linked
-            linkGoogleBtn.disabled = !reauthenticated; // Only enable if re-authenticated
-        }
-    }
-    // Reset password fields and errors
-    newPasswordInput.value = '';
-    confirmNewPasswordInput.value = '';
-    profilePasswordError.classList.add('hidden');
-    linkGoogleError.classList.add('hidden');
-    setPasswordBtn.disabled = !reauthenticated; // Disable set password until re-authenticated (from previous modal)
-}
-
-/**
- * Hides the profile settings modal.
- */
-function hideProfileModal() {
-    profileModalOverlay.style.opacity = '0';
-    profileModal.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-        profileModalOverlay.classList.add('hidden');
-        reauthenticated = false; // Reset re-authentication flag on close
-    }, 300);
-}
-
-/**
- * Sets the loading state for a button.
- * @param {HTMLElement} button - The button element.
- * @param {boolean} isLoading - True to show loading state, false otherwise.
- * @param {string} originalText - The original text of the button.
- */
-function setButtonLoading(button, isLoading, originalText) {
-    if (isLoading) {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...'; // Add spinner icon
-    } else {
-        button.disabled = false;
-        button.innerHTML = originalText;
-    }
-}
-
-
-// --- Authentication Logic (for Dashboard) ---
-
-/**
- * Handles user sign-out.
- */
-async function handleSignOut() {
-    try {
-        await signOut(auth);
-        // Redirect to login page after sign out
-        window.location.href = 'index.html';
-        if (leadsUnsubscribe) {
-            leadsUnsubscribe(); // Detach the Firestore listener
-            leadsUnsubscribe = null;
-        }
-        leads = [];
-        renderLeadsList(); // Clear leads list on sign out
-    } catch (error) {
-        showMessage(`Sign Out Failed: ${error.message}`);
-    }
-}
-
-/**
- * Handles re-authentication with email and password.
- */
-async function handleReauthenticateWithPassword() {
-    const user = auth.currentUser;
-    const currentPassword = reauthCurrentPasswordInput.value;
-    reauthError.classList.add('hidden');
-
-    if (!currentPassword) {
-        reauthError.textContent = "Please enter your current password.";
-        reauthError.classList.remove('hidden');
-        return;
-    }
-
-    setButtonLoading(reauthEmailPasswordBtn, true, 'Re-authenticate with Password');
-
-    try {
-        const credential = EmailAuthProvider.credential(user.email, currentPassword);
-        await reauthenticateWithCredential(user, credential);
-        reauthenticated = true;
-        hideReauthModal(); // Hide re-auth modal on success
-        showProfileModal(); // Show password update modal
-        showMessage("Re-authentication successful. You can now set your new password or link accounts.");
-    } catch (error) {
-        reauthError.textContent = `Re-authentication failed: ${error.message}`;
-        reauthError.classList.remove('hidden');
-    } finally {
-        setButtonLoading(reauthEmailPasswordBtn, false, 'Re-authenticate with Password');
-        reauthCurrentPasswordInput.value = ''; // Clear password field
-    }
-}
-
-/**
- * Handles re-authentication with Google.
- */
-async function handleReauthenticateWithGoogle() {
-    const user = auth.currentUser;
-    reauthError.classList.add('hidden');
-
-    setButtonLoading(reauthGoogleBtn, true, '<i class="fab fa-google mr-2"></i> Re-authenticate with Google');
-
-    try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider); // Call signInWithPopup on the auth object
-        const credential = GoogleAuthProvider.credentialFromResult(result); // Explicitly get credential from result
-
-        await reauthenticateWithCredential(user, credential); // Use the current user and the obtained credential
-        reauthenticated = true;
-        hideReauthModal(); // Hide re-auth modal on success
-        showProfileModal(); // Show password update modal
-        showMessage("Re-authentication successful. You can now set your new password or link accounts.");
-    } catch (error) {
-        reauthError.textContent = `Re-authentication failed: ${error.message}`;
-        reauthError.classList.remove('hidden');
-    } finally {
-        setButtonLoading(reauthGoogleBtn, false, '<i class="fab fa-google mr-2"></i> Re-authenticate with Google');
-    }
-}
-
-/**
- * Handles setting/updating the user's password.
- */
-async function handleSetPassword() {
-    if (!reauthenticated) {
-        profilePasswordError.textContent = "Please re-authenticate first.";
-        profilePasswordError.classList.remove('hidden');
-        return;
-    }
-
-    const newPassword = newPasswordInput.value;
-    const confirmNewPassword = confirmNewPasswordInput.value;
-    profilePasswordError.classList.add('hidden');
-
-    if (!newPassword || !confirmNewPassword) {
-        profilePasswordError.textContent = "New password and confirmation cannot be empty.";
-        profilePasswordError.classList.remove('hidden');
-        return;
-    }
-    if (newPassword.length < 6) {
-        profilePasswordError.textContent = "New password must be at least 6 characters long.";
-        profilePasswordError.classList.remove('hidden');
-        return;
-    }
-    if (newPassword !== confirmNewPassword) {
-        profilePasswordError.textContent = "New password and confirmation do not match.";
-        profilePasswordError.classList.remove('hidden');
-        return;
-    }
-
-    setButtonLoading(setPasswordBtn, true, 'Set Password');
-
-    try {
-        const user = auth.currentUser;
-        await updatePassword(user, newPassword);
-        showMessage("Password updated successfully!");
-        hideProfileModal(); // Close modal on success
-    } catch (error) {
-        profilePasswordError.textContent = `Failed to set password: ${error.message}`;
-        profilePasswordError.classList.remove('hidden');
-    } finally {
-        setButtonLoading(setPasswordBtn, false, 'Set Password');
-    }
-}
-
-/**
- * Handles linking a Google account to the current user.
- */
-async function handleLinkGoogleAccount() {
-    if (!reauthenticated) {
-        linkGoogleError.textContent = "Please re-authenticate first to link your Google account.";
-        linkGoogleError.classList.remove('hidden');
-        return;
-    }
-
-    setButtonLoading(linkGoogleBtn, true, '<i class="fab fa-google mr-2"></i> Linking...');
-    linkGoogleError.classList.add('hidden'); // Hide previous errors
-
-    try {
-        const user = auth.currentUser;
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider); // Sign in with Google
-
-        // Explicitly get credential from result and check if it's valid
-        const credential = GoogleAuthProvider.credentialFromResult(result); 
-        if (!credential) {
-            throw new Error("Google sign-in did not return a valid credential.");
-        }
-
-        // Link the Google credential to the current user
-        await linkWithCredential(user, credential);
-
-        showMessage("Google account linked successfully! You can now sign in with Google.");
-        hideProfileModal(); // Close modal on success
-    } catch (error) {
-        let errorMessage = `Failed to link Google account: ${error.message}`;
-        if (error.code === 'auth/provider-already-linked') {
-            errorMessage = "This Google account is already linked to your current account.";
-        } else if (error.code === 'auth/credential-already-in-use') {
-            errorMessage = "This Google account is already linked to another user's account.";
-        } else if (error.code === 'auth/email-already-in-use') {
-             // This can happen if a Google account's email is already used by a *different* non-linked Firebase account
-             errorMessage = "This Google account's email is already associated with another account. Please use a different Google account or sign in with that account.";
-        }
-        linkGoogleError.textContent = errorMessage;
-        linkGoogleError.classList.remove('hidden');
-    } finally {
-        setButtonLoading(linkGoogleBtn, false, '<i class="fab fa-google mr-2"></i> Link with Google');
-    }
-}
-
-
-// --- Lead Management Logic ---
-
-/**
- * Renders the niche checkboxes in the form.
+ * Renders the niche checkboxes dynamically.
  */
 function renderNiches() {
-    nichesContainer.innerHTML = '';
+    nichesContainer.innerHTML = ''; // Clear existing
     poppyAINiches.forEach(niche => {
         const div = document.createElement('div');
-        div.className = 'mb-2';
-        const label = document.createElement('label');
-        label.className = 'inline-flex items-center';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'niches';
-        checkbox.value = niche.name;
-        checkbox.className = 'form-checkbox h-4 w-4 text-indigo-600 rounded';
-        label.appendChild(checkbox);
-        const span = document.createElement('span');
-        span.className = 'ml-2 text-gray-800 font-semibold';
-        span.textContent = niche.name;
-        label.appendChild(span);
-        div.appendChild(label);
+        div.className = 'flex items-center';
+        div.innerHTML = `
+            <input type="checkbox" id="niche-${niche.replace(/\s/g, '-')}" name="niches" value="${niche}" class="form-checkbox text-indigo-600 rounded-md">
+            <label for="niche-${niche.replace(/\s/g, '-')}" class="ml-2 text-sm text-gray-700">${niche}</label>
+        `;
         nichesContainer.appendChild(div);
     });
-    // Add event listener to the container for delegation
-    nichesContainer.addEventListener('change', handleNicheChange);
-}
 
-/**
- * Handles changes to niche checkboxes.
- */
-function handleNicheChange(e) {
-    if (e.target.type === 'checkbox' && e.target.value === 'Others') {
-        otherNicheNotesContainer.classList.toggle('hidden', !e.target.checked);
-    }
-}
-
-/**
- * Gathers form data into an object.
- * @returns {object} The lead data object.
- */
-function getFormData() {
-    const selectedNiches = [];
-    nichesContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        selectedNiches.push(cb.value);
+    // Add event listeners to all niche checkboxes
+    nichesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateFormInput);
     });
-
-    const followerCountRadio = document.querySelector('input[name="followerCount"]:checked');
-
-    return {
-        name: leadNameInput.value.trim(),
-        email: leadEmailInput.value.trim(),
-        callBookingLink: callBookingLinkInput.value.trim(),
-        instagramLink: instagramLinkInput.value.trim(),
-        youtubeLink: youtubeLinkInput.value.trim(),
-        tiktokLink: tiktokLinkInput.value.trim(),
-        followerCount: followerCountRadio ? followerCountRadio.value : '',
-        avgViews: avgViewsInput.value.trim(),
-        niches: selectedNiches,
-        otherNicheNotes: otherNicheNotesTextarea.value.trim(),
-        notes: leadNotesTextarea.value.trim(),
-    };
 }
 
 /**
- * Validates the lead form data.
- * @param {object} data - The lead data object.
- * @returns {string|null} An error message string or null if valid.
+ * Updates the newLead object based on form input changes.
+ * This function is generic and handles various input types.
  */
-function validateForm(data) {
-    if (!data.name) return 'Lead Name is required.';
-    const hasSocialLink = data.instagramLink || data.youtubeLink || data.tiktokLink;
-    if (!hasSocialLink) return 'At least one social media link is required.';
-    if (!data.followerCount) return 'Follower Count is required.';
-    if (data.niches.length === 0) return 'At least one Niche must be selected.';
-    if (data.niches.includes('Others') && !data.otherNicheNotes) return 'Please specify details for the "Others" niche.';
-    return null;
+function updateFormInput(event) {
+    const { id, value, type, checked, name } = event.target;
+
+    if (id === 'lead-name') newLead.name = value;
+    else if (id === 'lead-email') newLead.email = value;
+    else if (id === 'call-booking-link') newLead.callBookingLink = value;
+    else if (id === 'instagram-link') newLead.instagramLink = value;
+    else if (id === 'youtube-link') newLead.youtubeLink = value;
+    else if (id === 'tiktok-link') newLead.tiktokLink = value;
+    else if (name === 'follower-count') newLead.followerCount = value;
+    else if (id === 'avg-views') newLead.avgViews = value;
+    else if (id === 'other-niche-notes') newLead.otherNicheNotes = value;
+    else if (id === 'lead-notes') newLead.notes = value;
+    else if (name === 'niches' && type === 'checkbox') {
+        if (checked) {
+            if (!newLead.niches.includes(value)) {
+                newLead.niches.push(value);
+            }
+        } else {
+            newLead.niches = newLead.niches.filter(n => n !== value);
+        }
+        // Show/hide other niche notes based on "Other" checkbox
+        if (value === 'Other') {
+            if (checked) {
+                otherNicheNotesContainer.classList.remove('hidden');
+            } else {
+                otherNicheNotesContainer.classList.add('hidden');
+                newLead.otherNicheNotes = ''; // Clear notes if "Other" is unchecked
+                otherNicheNotesTextarea.value = '';
+            }
+        }
+    }
+    validateForm(); // Re-validate on every input change
+}
+
+
+/**
+ * Validates the lead form.
+ * @returns {boolean} True if form is valid, false otherwise.
+ */
+function validateForm() {
+    let isValid = true;
+    let errorMessage = '';
+
+    if (!newLead.name.trim()) {
+        errorMessage += 'Lead Name is required. ';
+        isValid = false;
+    }
+    // Basic email format validation if email is provided
+    if (newLead.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newLead.email.trim())) {
+        errorMessage += 'Invalid Lead Email format. ';
+        isValid = false;
+    }
+
+    validationErrorDiv.textContent = errorMessage;
+    if (errorMessage) {
+        validationErrorDiv.classList.remove('hidden');
+    } else {
+        validationErrorDiv.classList.add('hidden');
+    }
+    return isValid;
 }
 
 /**
- * Resets the lead form to its initial state.
+ * Resets the lead form fields and state.
  */
 function resetForm() {
-    document.querySelectorAll('#lead-modal input[type="text"], #lead-modal input[type="email"], #lead-modal input[type="url"], #lead-modal input[type="number"], #lead-modal textarea').forEach(input => input.value = '');
-    document.querySelectorAll('#lead-modal input[type="radio"], #lead-modal input[type="checkbox"]').forEach(input => input.checked = false);
-
+    leadForm.reset();
+    newLead = {
+        name: '',
+        email: '',
+        notes: '',
+        callBookingLink: '',
+        followerCount: '',
+        avgViews: '',
+        instagramLink: '',
+        youtubeLink: '',
+        tiktokLink: '',
+        niches: [],
+        otherNicheNotes: ''
+    };
     editingLeadId = null;
-    validationErrorDiv.classList.add('hidden');
-    otherNicheNotesContainer.classList.add('hidden');
-
-    formTitle.textContent = 'Add New Lead';
+    validationErrorDiv.classList.add('hidden'); // Hide validation errors
     addLeadBtn.classList.remove('hidden');
     updateLeadBtn.classList.add('hidden');
     cancelEditBtn.classList.add('hidden');
-}
-
-/**
- * Adds a new lead to Firestore.
- */
-async function handleAddLead() {
-    const leadData = getFormData();
-    const errorMessage = validateForm(leadData);
-    if (errorMessage) {
-        errorMessageSpan.textContent = errorMessage;
-        validationErrorDiv.classList.remove('hidden');
-        return;
-    }
-    validationErrorDiv.classList.add('hidden');
-
-    try {
-        const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), {
-            ...leadData,
-            createdBy: userId,
-            createdAt: serverTimestamp(),
-        });
-        showMessage("Lead added successfully!");
-        hideLeadModal(); // Close modal after adding
-    } catch (e) {
-        console.error("Error adding document: ", e);
-        showMessage(`Error adding lead: ${e.message}`);
-    }
-}
-
-/**
- * Populates the form for editing a lead.
- * @param {string} id - The ID of the lead to edit.
- */
-function populateFormForEdit(id) {
-    const lead = leads.find(l => l.id === id);
-    if (!lead) return;
-
-    editingLeadId = id;
-
-    leadNameInput.value = lead.name || '';
-    leadEmailInput.value = lead.email || '';
-    callBookingLinkInput.value = lead.callBookingLink || '';
-    instagramLinkInput.value = lead.instagramLink || '';
-    youtubeLinkInput.value = lead.youtubeLink || '';
-    tiktokLinkInput.value = lead.tiktokLink || '';
-    avgViewsInput.value = lead.avgViews || '';
-    leadNotesTextarea.value = lead.notes || '';
-    otherNicheNotesTextarea.value = lead.otherNicheNotes || '';
-
-    const followerRadio = document.querySelector(`input[name="followerCount"][value="${lead.followerCount}"]`);
-    if (followerRadio) followerRadio.checked = true;
-
-    nichesContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.checked = lead.niches.includes(cb.value);
-    });
-
-    otherNicheNotesContainer.classList.toggle('hidden', !lead.niches.includes('Others'));
-
-    formTitle.textContent = 'Edit Lead';
-    addLeadBtn.classList.add('hidden');
-    updateLeadBtn.classList.remove('hidden');
-    cancelEditBtn.classList.add('hidden');
-
-    showLeadModal(); // Show modal when populating for edit
-}
-
-/**
- * Updates an existing lead in Firestore.
- */
-async function handleUpdateLead() {
-    if (!editingLeadId) return;
-
-    const leadData = getFormData();
-    const errorMessage = validateForm(leadData);
-    if (errorMessage) {
-        errorMessageSpan.textContent = errorMessage;
-        validationErrorDiv.classList.remove('hidden');
-        return;
-    }
-    validationErrorDiv.classList.add('hidden');
-
-    try {
-        const leadRef = doc(db, `artifacts/${appId}/public/data/leads`, editingLeadId);
-        await updateDoc(leadRef, {
-            ...leadData,
-            updatedAt: serverTimestamp()
-        });
-        showMessage("Lead updated successfully!");
-        hideLeadModal(); // Close modal after updating
-    } catch (e) {
-        console.error("Error updating document: ", e);
-        showMessage(`Error updating lead: ${e.message}`);
-    }
-}
-
-/**
- * Deletes a lead from Firestore.
- * @param {string} id - The ID of the lead to delete.
- */
-async function handleDeleteLead(id) {
-    showMessage("Are you sure you want to delete this lead? This action cannot be undone. \n\n (Click 'Got It!' to confirm deletion)");
-    // Temporarily re-purpose the 'Got It!' button for confirmation
-    const originalCloseMessageBtnHandler = closeMessageBtn.onclick; // Store original handler
-    closeMessageBtn.onclick = async () => {
-        try {
-            await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, id));
-            showMessage("Lead deleted successfully.");
-        } catch (e) {
-            console.error("Error removing document: ", e);
-            showMessage(`Error deleting lead: ${e.message}`);
-        } finally {
-            hideMessage();
-            closeMessageBtn.onclick = originalCloseMessageBtnHandler; // Restore original handler
-        }
-        };
+    otherNicheNotesContainer.classList.add('hidden'); // Hide other niche notes
+    renderNiches(); // Re-render niches to uncheck all
 }
 
 /**
  * Renders the list of leads.
  */
 function renderLeadsList() {
-    leadsListDiv.innerHTML = '';
+    if (!leadsListDiv) return; // Ensure the element exists
+
+    leadsListDiv.innerHTML = ''; // Clear current list
+
     if (leads.length === 0) {
-        leadsListDiv.appendChild(noLeadsMessage);
         noLeadsMessage.classList.remove('hidden');
+        return;
     } else {
         noLeadsMessage.classList.add('hidden');
-        leads.forEach(lead => {
-            const leadDiv = document.createElement('div');
-            leadDiv.className = 'bg-white p-5 rounded-lg shadow-md border border-indigo-100 flex flex-col';
-            leadDiv.innerHTML = `
-                <div class="flex-grow">
-                    <h3 class="text-xl font-bold text-gray-900">${lead.name || 'No Name'}</h3>
-                    <div class="mt-2 space-y-1 text-sm">
-                        ${lead.email ? `<p class="text-gray-600"><strong>Email:</strong> <a href="mailto:${lead.email}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline">${lead.email}</a></p>` : ''}
-                        ${lead.callBookingLink ? `<p class="text-gray-600"><strong>Booking:</strong> <a href="${lead.callBookingLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline truncate inline-block max-w-full">${lead.callBookingLink}</a></p>` : ''}
-                        <div class="flex flex-wrap gap-x-4">
-                        ${lead.instagramLink ? `<p class="text-gray-600"><strong>IG:</strong> <a href="${lead.instagramLink}" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline">Profile</a></p>` : ''}
-                        ${lead.youtubeLink ? `<p class="text-gray-600"><strong>YT:</strong> <a href="${lead.youtubeLink}" target="_blank" rel="noopener noreferrer" class="text-red-600 hover:underline">Channel</a></p>` : ''}
-                        ${lead.tiktokLink ? `<p class="text-gray-600"><strong>TikTok:</strong> <a href="${lead.tiktokLink}" target="_blank" rel="noopener noreferrer" class="text-gray-800 hover:underline">Profile</a></p>` : ''}
-                        </div>
-                        ${lead.followerCount ? `<p class="text-gray-700"><strong>Followers:</strong> <span class="font-medium">${lead.followerCount}</span></p>` : ''}
-                        ${lead.avgViews ? `<p class="text-gray-700"><strong>Avg. Views:</strong> <span class="font-medium">${lead.avgViews}</span></p>` : ''}
-                    </div>
-                    <div class="mt-3">
-                        ${lead.niches && lead.niches.length > 0 ? `<p class="text-gray-700 text-sm"><strong>Niches:</strong> <span class="font-medium">${lead.niches.join(', ')}</span></p>` : ''}
-                        ${lead.otherNicheNotes ? `<p class="text-gray-700 text-sm mt-1 italic"><strong>Other Niche:</strong> ${lead.otherNicheNotes}</p>` : ''}
-                        ${lead.notes ? `<p class="text-gray-800 text-sm mt-2 italic bg-gray-50 p-2 rounded"><strong>Notes:</strong> ${lead.notes}</p>` : ''}
-                    </div>
-                </div>
-                <div class="border-t mt-4 pt-3 flex justify-between items-center">
-                     <p class="text-gray-400 text-xs">ID: ${lead.id.substring(0, 8)}...</p>
-                     <div class="flex space-x-2">
-                        <button data-id="${lead.id}" class="edit-btn px-4 py-2 bg-yellow-500 text-white rounded-lg shadow-sm hover:bg-yellow-600 transition text-sm">Edit</button>
-                        <button data-id="${lead.id}" class="delete-btn px-4 py-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition text-sm">Delete</button>
-                    </div>
-                </div>
-            `;
-            leadsListDiv.appendChild(leadDiv);
-        });
+    }
+
+    leads.forEach(lead => {
+        const leadCard = document.createElement('div');
+        leadCard.className = 'bg-white rounded-lg shadow-md p-4 mb-3 border-l-4 border-indigo-500 relative';
+        leadCard.innerHTML = `
+            <h3 class="text-xl font-semibold text-indigo-700 mb-2">${lead.name || 'N/A'}</h3>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Email:</strong> ${lead.email || 'N/A'}</p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Call Booking:</strong> <a href="${lead.callBookingLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.callBookingLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Instagram:</strong> <a href="${lead.instagramLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.instagramLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">YouTube:</strong> <a href="${lead.youtubeLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.youtubeLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">TikTok:</strong> <a href="${lead.tiktokLink}" target="_blank" class="text-blue-500 hover:underline break-all">${lead.tiktokLink || 'N/A'}</a></p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Followers:</strong> ${lead.followerCount || 'N/A'}</p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Avg. Views:</strong> ${lead.avgViews || 'N/A'}</p>
+            <p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Niches:</strong> ${lead.niches && lead.niches.length > 0 ? lead.niches.join(', ') : 'N/A'}</p>
+            ${lead.otherNicheNotes ? `<p class="text-gray-700 text-sm mb-1"><strong class="font-medium">Other Niche Notes:</strong> ${lead.otherNicheNotes}</p>` : ''}
+            <p class="text-gray-700 text-sm mb-3"><strong class="font-medium">Notes:</strong> ${lead.notes || 'N/A'}</p>
+            <p class="text-gray-500 text-xs">Added: ${lead.createdAt ? new Date(lead.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
+
+            <div class="absolute top-4 right-4 flex space-x-2">
+                <button class="edit-btn text-blue-600 hover:text-blue-800" data-id="${lead.id}" title="Edit Lead">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-btn text-red-600 hover:text-red-800" data-id="${lead.id}" title="Delete Lead">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        `;
+        leadsListDiv.appendChild(leadCard);
+    });
+
+    // Attach event listeners to new edit/delete buttons
+    leadsListDiv.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', handleEditLead);
+    });
+    leadsListDiv.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDeleteLead);
+    });
+}
+
+/**
+ * Fills the form with lead data for editing.
+ * @param {string} leadId - The ID of the lead to edit.
+ */
+function fillFormForEdit(leadId) {
+    const leadToEdit = leads.find(lead => lead.id === leadId);
+    if (!leadToEdit) {
+        showMessage("Lead not found for editing.");
+        return;
+    }
+
+    editingLeadId = leadId;
+    newLead = { ...leadToEdit }; // Create a copy to edit
+
+    leadNameInput.value = newLead.name || '';
+    leadEmailInput.value = newLead.email || '';
+    callBookingLinkInput.value = newLead.callBookingLink || '';
+    instagramLinkInput.value = newLead.instagramLink || '';
+    youtubeLinkInput.value = newLead.youtubeLink || '';
+    tiktokLinkInput.value = newLead.tiktokLink || '';
+    avgViewsInput.value = newLead.avgViews || '';
+    leadNotesTextarea.value = newLead.notes || '';
+    otherNicheNotesTextarea.value = newLead.otherNicheNotes || '';
+
+    // Set radio buttons
+    if (newLead.followerCount === '10k+') {
+        follower10KUpRadio.checked = true;
+    } else if (newLead.followerCount === '<10k') {
+        followerLess10KRadio.checked = true;
+    }
+
+    // Set checkboxes for niches
+    renderNiches(); // First, reset all checkboxes
+    newLead.niches.forEach(niche => {
+        const checkbox = document.getElementById(`niche-${niche.replace(/\s/g, '-')}`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    });
+
+    // Show/hide other niche notes
+    if (newLead.niches.includes('Other')) {
+        otherNicheNotesContainer.classList.remove('hidden');
+    } else {
+        otherNicheNotesContainer.classList.add('hidden');
+    }
+
+    addLeadBtn.classList.add('hidden');
+    updateLeadBtn.classList.remove('hidden');
+    cancelEditBtn.classList.remove('hidden');
+    validationErrorDiv.classList.add('hidden'); // Clear any previous validation errors
+}
+
+// --- Firebase Interactions ---
+
+/**
+ * Handles adding a new lead to Firestore.
+ */
+async function handleAddLead(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    if (!validateForm()) {
+        return;
+    }
+
+    try {
+        // Add the current user's UID to the lead data
+        const leadData = {
+            ...newLead,
+            createdAt: serverTimestamp(),
+            createdBy: userId // Store the UID of the user who created this lead
+        };
+        await addDoc(collection(db, `artifacts/${appId}/public/data/leads`), leadData);
+        showMessage("Lead added successfully!");
+        resetForm();
+    } catch (error) {
+        console.error("Error adding lead:", error);
+        showMessage(`Error adding lead: ${error.message}`);
     }
 }
 
-// --- Event Listeners ---
+/**
+ * Handles updating an existing lead in Firestore.
+ */
+async function handleUpdateLead() {
+    if (!editingLeadId) {
+        showMessage("No lead selected for update.");
+        return;
+    }
+
+    if (!validateForm()) {
+        return;
+    }
+
+    try {
+        const leadRef = doc(db, `artifacts/${appId}/public/data/leads`, editingLeadId);
+        // Ensure 'createdBy' field is not updated
+        const updatedLeadData = { ...newLead };
+        delete updatedLeadData.id; // Remove ID as it's not part of the document data
+        delete updatedLeadData.createdBy; // Ensure createdBy is not accidentally updated
+
+        await updateDoc(leadRef, updatedLeadData);
+        showMessage("Lead updated successfully!");
+        resetForm();
+    } catch (error) {
+        console.error("Error updating lead:", error);
+        showMessage(`Error updating lead: ${error.message}`);
+    }
+}
 
 /**
- * Attaches all primary event listeners for the dashboard page.
+ * Handles deleting a lead from Firestore.
+ * @param {Event} event - The click event from the delete button.
  */
-function attachEventListeners() {
-    // Dashboard actions
-    logoutBtn.addEventListener('click', handleSignOut);
-    addLeadModalBtn.addEventListener('click', () => {
-        resetForm(); // Ensure form is clean for new entry
-        showLeadModal();
-    });
-    profileSettingsBtn.addEventListener('click', showReauthModal); // Show reauth modal first
+async function handleDeleteLead(event) {
+    const leadIdToDelete = event.currentTarget.dataset.id;
+    if (!leadIdToDelete) {
+        showMessage("No lead ID found for deletion.");
+        return;
+    }
 
-    // Lead Form (inside modal)
-    addLeadBtn.addEventListener('click', handleAddLead);
-    updateLeadBtn.addEventListener('click', handleUpdateLead);
-    cancelEditBtn.addEventListener('click', hideLeadModal); // Cancel button closes modal
+    // Custom confirmation message box
+    showMessage("Are you sure you want to delete this lead?", false); // Show message, but no resend button
 
-    // Lead Modal close buttons
-    closeModalBtn.addEventListener('click', hideLeadModal);
-    leadModalOverlay.addEventListener('click', (e) => {
-        if (e.target === leadModalOverlay) { // Only close if clicking on the overlay itself, not the modal content
-            hideLeadModal();
+    // Temporarily store the delete action and attach listener to the 'Got It!' button
+    const confirmDelete = async () => {
+        try {
+            await deleteDoc(doc(db, `artifacts/${appId}/public/data/leads`, leadIdToDelete));
+            showMessage("Lead deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting lead:", error);
+            showMessage(`Error deleting lead: ${error.message}`);
+        } finally {
+            // Remove the temporary event listener to avoid side effects
+            closeMessageBtn.removeEventListener('click', confirmDelete);
+            hideMessage(); // Hide the message box
         }
-    });
+    };
 
-    // Profile Settings Modals (NEW)
-    closeReauthModalBtn.addEventListener('click', hideReauthModal); // Close button for reauth modal
-    reauthModalOverlay.addEventListener('click', (e) => {
-        if (e.target === reauthModalOverlay) {
-            hideReauthModal();
-        }
-    });
-
-    closeProfileModalBtn.addEventListener('click', hideProfileModal); // Close button for password modal
-    profileModalOverlay.addEventListener('click', (e) => {
-        if (e.target === profileModalOverlay) {
-            hideProfileModal();
-        }
-    });
-
-    // Profile Settings Re-authentication and Password Update (NEW)
-    reauthEmailPasswordBtn.addEventListener('click', handleReauthenticateWithPassword);
-    reauthGoogleBtn.addEventListener('click', handleReauthenticateWithGoogle);
-    setPasswordBtn.addEventListener('click', handleSetPassword);
-    linkGoogleBtn.addEventListener('click', handleLinkGoogleAccount); // New: Link Google Account button
-
-    newPasswordInput.addEventListener('input', () => {
-        // Simple validation to enable/disable set password button
-        if (reauthenticated && newPasswordInput.value.length >= 6 && newPasswordInput.value === confirmNewPasswordInput.value) {
-            setPasswordBtn.disabled = false;
-        } else {
-            setPasswordBtn.disabled = true;
-        }
-        profilePasswordError.classList.add('hidden'); // Hide error on input
-    });
-    confirmNewPasswordInput.addEventListener('input', () => {
-        // Simple validation to enable/disable set password button
-        if (reauthenticated && newPasswordInput.value.length >= 6 && newPasswordInput.value === confirmNewPasswordInput.value) {
-            setPasswordBtn.disabled = false;
-        } else {
-            setPasswordBtn.disabled = true;
-        }
-        profilePasswordError.classList.add('hidden'); // Hide error on input
-    });
-
-
-    // Leads List (Event Delegation)
-    leadsListDiv.addEventListener('click', (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
-
-        const id = target.dataset.id;
-        if (target.classList.contains('edit-btn')) {
-            populateFormForEdit(id);
-        } else if (target.classList.contains('delete-btn')) {
-            handleDeleteLead(id);
-        }
-    });
-
-    // Message Box
-    closeMessageBtn.addEventListener('click', hideMessage);
+    // Replace the default 'Got It!' listener with our confirmation
+    closeMessageBtn.removeEventListener('click', hideMessage); // Remove default hide
+    closeMessageBtn.addEventListener('click', confirmDelete, { once: true }); // Add one-time listener for confirmation
 }
+
+/**
+ * Handles the edit button click.
+ * @param {Event} event - The click event.
+ */
+function handleEditLead(event) {
+    const leadIdToEdit = event.currentTarget.dataset.id;
+    fillFormForEdit(leadIdToEdit);
+}
+
+/**
+ * Handles user logout.
+ */
+async function handleLogout() {
+    try {
+        if (leadsUnsubscribe) {
+            leadsUnsubscribe(); // Unsubscribe from Firestore listener
+            leadsUnsubscribe = null;
+        }
+        await signOut(auth);
+        window.location.href = 'index.html'; // Redirect to login page
+    } catch (error) {
+        console.error("Logout error:", error);
+        showMessage(`Logout failed: ${error.message}`);
+    }
+}
+
+/**
+ * Handles linking Google account to existing user.
+ */
+async function handleLinkGoogle() {
+    linkGoogleBtn.disabled = true;
+    linkGoogleBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Linking...';
+    linkGoogleError.classList.add('hidden');
+
+    try {
+        const provider = new GoogleAuthProvider();
+        const user = auth.currentUser;
+
+        if (!user) {
+            showMessage("No user logged in to link Google account.");
+            return;
+        }
+
+        // Check if Google provider is already linked
+        const isGoogleLinked = user.providerData.some(
+            (p) => p.providerId === GoogleAuthProvider.PROVIDER_ID
+        );
+
+        if (isGoogleLinked) {
+            showMessage("Google account is already linked to this user.", false);
+            googleLinkSection.classList.add('hidden'); // Hide section if already linked
+            return;
+        }
+
+        await linkWithCredential(user, provider);
+        showMessage("Google account linked successfully!");
+        googleLinkSection.classList.add('hidden'); // Hide the section after successful linking
+        profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No'; // Update status
+    } catch (error) {
+        console.error("Error linking Google account:", error);
+        linkGoogleError.textContent = error.message;
+        linkGoogleError.classList.remove('hidden');
+        showMessage(`Failed to link Google account: ${error.message}`);
+    } finally {
+        linkGoogleBtn.disabled = false;
+        linkGoogleBtn.innerHTML = '<i class="fab fa-google mr-2"></i> Link with Google';
+    }
+}
+
+/**
+ * Resends the verification email.
+ */
+messageBoxResendBtn.addEventListener('click', async () => {
+    hideMessage(); // Hide the message box first
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            showMessage("Verification email resent. Please check your inbox.", false);
+        } catch (error) {
+            console.error("Error resending verification email:", error);
+            showMessage(`Failed to resend verification email: ${error.message}`, false);
+        }
+    } else {
+        showMessage("No user logged in to resend verification email. Please sign in.", false);
+    }
+});
+
+
+// --- Event Listeners ---
+function attachEventListeners() {
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    if (linkGoogleBtn) linkGoogleBtn.addEventListener('click', handleLinkGoogle);
+
+    // Lead form inputs
+    if (leadNameInput) leadNameInput.addEventListener('input', updateFormInput);
+    if (leadEmailInput) leadEmailInput.addEventListener('input', updateFormInput);
+    if (callBookingLinkInput) callBookingLinkInput.addEventListener('input', updateFormInput);
+    if (instagramLinkInput) instagramLinkInput.addEventListener('input', updateFormInput);
+    if (youtubeLinkInput) youtubeLinkInput.addEventListener('input', updateFormInput);
+    if (tiktokLinkInput) tiktokLinkInput.addEventListener('input', updateFormInput);
+    if (follower10KUpRadio) follower10KUpRadio.addEventListener('change', updateFormInput);
+    if (followerLess10KRadio) followerLess10KRadio.addEventListener('change', updateFormInput);
+    if (avgViewsInput) avgViewsInput.addEventListener('input', updateFormInput);
+    if (otherNicheNotesTextarea) otherNicheNotesTextarea.addEventListener('input', updateFormInput);
+    if (leadNotesTextarea) leadNotesTextarea.addEventListener('input', updateFormInput);
+    if (addLeadBtn) addLeadBtn.addEventListener('click', handleAddLead);
+    if (updateLeadBtn) updateLeadBtn.addEventListener('click', handleUpdateLead);
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
+
+    // Message box close buttons
+    if (closeMessageBtn) closeMessageBtn.addEventListener('click', hideMessage);
+    if (messageBoxCloseIcon) messageBoxCloseIcon.addEventListener('click', hideMessage);
+}
+
 
 // --- Initialization ---
 
@@ -787,25 +541,51 @@ async function main() {
     auth = getAuth(app);
     db = getFirestore(app);
 
-    attachEventListeners();
+    // Initial state: show loading indicator, hide main content
+    loadingIndicator.classList.remove('hidden');
+    mainDashboardContent.classList.add('hidden'); // Ensure main content is hidden initially
+
+    // Render niches immediately
     renderNiches();
 
-    // Handle authentication state for dashboard
+    // Attach event listeners
+    attachEventListeners();
+
+    // Handle authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await user.reload(); // Get latest user state
+            userId = user.uid; // Set global userId
+
             if (user.emailVerified) {
                 // User is authenticated and verified, show dashboard
-                userId = user.uid;
-                currentUserIdSpan.textContent = userId;
-                switchView('app-view');
-                loadingIndicator.classList.add('hidden'); // Hide loading indicator once app is ready
+                hideMessage(); // Ensure message box is hidden
+                mainDashboardContent.classList.remove('disabled-overlay'); // Enable content
+                mainDashboardContent.classList.remove('hidden'); // Show main content
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator
 
-                // Start Firestore listener if it's not already running
+                // Display user info
+                if (userIdDisplay) userIdDisplay.textContent = userId;
+                if (profileEmail) profileEmail.textContent = user.email;
+                if (profileEmailVerified) profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
+
+                // Check if Google provider is linked and hide section if it is
+                const isGoogleLinked = user.providerData.some(
+                    (p) => p.providerId === GoogleAuthProvider.PROVIDER_ID
+                );
+                if (googleLinkSection) {
+                    if (isGoogleLinked) {
+                        googleLinkSection.classList.add('hidden');
+                    } else {
+                        googleLinkSection.classList.remove('hidden');
+                    }
+                }
+
+                // Start Firestore listener for leads if not already running
                 if (!leadsUnsubscribe) {
                     const leadsCollectionRef = collection(db, `artifacts/${appId}/public/data/leads`);
                     // Query to get leads created by the current user
-                    const q = query(leadsCollectionRef, where("createdBy", "==", userId));
+                    const q = query(leadsCollectionRef, where("createdBy", "===", userId));
 
                     leadsUnsubscribe = onSnapshot(q, (snapshot) => {
                         leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -817,9 +597,21 @@ async function main() {
                         showMessage(`Error fetching leads: ${error.message}.`);
                     });
                 }
+
             } else {
-                // User is signed in but email is not verified, redirect to login
-                window.location.href = 'index.html';
+                // User is signed in but email is not verified.
+                // Disable dashboard content and show verification message.
+                mainDashboardContent.classList.add('disabled-overlay'); // Disable content
+                mainDashboardContent.classList.remove('hidden'); // Still show the dimmed content
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator
+
+                showMessage("Your email is not verified. Please check your inbox for a verification link to unlock the dashboard.", true); // Show message with resend button
+
+                // Display user info even if unverified
+                if (userIdDisplay) userIdDisplay.textContent = userId;
+                if (profileEmail) profileEmail.textContent = user.email;
+                if (profileEmailVerified) profileEmailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
+                if (googleLinkSection) googleLinkSection.classList.add('hidden'); // Hide Google link section for unverified users
             }
         } else {
             // User is signed out, redirect to login
